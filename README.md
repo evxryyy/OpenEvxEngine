@@ -1,6 +1,10 @@
 # OpenEvxEngine 
 
 ![GitHub Releases](https://img.shields.io/github/downloads/evxryyy/OpenEvxEngine/total)
+
+## Releases
+
+- [Latest release](https://github.com/evxryyy/OpenEvxEngine/releases/latest)
 - [All releases](https://github.com/evxryyy/OpenEvxEngine/releases)
 
 ## Engine Documentation
