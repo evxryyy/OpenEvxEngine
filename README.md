@@ -1,5 +1,8 @@
 # OpenEvxEngine 
 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/evxryyy/OpenEvxEngine)
+
+
 ## Engine Documentation
   - [Docs](https://evxryyy.github.io/OpenEvxEngine)
 
