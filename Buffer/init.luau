@@ -1,4 +1,3 @@
---!native
 --!nonstrict
 
 --[[
@@ -788,7 +787,6 @@ end
     Write 8 booleans packed into 1 byte.
     - Accepts an array-like table of up to 8 values.
     - Each truthy value sets the corresponding bit to 1.
-
 ]]
 function BufferComponent.WriteBool8(self : BufferComponentClass,value : {any})
 	assert(type(value) == "table","please insert an array")
