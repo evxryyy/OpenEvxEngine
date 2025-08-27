@@ -4,18 +4,18 @@
 
 ## Logs
 
-Version : 1.4
+### Version : 1.4
 
-### Fixes
+#### Fixes
 - Fixed multiple bugs related to reading integers and Roblox types.
 
-### Changes
+#### Changes
 - Each failed function call now outputs a clearer, more readable error message.
 - Max value of UINT54 is now 18 014 398 509 481 980.
 - ReadString now requires a length value.
 - Offsets for UDim and UDim2 are now stored as SignedInt32 instead of Float32.
 
-### News
+#### News
 - SignedInt1 -> (-1 - 1).
 - Introduced a debug file for extending or customizing debug methods.
 
