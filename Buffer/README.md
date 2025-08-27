@@ -4,6 +4,9 @@
 
 ## Logs
 
+Version : 1.4.1
+- !native is now removed.
+
 ### Version : 1.4
 
 #### Fixes
