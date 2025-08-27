@@ -8,7 +8,7 @@ return {
 	MAX_UINT32 = 4294967296,
 	MAX_UINT40 = 1099511627775,
 	MAX_UINT48 = 281474976710655,
-	MAX_UINT54 = 18014398509481980, --basically is 18014398509481984 but roblox dont allow more
+	MAX_UINT54 = 18014398509481980, --The maximum value is essentially 18014398509481984, but Roblox does not allow values greater
 
 	MIN_INT1 = -1,
 	MAX_INT1 = 1,
