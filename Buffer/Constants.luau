@@ -39,7 +39,7 @@ return {
 	MAX_STRING16 = 16,
 	MAX_STRING32 = 32,
 	MAX_STRING64 = 64,
-	
+
 	--VERSION--
-	VERSION = "1.4",
+	VERSION = "1.4.1",
 }
