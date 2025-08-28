@@ -4,6 +4,15 @@
 
 ## Logs
 
+### Version : 1.4.3 (Latest update)
+
+#### Fixes
+- Fixed multiple bugs in write functions where invalid types produced incorrect debug output.
+
+#### Changes
+- Renamed ReadUdim and ReadUdim2 to ReadUDim and ReadUDim2 (old names remain supported for backward compatibility).
+- All read functions now return their respective target type, or nil if the operation fails.
+
 Version : 1.4.2
 - .dev file is now removed.
 
@@ -11,7 +20,7 @@ Version : 1.4.1
 - !native is now removed.
 
 ### Version : 1.4
-
+ 
 #### Fixes
 - Fixed multiple bugs related to reading integers and Roblox types.
 
