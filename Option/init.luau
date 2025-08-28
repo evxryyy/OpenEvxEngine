@@ -14,8 +14,7 @@ type Some<T> = T
 type None = () -> ()
 
 -- Callback type definitions used throughout the module
-type Callback<T> = () -> T                           -- Function that returns a value of type T
-type MappedCallback<T> = (value : T) -> T           -- Function that transforms a value of type T
+type Callback<T> = () -> T                          -- Function that returns a value of type T
 type FilterCallback<T> = (value : T) -> boolean     -- Function that tests if a value meets criteria
 type AndThenCallback<T, K> = (value : T) -> any     -- Function that chains operations
 
@@ -153,9 +152,10 @@ end
 	@param callback Function to transform the value
 	@return New Option with transformed value or None
 ]]
-function OptionComponent.Map<T>(self : OptionComponent<T>,callback : MappedCallback<T>)
+function OptionComponent.Map<T,K>(self : OptionComponent<T>,callback : (value : T) -> K)
 	if(self:IsSome()) then
-		return OptionConstructor.Some(callback(self.Some :: T))
+		local outOption = callback(self.Some :: T)
+		return OptionConstructor.Some(outOption :: K) :: OptionComponent<K>
 	else
 		return OptionConstructor.None()
 	end
@@ -216,7 +216,7 @@ function OptionComponent.AndThen<T, K>(self : OptionComponent<T>,callback : (val
 	if(self:IsSome()) then
 		local outOption = callback(self.Some :: T)
 		assert(OptionConstructor.IsOption(outOption),"current callback must return a OptionComponent.")
-		return outOption
+		return outOption :: OptionComponent<K>
 	else
 		return OptionConstructor.None()
 	end
