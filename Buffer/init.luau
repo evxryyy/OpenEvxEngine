@@ -87,13 +87,21 @@ export type BufferComponentClass = typeof(setmetatable({} :: {
 },BufferComponent))
 
 --[[
+	Type definition for the ReadBool8 function
+]]
+type Readbool8ReturnType = {
+	value : {boolean},
+	majority : () -> boolean,
+}
+
+--[[
     Create a new BufferComponent with a given initial size (in bytes).
     If size is nil or <= 0, defaults to 1 byte.
 
     Note: `offset` starts at 0 (first write will go at index 0).
 ]]
 function BufferConstructor.create(size : number) : BufferComponentClass
-	if(not size or (size) <= 0) then size = 1 end
+	if(not size or (size) < 0) then size = 1 end
 	local self = setmetatable({
 		offset = 0,
 		instance_offset = 1,
@@ -109,11 +117,11 @@ end
     Note:
     - This sets `offset` to the current buffer length, so subsequent writes append.
     - `instance_buffer` starts empty; adapt if you rely on instance serialization.
-    - The type check currently uses `and`; consider using `or` to reject non-buffer values:
-      if (not b) or (type(b) ~= "buffer") then error(...) end
 ]]
 function BufferConstructor.from(b : buffer) : BufferComponentClass
-	if(not b and type(b) ~= "buffer") then error("please insert a valid buffer") end
+	if(not b or type(b) ~= "buffer") then
+		error(Debug["not a valid type"]:format(type(b),"buffer"))
+	end
 	local self = setmetatable({
 		offset = buffer.len(b),
 		instance_offset = 0,
@@ -136,7 +144,9 @@ end
     Internally converts string -> buffer via buffer.fromstring.
 ]]
 function BufferConstructor.fromString(str : string) : BufferComponentClass
-	if(not str or type(str) ~= "string") then error("please insert a valid string") end
+	if(not str or type(str) ~= "string") then
+		error(Debug["not a valid type"]:format(type(str),type("str")))
+	end
 	return BufferConstructor.from(buffer.fromstring(str))
 end
 
@@ -164,7 +174,9 @@ end
     - Endianness is irrelevant for single-byte writes.
 ]]
 function BufferComponent.WriteI1(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT1,Constants.MAX_INT1)
 	local bytes = 1
 	if(buffer.len(self.buffer) < bytes) then
@@ -190,7 +202,9 @@ end
     - 1 byte, big-endian N/A.
 ]]
 function BufferComponent.WriteI8(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT8,Constants.MAX_INT8)
 	local bytes = 1
 	if(buffer.len(self.buffer) < bytes) then
@@ -215,7 +229,9 @@ end
     - 2 bytes, big-endian via buffer.writei16.
 ]]
 function BufferComponent.WriteI16(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT16,Constants.MAX_INT16)
 	local bytes = 2
 	if(buffer.len(self.buffer) < bytes) then
@@ -240,7 +256,9 @@ end
     - 3 bytes, big-endian manual packing using bit32.extract.
 ]]
 function BufferComponent.WriteI24(self : BufferComponentClass,number : number)
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.max(Constants.MIN_INT24,math.min(Constants.MAX_INT24,number))
 	number = math.modf(number)
 	local bytes = 3
@@ -271,7 +289,9 @@ end
     - 4 bytes, big-endian via buffer.writei32.
 ]]
 function BufferComponent.WriteI32(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT32,Constants.MAX_INT32)
 	local bytes = 4
 	if(buffer.len(self.buffer) < bytes) then
@@ -297,7 +317,9 @@ end
     - 5 bytes, big-endian manual packing.
 ]]
 function BufferComponent.WriteI40(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT40,Constants.MAX_INT40)
 	if(number < 0) then
 		-- Convert negative to unsigned representation over 40 bits (two's complement range)
@@ -334,7 +356,9 @@ end
     - 6 bytes, big-endian manual packing.
 ]]
 function BufferComponent.WriteI48(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT48,Constants.MAX_INT48)
 	if(number < 0) then
 		-- Represent as 48-bit unsigned for storage
@@ -378,7 +402,9 @@ end
     - 7 bytes, big-endian manual packing.
 ]]
 function BufferComponent.WriteI54(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT54,Constants.MAX_INT54)
 	if(number < 0) then
 		-- Represent as 54-bit unsigned for storage
@@ -423,7 +449,9 @@ end
     - 1 byte.
 ]]
 function BufferComponent.WriteU8(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT8)
 	local bytes = 1
 	if(buffer.len(self.buffer) < bytes) then
@@ -448,7 +476,9 @@ end
     - 2 bytes, big-endian via buffer.writeu16.
 ]]
 function BufferComponent.WriteU16(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT16)
 	local bytes = 2
 	if(buffer.len(self.buffer) < bytes) then
@@ -473,7 +503,9 @@ end
     - 3 bytes, big-endian manual packing.
 ]]
 function BufferComponent.WriteU24(self : BufferComponentClass,number : number)
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.max(Constants.MIN_UINT,math.min(Constants.MAX_UINT24,number))
 	number = math.modf(number)
 	local bytes = 3
@@ -504,7 +536,9 @@ end
     - 4 bytes, big-endian via buffer.writeu32.
 ]]
 function BufferComponent.WriteU32(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT32)
 	local bytes = 4
 	if(buffer.len(self.buffer) < bytes) then
@@ -529,7 +563,9 @@ end
     - 5 bytes, big-endian manual packing.
 ]]
 function BufferComponent.WriteU40(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(number,Constants.MIN_UINT,Constants.MAX_UINT40)
 	-- Precompute high part (top 8 bits) and low 32-bit remainder
 	local byte5 = math.floor(number / 0x100000000) % 0x100 
@@ -564,7 +600,9 @@ end
     - 6 bytes, big-endian manual packing.
 ]]
 function BufferComponent.WriteU48(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT48)
 	local bytes = 6
 	if(buffer.len(self.buffer) < bytes) then
@@ -603,7 +641,9 @@ end
     - 7 bytes, big-endian manual packing.
 ]]
 function BufferComponent.WriteU54(self : BufferComponentClass,number : number) : ()
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT54)
 	local bytes = 7
 	if(buffer.len(self.buffer) < bytes) then
@@ -817,7 +857,9 @@ end
     - NaN/Inf are handled; finite values are encoded with sign/exponent/mantissa.
 ]]
 function BufferComponent.WriteF16(self : BufferComponentClass,number : number)
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	local bytes = 2
 	if(buffer.len(self.buffer) < bytes) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
@@ -882,7 +924,9 @@ end
     - 4 bytes, big-endian.
 ]]
 function BufferComponent.WriteF32(self : BufferComponentClass,number : number)
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(number,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32)
 	local bytes = 4
 	if(buffer.len(self.buffer) < bytes) then
@@ -907,7 +951,9 @@ end
     - 8 bytes, big-endian.
 ]]
 function BufferComponent.WriteF64(self : BufferComponentClass,number : number)
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(number,Constants.MIN_FLOAT64,Constants.MAX_FLOAT64)
 	local bytes = 8
 	if(buffer.len(self.buffer) < bytes) then
@@ -931,7 +977,9 @@ end
     - Reserves 1 byte (by design)
 ]]
 function BufferComponent.WriteU1(self : BufferComponentClass,number : number)
-	if(not number or type(number) ~= "number") then warn(`{type(number)} is not a number.`) return end
+	if(not number or type(number) ~= "number") then
+		error(Debug["not a valid type"]:format(type(number),type(10)))
+	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT1)
 	local bytes = 1
 	if(buffer.len(self.buffer) < bytes) then
@@ -1291,7 +1339,7 @@ end
   - number on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadI1(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadI1(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		return buffer.readi8(self.buffer, offset)
@@ -1313,7 +1361,7 @@ end
   Read a Signed 8-bit integer from the buffer (byte-aligned).
   Returns number in [-128, 127] or nil on failure.
 ]]
-function BufferComponent.ReadI8(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadI8(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(buffer.readi8, self.buffer, offset)
 	if not success and valueORoutOfBounds then
@@ -1334,7 +1382,7 @@ end
   Endianness is whatever buffer.readi16 uses in your environment.
   Returns number in [-32768, 32767] or nil on failure.
 ]]
-function BufferComponent.ReadI16(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadI16(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(buffer.readi16, self.buffer, offset)
 	if not success and valueORoutOfBounds then
@@ -1357,7 +1405,7 @@ end
   - number in [-2^23, 2^23-1] on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadI24(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadI24(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local b1 = buffer.readu8(self.buffer, offset + 0)
@@ -1390,7 +1438,7 @@ end
   Read a Signed 32-bit integer from the buffer.
   Returns number in [-2^31, 2^31-1] or nil on failure.
 ]]
-function BufferComponent.ReadI32(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadI32(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(buffer.readi32, self.buffer, offset)
 	if not success and valueORoutOfBounds then
@@ -1416,7 +1464,7 @@ end
   - number on success (exactly representable in double for 40-bit)
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadI40(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadI40(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local b1 = buffer.readu8(self.buffer, offset + 0)
@@ -1457,7 +1505,7 @@ end
   - number on success (exactly representable in double for 48-bit)
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadI48(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadI48(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local b1 = buffer.readu8(self.buffer, offset + 0)
@@ -1502,7 +1550,7 @@ end
   - number on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadI54(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadI54(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local byte7 = buffer.readu8(self.buffer, offset + 0)
@@ -1551,7 +1599,7 @@ end
   - 0 or 1 on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadU1(self : BufferComponentClass, offset : number)
+function BufferComponent.ReadU1(self : BufferComponentClass, offset : number) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local bitOffset = offset * 8
 	local success, valueORoutOfBounds = pcall(buffer.readbits, self.buffer, bitOffset, 1)
@@ -1572,7 +1620,7 @@ end
   Read an Unsigned 8-bit integer (byte) from the buffer.
   Returns number in [0, 255] or nil on failure.
 ]]
-function BufferComponent.ReadU8(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadU8(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(buffer.readu8, self.buffer, offset)
 	if not success and valueORoutOfBounds then
@@ -1592,7 +1640,7 @@ end
   Read an Unsigned 16-bit integer (big-endian) from the buffer.
   Returns number in [0, 65535] or nil on failure.
 ]]
-function BufferComponent.ReadU16(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadU16(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(buffer.readu16, self.buffer, offset)
 	if not success and valueORoutOfBounds then
@@ -1615,7 +1663,7 @@ end
   - number on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadU24(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadU24(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 
 	local success, valueORoutOfBounds = pcall(function()
@@ -1643,7 +1691,7 @@ end
   Read an Unsigned 32-bit integer from the buffer.
   Returns number in [0, 2^32-1] (may lose precision above 2^24 in double, but Roblox API provides u32).
 ]]
-function BufferComponent.ReadU32(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadU32(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(buffer.readu32, self.buffer, offset)
 	if not success and valueORoutOfBounds then
@@ -1666,7 +1714,7 @@ end
   - number on success (exact for 40-bit in double)
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadU40(self : BufferComponentClass, offset : number?)
+function BufferComponent.ReadU40(self : BufferComponentClass, offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 
 	local success, valueORoutOfBounds = pcall(function()
@@ -1703,7 +1751,7 @@ end
   - number in [0, 2^48 - 1] on success (exactly representable in double)
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadU48(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadU48(self : BufferComponentClass,offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local b1 = buffer.readu8(self.buffer, offset + 0)
@@ -1744,7 +1792,7 @@ end
   - number on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadU54(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadU54(self : BufferComponentClass,offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local byte7 = buffer.readu8(self.buffer, offset + 0)
@@ -1789,7 +1837,7 @@ end
   - string on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadString(self : BufferComponentClass,len : number,offset : number?)
+function BufferComponent.ReadString(self : BufferComponentClass,len : number,offset : number?) : string | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	len = math.clamp(len,Constants.MIN_STRING,math.huge)
 	local success, valueORoutOfBounds = pcall(buffer.readstring, self.buffer, offset, len)
@@ -1813,7 +1861,7 @@ end
   - boolean on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadBool1(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadBool1(self : BufferComponentClass,offset : number?) : boolean | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		return (buffer.readbits(self.buffer, offset * 8, 1) == 1) and true or false
@@ -1841,7 +1889,7 @@ end
         majority = function(): boolean   -- true if more trues than falses
       }
 ]]
-function BufferComponent.ReadBool8(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadBool8(self : BufferComponentClass,offset : number?) : Readbool8ReturnType | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local booleans = {}
@@ -1896,7 +1944,7 @@ end
       * mantissa == 0 => +/- infinity
       * mantissa != 0 => NaN
 ]]
-function BufferComponent.ReadF16(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadF16(self : BufferComponentClass,offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		-- Read the 16-bit word
@@ -1947,7 +1995,7 @@ end
   - number on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadF32(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadF32(self : BufferComponentClass,offset : number?) : number | nil
 	-- Choose the effective offset. Uses the provided "offset" only if it's <= self.offset.
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	-- Wrap in pcall: buffer.readf32 will throw on out-of-bounds or invalid use.
@@ -1974,7 +2022,7 @@ end
   - number on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadF64(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadF64(self : BufferComponentClass,offset : number?) : number | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(buffer.readf64, self.buffer, offset)
 	if (not success and valueORoutOfBounds) then
@@ -1996,7 +2044,7 @@ end
   Returns:
   - Instance or nil
 ]]
-function BufferComponent.ReadInstance(self : BufferComponentClass,instance_offset : number?)
+function BufferComponent.ReadInstance(self : BufferComponentClass,instance_offset : number?) : Instance | nil
 	local instance_offset = (type(instance_offset) == "number" and instance_offset <= self.instance_offset) and instance_offset or self.instance_offset
 	return self.instance_buffer[instance_offset]
 end
@@ -2010,7 +2058,7 @@ end
   - Vector2 on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadVector2(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadVector2(self : BufferComponentClass,offset : number?) : Vector2 | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		return Vector2.new(
@@ -2039,7 +2087,7 @@ end
   - Vector2int16 on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadVector2int16(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadVector2int16(self : BufferComponentClass,offset : number?) : Vector2int16 | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		return Vector2int16.new(
@@ -2068,7 +2116,7 @@ end
   - Vector3 on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadVector3(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadVector3(self : BufferComponentClass,offset : number?) : Vector3 | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		return Vector3.new(
@@ -2098,7 +2146,7 @@ end
   - Vector3int16 on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadVector3int16(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadVector3int16(self : BufferComponentClass,offset : number?) : Vector3int16 | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		return Vector3int16.new(
@@ -2129,7 +2177,7 @@ end
   - CFrame on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadCFrame(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadCFrame(self : BufferComponentClass,offset : number?) : CFrame | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local components = {}
@@ -2160,7 +2208,7 @@ end
   - CFrame on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadLossyCFrame(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadLossyCFrame(self : BufferComponentClass,offset : number?) : CFrame | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local components = {}
@@ -2190,7 +2238,7 @@ end
   - UDim on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadUdim(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadUDim(self : BufferComponentClass,offset : number?) : UDim | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local scale = buffer.readf32(self.buffer,offset)
@@ -2219,7 +2267,7 @@ end
   - UDim2 on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadUdim2(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadUDim2(self : BufferComponentClass,offset : number?) : UDim2 | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local scaleX, scaleY = buffer.readf32(self.buffer, offset), buffer.readf32(self.buffer, offset + 4)
@@ -2247,7 +2295,7 @@ end
   - Color3 on success
   - nil on failure (warns)
 ]]
-function BufferComponent.ReadColor3(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadColor3(self : BufferComponentClass,offset : number?) : Color3 | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local success, valueORoutOfBounds = pcall(function()
 		local r = buffer.readf32(self.buffer, offset) * 255
@@ -2280,7 +2328,7 @@ end
   - Rect on success
   - nil on failure (if nested reads fail)
 ]]
-function BufferComponent.ReadRect(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadRect(self : BufferComponentClass,offset : number?) : Rect | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local max = self:ReadVector2(offset)
 	local min = self:ReadVector2(offset + 16)
@@ -2297,7 +2345,7 @@ end
   - Region3 on success
   - nil on failure (if nested reads fail)
 ]]
-function BufferComponent.ReadRegion3(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadRegion3(self : BufferComponentClass,offset : number?) : Region3 | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local cframe = self:ReadCFrame(offset)
 	local size = self:ReadVector3(offset + 96)
@@ -2320,7 +2368,7 @@ end
   - Region3int16 on success
   - nil on failure (if nested reads fail)
 ]]
-function BufferComponent.ReadRegion3int16(self : BufferComponentClass,offset : number?)
+function BufferComponent.ReadRegion3int16(self : BufferComponentClass,offset : number?) : Region3int16 | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local max = self:ReadVector3int16(offset)
 	local min = self:ReadVector3int16(offset + 6)
@@ -2563,10 +2611,12 @@ BufferComponent.readCFrame = BufferComponent.ReadCFrame
 BufferComponent.readcframe = BufferComponent.ReadCFrame
 BufferComponent.readLossyCFrame = BufferComponent.ReadLossyCFrame
 BufferComponent.readlossyCFrame = BufferComponent.ReadLossyCFrame
-BufferComponent.readUdim = BufferComponent.ReadUdim
-BufferComponent.readudim = BufferComponent.ReadUdim
-BufferComponent.readUdim2 = BufferComponent.ReadUdim2
-BufferComponent.readudim2 = BufferComponent.ReadUdim2
+BufferComponent.readUdim = BufferComponent.ReadUDim
+BufferComponent.readudim = BufferComponent.ReadUDim
+BufferComponent.ReadUdim = BufferComponent.ReadUDim
+BufferComponent.readUdim2 = BufferComponent.ReadUDim2
+BufferComponent.readudim2 = BufferComponent.ReadUDim2
+BufferComponent.ReadUdim2 = BufferComponent.ReadUDim2
 BufferComponent.readColor3 = BufferComponent.ReadColor3
 BufferComponent.readcolor3 = BufferComponent.ReadColor3
 BufferComponent.readRect = BufferComponent.ReadRect
