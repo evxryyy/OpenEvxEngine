@@ -8,7 +8,7 @@ Overview
 
 The Buffer library is a powerful extension of Roblox's native buffer type that adds new data types and functionality for binary data manipulation. This library is particularly useful for data serialization, network communication, and optimized storage.
 
-- 1-bit interget (1 byte)
+- 1-bit interger (1 byte)
 - 24-bit interger (3 byte)
 - 40-bit interger (5 byte)
 - 48-bit interger (6 byte)
