@@ -8,6 +8,7 @@ Overview
 
 The Buffer library is a powerful extension of Roblox's native buffer type that adds new data types and functionality for binary data manipulation. This library is particularly useful for data serialization, network communication, and optimized storage.
 
+- 1-bit interget (1 byte)
 - 24-bit interger (3 byte)
 - 40-bit interger (5 byte)
 - 48-bit interger (6 byte)
@@ -122,6 +123,7 @@ for writing data inside the buffer i recommend you to look at the Constants modu
 
 ```lua linenums="1"
 -- Signed integers
+Buffer:WriteI1(number)
 Buffer:WriteI8(number)
 Buffer:WriteI16(number)
 Buffer:WriteI24(number)
@@ -180,6 +182,7 @@ Buffer:WriteInstance(instance)
 
 ```lua linenums="1"
 -- Signed integers
+local value = Buffer:ReadI1(offset?)
 local value = Buffer:ReadI8(offset?)
 local value = Buffer:ReadI16(offset?)
 local value = Buffer:ReadI24(offset?)
@@ -189,6 +192,7 @@ local value = Buffer:ReadI48(offset?)
 local value = Buffer:ReadI54(offset?)
 
 -- Unsigned integers
+local value = Buffer:ReadU1(offset?)
 local value = Buffer:ReadU8(offset?)
 local value = Buffer:ReadU16(offset?)
 local value = Buffer:ReadU24(offset?)
@@ -354,6 +358,7 @@ buffer:WriteCFrame(workspace.Part.CFrame) -- 92 bytes
 
 Signed Integers
 
+- I1: -1 to 1 (1 byte)
 - I8: -128 to 127 (1 byte)
 - I16: -32,768 to 32,767 (2 bytes)
 - I24: -8,388,608 to 8,388,607 (3 bytes)
