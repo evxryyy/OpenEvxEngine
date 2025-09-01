@@ -5,7 +5,7 @@
 ## Logs
 
 Version : 1.4.3.1 (Optional Update)
-- Updates comments
+- Updated comments
 - Buffer documentation updated
 
 ### Version : 1.4.3 (Latest update)
