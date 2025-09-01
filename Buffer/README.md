@@ -6,7 +6,7 @@
 
 Version : 1.4.3.1 (Optional Update)
 - Updates comments
-- Buffer API updated
+- Buffer documentation updated
 
 ### Version : 1.4.3 (Latest update)
 
