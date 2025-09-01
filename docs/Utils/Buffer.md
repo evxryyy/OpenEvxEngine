@@ -376,7 +376,7 @@ Unsigned Integers
 - U32: 0 to 4,294,967,295 (4 bytes)
 - U40: 0 to 1,099,511,627,775 (5 bytes)
 - U48: 0 to 281,474,976,710,655 (6 bytes)
-- U54: 0 to 18,014,398,509,481,984 (7 bytes)
+- U54: 0 to 18,014,398,509,481,980 (7 bytes)
 
 Roblox Types
 
