@@ -4,6 +4,10 @@
 
 ## Logs
 
+Version : 1.4.3.1 (Optional Update)
+- Updates comments
+- Buffer API updated
+
 ### Version : 1.4.3 (Latest update)
 
 #### Fixes
