@@ -6,7 +6,7 @@
 	
 	Enum Module V1.0.0
 	
-	This module provides a system for creating and managing enums in Lua/Luau.
+	This module provides a system for creating and managing enums in Luau.
 	Enums are useful for creating named constants that represent specific values,
 	making code more readable and maintainable.
 	
