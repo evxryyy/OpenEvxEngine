@@ -4,7 +4,7 @@
 --[[
 	author : evxry_ll
 	
-	Enum Module V1.0.0
+	Enum Module V1.1
 	
 	This module provides a system for creating and managing enums in Luau.
 	Enums are useful for creating named constants that represent specific values,
