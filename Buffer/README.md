@@ -4,11 +4,20 @@
 
 ## Logs
 
-Version : 1.4.3.1 (Optional Update)
+### Version : 1.5 (Latest update)
+
+#### Fixes
+
+#### Changes
+
+#### News
+- The buffer module now includes an enum list covering all supported data types. (See : BufferType)
+
+Version : 1.4.3.1
 - Updated comments
 - Buffer documentation updated
 
-### Version : 1.4.3 (Latest update)
+### Version : 1.4.3
 
 #### Fixes
 - Fixed multiple bugs in write functions where invalid types produced incorrect debug output.
