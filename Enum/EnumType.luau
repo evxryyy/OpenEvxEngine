@@ -11,7 +11,7 @@
 
 -- Base type for individual enum values
 -- This matches the type defined in the main Enum module
-type EnumIndex<Name = string> = {
+export type EnumIndex<Name = string> = {
 	Value : number,      -- The numeric value of the enum item
 	Name : string,       -- The string name of the enum item
 	EnumType : string    -- The name of the enum this item belongs to
