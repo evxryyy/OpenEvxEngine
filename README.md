@@ -21,6 +21,7 @@
   - Option
   - SyncHandler (SignalLike for BindableFunction)
   - SyncSignal (SignalLike for BindableEvent)
+  - ConnectionStore (Store RBXScriptConnection or callback)
 
 ## Description
 
