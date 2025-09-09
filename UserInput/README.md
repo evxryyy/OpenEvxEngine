@@ -1,9 +1,11 @@
 # UserInput
 
 ## What next
-Types will be changed to `typeof(setmetatable)`
 
 ## Logs
+
+Version : 1.2.2
+- UserInputComponent type is now changed to `typeof(setmetatable())`
 
 Version : 1.2.1
 - added alias for the constructor and the component
