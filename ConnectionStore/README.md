@@ -1,9 +1,12 @@
 ## ConnectionStore
 
 ## What next
-thread will automaticly be cancelled on calling a Unregister method or Clean method
 
 ## Logs
+
+Version : 1.1
+- The methods RegisterLocal, RegisterGlobal, GetLocal, and GetGlobal are now generic : `<T...>`.
+- Threads can now be registered, provided they are not terminated.
 
 Version : 1.0
 - Released the module
