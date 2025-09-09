@@ -1,6 +1,7 @@
 ## ConnectionStore
 
 ## What next
+thread will automaticly be cancelled on calling a Unregister method or Clean method
 
 ## Logs
 
