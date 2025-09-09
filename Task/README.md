@@ -1,7 +1,6 @@
 ## Task
 
 ## What next
-Types will be change to `typeof(setmetatable())`
 
 ## Logs
 
