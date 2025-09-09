@@ -15,45 +15,6 @@
 	- Input type observation to detect when user switches between input methods
 ]]
 
--- Type definition for the UserInput component instance
--- This defines all properties and methods available on a UserInput object
-export type UserInputComponent = {
-	-- The underlying input handler (either GamepadStruct or KeyboardStruct)
-	inputStruct :  GamepadStruct | KeyboardStruct;
-	-- Array of KeyCodes that this component will respond to
-	KeysRegistered : {Enum.KeyCode};
-	-- Signal that fires when a registered key is pressed
-	KeyPressed : SignalStruct;
-	-- Signal that fires when a registered key is released
-	KeyReleased : SignalStruct;
-	-- Function reference for the input type observer (used for cleanup)
-	InputObserver : () -> ()?;
-	-- Internal method to set up key press detection
-	__setUpInputStructKeyPressed : (self : UserInputComponent) -> ();
-	-- Internal method to set up key release detection
-	__setUpInputStructKeyReleased : (self : UserInputComponent) -> ();
-	-- Connect a callback function to the key pressed event
-	Pressed : (self : UserInputComponent,callback : (key : Enum.KeyCode) -> ()) -> SignalConnectionStruct;
-	-- Connect a callback function to the key released event
-	Released : (self : UserInputComponent,callback : (key : Enum.KeyCode) -> ()) -> SignalConnectionStruct;
-	-- Switch between Gamepad and Keyboard input types
-	ChangeInputType : (self : UserInputComponent,InputType : "Gamepad" | "Keyboard") -> ();
-	-- Observe changes in the user's preferred input method
-	Observe : (self : UserInputComponent,callback : (InputType : "Gamepad" | "MouseKeyboard" | "Touch") -> ()) -> () -> (),
-	-- Replace all registered keys with a new set
-	ChangeKey : (self : UserInputComponent,keys : {Enum.KeyCode}) -> (),
-	-- Add additional keys to the registered set
-	AddKey : (self : UserInputComponent,keys : {Enum.KeyCode}) -> (),
-	-- Remove specific keys from the registered set
-	RemoveKey : (self : UserInputComponent,keys : {Enum.KeyCode}) -> (),
-	-- Disconnect all callbacks from the KeyPressed signal
-	DisconnectPressed : (self : UserInputComponent) -> ();
-	-- Disconnect all callbacks from the KeyReleased signal
-	DisconnectReleased : (self : UserInputComponent) -> ();
-	-- Clean up and destroy the component
-	Destroy : (self : UserInputComponent) -> ();
-}
-
 -- Type annotation for the configuration object passed to UserInput.new()
 export type UserInputConfiguration = {
 	-- Array of KeyCodes that the component should respond to
@@ -104,6 +65,21 @@ UserInput.__index = UserInput
 -- Component metatable for instance methods
 local Component = {}
 Component.__index = Component
+
+-- Type definition for the UserInput component instance
+-- This defines all properties and methods available on a UserInput object
+export type UserInputComponent = typeof(setmetatable({} :: {
+	-- The underlying input handler (either GamepadStruct or KeyboardStruct)
+	inputStruct :  GamepadStruct | KeyboardStruct;
+	-- Array of KeyCodes that this component will respond to
+	KeysRegistered : {Enum.KeyCode};
+	-- Signal that fires when a registered key is pressed
+	KeyPressed : SignalStruct;
+	-- Signal that fires when a registered key is released
+	KeyReleased : SignalStruct;
+	-- Function reference for the input type observer (used for cleanup)
+	InputObserver : () -> ()?;
+},Component))
 
 -- Constructor function that creates a new UserInput component
 -- @param config: Configuration object specifying Keys and InputType
