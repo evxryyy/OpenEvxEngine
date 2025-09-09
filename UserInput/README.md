@@ -1,6 +1,7 @@
 # UserInput
 
 ## What next
+Types will be changed to `typeof(setmetatable)`
 
 ## Logs
 
