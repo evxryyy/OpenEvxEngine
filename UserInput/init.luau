@@ -505,7 +505,6 @@ Component.Middledown = Component.MiddleDown
 Component.Scroll = Component.Scrolled
 Component.DisconnectScroll = Component.DisconnectScrolledSignal
 Component.DisconnectMove = Component.DisconnectMovedSignal
-Component.DisconnectMiddle = Component.DisconnectMiddleUpSignal
 Component.DisconnectMiddleDown = Component.DisconnectMiddleDownSignal
 Component.ObserveInput = Component.Observe
 Component.cleanup = Component.Destroy
