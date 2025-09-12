@@ -41,7 +41,7 @@
   Component.discconectmiddleupSignal = Component.DisconnectMiddleUpSignal
   Component.disconnectMiddleDownSignal = Component.DisconnectMiddleDownSignal
   Component.disconnectmiddleDownSignal = Component.DisconnectMiddleDownSignal
-  Component.discconectmiddledownSignal = Component.DisconnectMiddleDownSignal
+  Component.disconectmiddledownSignal = Component.DisconnectMiddleDownSignal
   Component.observe = Component.Observe
   Component.destroy = Component.Destroy
   
