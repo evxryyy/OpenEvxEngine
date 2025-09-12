@@ -1905,9 +1905,9 @@ function BufferComponent.ReadBool8(self : BufferComponentClass,offset : number?)
 				local teamFalse = 0
 				for _, bool in next, booleans do
 					if bool == true then
-						teamTrue += 1 -- If not supported, use: teamTrue = teamTrue + 1
+						teamTrue += 1
 					else
-						teamFalse += 1 -- If not supported, use: teamFalse = teamFalse + 1
+						teamFalse += 1
 					end
 				end
 				return (teamTrue > teamFalse) and true or false
