@@ -5,7 +5,7 @@
 ## Logs
 
 Version : 1.3.2
-- string is now support when adding,removing and changing keys
+- string is now supported when adding,removing and changing keys
   ```lua
   local MouseTest = UserInput.new({InputType = "Keyboard",Keys = {"E"}})
   
