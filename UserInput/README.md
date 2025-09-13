@@ -4,6 +4,37 @@
 
 ## Logs
 
+Version : 1.3.1
+- Fixed almost all warnings making the code more readable
+- Added DisconnectAll
+  ```lua
+  --[[
+  	Disconnect all signals
+  	Useful for clean up events
+  ]]
+  function Component.DisconnectAll(self : UserInputComponent)
+  	self:DisconnectPressed()
+  	self:DisconnectReleased()
+  	self:DisconnectMiddleUpSignal()
+  	self:DisconnectMiddleDownSignal()
+  	self:DisconnectScrolledSignal()
+  	self:DisconnectMovedSignal()
+  end
+  ```
+- Alias for DisconnectAll
+  ```lua
+  Component.disconnectAll = Component.DisconnectAll
+  Component.disconnectall = Component.DisconnectAll
+  ```
+- ChangeInputType can now set keys (Optional)
+  ```lua
+  ChangeInputType(InputType: "Gamepad" | "Keyboard" | "Mouse",Keys : {Enum.KeyCode | Enum.UserInputType}?) -- Empty by default
+  ```
+- .new the InputConfiguration is now optinal
+  ```lua
+  local Input = UserInput.new() -> {Keys = {},InputType = "Keyboard"}
+  ```
+
 ### Version : 1.3
 
 #### Changes
