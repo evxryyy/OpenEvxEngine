@@ -1,3 +1,5 @@
+--!nonstrict
+
 --[[
 	Author: evxry_ll
 	
@@ -76,7 +78,7 @@ Component.__index = Component
 -- Type definition for the UserInput component instance
 export type UserInputComponent = typeof(setmetatable({} :: {
 	-- The underlying input handler (Gamepad, Keyboard, or Mouse structure)
-	inputStruct: GamepadStruct | KeyboardStruct | MouseStruct,
+	inputStruct: GamepadStruct & KeyboardStruct & MouseStruct,
 	-- Array of registered KeyCodes or UserInputTypes that trigger events
 	KeysRegistered: {Enum.KeyCode | Enum.UserInputType},
 	-- Signal fired when any registered key/button is pressed
@@ -94,22 +96,26 @@ export type UserInputComponent = typeof(setmetatable({} :: {
 
 --[[
 	Constructor function - creates a new UserInput component instance
-	@param config: UserInputConfiguration object specifying Keys and InputType
+	@param config: UserInputConfiguration object specifying Keys and InputType (Optional)
 	@return: UserInputComponent - New component instance
 	@throws: Assertion error if configuration is invalid
 ]]
-function UserInput.new(config: UserInputConfiguration): UserInputComponent
-	assert(configGuard(config), "Invalid configuration: Missing required fields (Keys, InputType)")
+function UserInput.new(config: UserInputConfiguration?): UserInputComponent
+	--If the config is empty (nul) the default value is used
+	config = (config) ~= nil and config or {Keys = {},InputType = "Keyboard"} :: UserInputConfiguration
+	assert(configGuard(config :: UserInputConfiguration), "Invalid configuration: Missing required fields (Keys, InputType)")
 	-- Create component instance with initial properties
+	local _config = config :: UserInputConfiguration
+	local keys = _config.Keys
 	local self = setmetatable({
-		inputStruct = inputGuard(config),
-		KeysRegistered = table.clone(config.Keys),
+		inputStruct = inputGuard(config :: UserInputConfiguration),
+		KeysRegistered = table.clone(keys),
 		KeyPressed = Signal.new(),
 		KeyReleased = Signal.new(),
 		InputObserver = false,
 	}, Component)
 	-- Initialize mouse-specific signals if InputType is Mouse
-	if config.InputType == "Mouse" then
+	if config and config.InputType == "Mouse" then
 		self.MiddlePressed = Signal.new()
 		self.MiddleReleased = Signal.new()
 		self.ScrolledSignal = Signal.new()
@@ -254,10 +260,11 @@ end
 --[[
 	Dynamically changes the input type at runtime
 	@param InputType: New input type ("Gamepad", "Keyboard", or "Mouse")
+	@param Keys: Array of keys to register for the new input type (Optional) (Empty by default)
 ]]
-function Component.ChangeInputType(self: UserInputComponent, InputType: "Gamepad" | "Keyboard" | "Mouse")
+function Component.ChangeInputType(self: UserInputComponent, InputType: "Gamepad" | "Keyboard" | "Mouse",Keys : {Enum.KeyCode | Enum.UserInputType}?)
 	-- Clear all registered keys
-	self:ChangeKey({})
+	self:ChangeKey((Keys) ~= nil and Keys or {})
 	-- Destroy current input handler
 	self.inputStruct:Destroy()
 	-- Create new input handler
@@ -429,6 +436,19 @@ function Component.DisconnectReleased(self: UserInputComponent)
 end
 
 --[[
+	Disconnect all signals
+	Useful for clean up events
+]]
+function Component.DisconnectAll(self : UserInputComponent)
+	self:DisconnectPressed()
+	self:DisconnectReleased()
+	self:DisconnectMiddleUpSignal()
+	self:DisconnectMiddleDownSignal()
+	self:DisconnectScrolledSignal()
+	self:DisconnectMovedSignal()
+end
+
+--[[
 	Complete cleanup and destruction of the UserInput component
 	Releases all resources, disconnects all events, and prepares for garbage collection
 ]]
@@ -442,7 +462,7 @@ function Component.Destroy(self: UserInputComponent)
 	self.KeyPressed:Destroy()
 	self.KeyReleased:Destroy()
 	-- Destroy mouse-specific signals if they exist
-	if self.MiddlePressed then
+	if self.MiddleReleased and self.MiddlePressed then
 		self.MiddlePressed:Destroy()
 		self.MiddleReleased:Destroy()
 		if self.ScrolledSignal then self.ScrolledSignal:Destroy() end
@@ -489,6 +509,8 @@ Component.discconectmiddleupSignal = Component.DisconnectMiddleUpSignal
 Component.disconnectMiddleDownSignal = Component.DisconnectMiddleDownSignal
 Component.disconnectmiddleDownSignal = Component.DisconnectMiddleDownSignal
 Component.disconectmiddledownSignal = Component.DisconnectMiddleDownSignal
+Component.disconnectAll = Component.DisconnectAll
+Component.disconnectall = Component.DisconnectAll
 Component.observe = Component.Observe
 Component.destroy = Component.Destroy
 
