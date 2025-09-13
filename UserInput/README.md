@@ -30,7 +30,7 @@ Version : 1.3.1
   ```lua
   ChangeInputType(InputType: "Gamepad" | "Keyboard" | "Mouse",Keys : {Enum.KeyCode | Enum.UserInputType}?) -- Empty by default
   ```
-- .new the InputConfiguration is now optinal
+- UserInput.new the InputConfiguration is now optional
   ```lua
   local Input = UserInput.new() -> {Keys = {},InputType = "Keyboard"}
   ```
