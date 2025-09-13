@@ -20,7 +20,7 @@
 -- Type annotation for configuration object passed to UserInput.new()
 export type UserInputConfiguration = {
 	-- Array of KeyCodes or UserInputTypes that the component should respond to
-	Keys: {Enum.KeyCode | Enum.UserInputType},
+	Keys: {Enum.KeyCode | Enum.UserInputType | string},
 	-- Initial input type ("Gamepad", "Keyboard", or "Mouse")
 	InputType: "Gamepad" | "Keyboard" | "Mouse",
 }
@@ -107,6 +107,16 @@ function UserInput.new(config: UserInputConfiguration?): UserInputComponent
 	-- Create component instance with initial properties
 	local _config = config :: UserInputConfiguration
 	local keys = _config.Keys
+	-- For-loop to convert string key to Enum.KeyCode or Enum.UserInputType
+	for i,key in pairs(keys) do
+		if(type(key) == "string" and Enum.KeyCode:FromName(key)) then
+			key = Enum.KeyCode:FromName(key)
+			keys[i] = key
+		elseif(type(key) == "string" and Enum.UserInputType:FromName(key)) then
+			key = Enum.UserInputType:FromName(key)
+			keys[i] = key
+		end
+	end
 	local self = setmetatable({
 		inputStruct = inputGuard(config :: UserInputConfiguration),
 		KeysRegistered = table.clone(keys),
@@ -299,11 +309,16 @@ end
 	Replaces all currently registered keys with a new set
 	@param Keys: Array of KeyCodes to register
 ]]
-function Component.ChangeKey(self: UserInputComponent, Keys: {Enum.KeyCode})
+function Component.ChangeKey(self: UserInputComponent, Keys: {Enum.KeyCode | Enum.UserInputType | string})
 	if not Keys then return end
 	table.clear(self.KeysRegistered)
 	local keyChanged = table.clone(Keys)
 	for _, key in pairs(keyChanged) do
+		if(type(key) == "string" and Enum.KeyCode:FromName(key)) then
+			key = Enum.KeyCode:FromName(key)
+		elseif(type(key) == "string" and Enum.UserInputType:FromName(key)) then
+			key = Enum.UserInputType:FromName(key)
+		end
 		table.insert(self.KeysRegistered, key)
 	end
 end
@@ -312,9 +327,14 @@ end
 	Adds new keys to the existing registered set
 	@param Keys: Array of KeyCodes to add
 ]]
-function Component.AddKey(self: UserInputComponent, Keys: {Enum.KeyCode})
+function Component.AddKey(self: UserInputComponent, Keys: {Enum.KeyCode | Enum.UserInputType})
 	if not Keys then return end
 	for _, key in pairs(Keys) do
+		if(type(key) == "string" and Enum.KeyCode:FromName(key)) then
+			key = Enum.KeyCode:FromName(key)
+		elseif(type(key) == "string" and Enum.UserInputType:FromName(key)) then
+			key = Enum.UserInputType:FromName(key)
+		end
 		if not table.find(self.KeysRegistered, key) then
 			table.insert(self.KeysRegistered, key)
 		end
@@ -325,9 +345,14 @@ end
 	Removes specific keys from the registered set
 	@param Keys: Array of KeyCodes to remove
 ]]
-function Component.RemoveKey(self: UserInputComponent, Keys: {Enum.KeyCode})
+function Component.RemoveKey(self: UserInputComponent, Keys: {Enum.KeyCode | Enum.UserInputType})
 	if not Keys then return end
 	for _, key in pairs(Keys) do
+		if(type(key) == "string" and Enum.KeyCode:FromName(key)) then
+			key = Enum.KeyCode:FromName(key)
+		elseif(type(key) == "string" and Enum.UserInputType:FromName(key)) then
+			key = Enum.UserInputType:FromName(key)
+		end
 		local index = table.find(self.KeysRegistered, key)
 		if index then
 			table.remove(self.KeysRegistered, index)
