@@ -4,6 +4,17 @@
 
 ## Logs
 
+Version : 1.3.2
+- string is now support when adding,removing and changing keys
+  ```lua
+  local MouseTest = UserInput.new({InputType = "Keyboard",Keys = {"E"}})
+  
+  MouseTest:AddKey({"C"})
+  MouseTest:RemoveKey({"E","C"})
+  MouseTest:ChangeKey({"E","A"})
+  MouseTest:ChangeInputType("Mouse",{"MouseButton1"})
+  ```
+
 Version : 1.3.1
 - Fixed almost all warnings making the code more readable
 - Added DisconnectAll
