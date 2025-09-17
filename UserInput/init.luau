@@ -20,7 +20,7 @@
 -- Type annotation for configuration object passed to UserInput.new()
 export type UserInputConfiguration = {
 	-- Array of KeyCodes or UserInputTypes that the component should respond to
-	Keys: {Enum.KeyCode | Enum.UserInputType | string},
+	Keys: ArrayOfInput | InputType,
 	-- Initial input type ("Gamepad", "Keyboard", or "Mouse")
 	InputType: "Gamepad" | "Keyboard" | "Mouse",
 }
@@ -44,6 +44,8 @@ type SignalStruct = Signal.Signal<...any>
 type GamepadStruct = Input.GamepadType
 type KeyboardStruct = Input.KeyboardType
 type MouseStruct = Input.MouseType
+type ArrayOfInput = {Enum.KeyCode | Enum.UserInputType | string}
+type InputType = Enum.KeyCode | Enum.UserInputType | string
 
 --[[
 	Validates the configuration object structure
@@ -107,6 +109,9 @@ function UserInput.new(config: UserInputConfiguration?): UserInputComponent
 	-- Create component instance with initial properties
 	local _config = config :: UserInputConfiguration
 	local keys = _config.Keys
+	if(type(keys) ~= "table") then
+		keys = {keys}
+	end
 	-- For-loop to convert string key to Enum.KeyCode or Enum.UserInputType
 	for i,key in pairs(keys) do
 		if(type(key) == "string" and Enum.KeyCode:FromName(key)) then
@@ -238,7 +243,7 @@ end
 	@param callback: Function to call when a registered key is pressed
 	@return: SignalConnectionStruct - Connection object for disconnecting
 ]]
-function Component.Pressed(self: UserInputComponent, callback: (key: Enum.KeyCode | Enum.UserInputType) -> ()): SignalConnectionStruct
+function Component.Pressed(self: UserInputComponent, callback: (key: InputType) -> ()): SignalConnectionStruct
 	if self.inputStruct.LeftDown then
 		return self.KeyPressed:Connect(callback :: (key: Enum.UserInputType) -> ())
 	end
@@ -250,7 +255,7 @@ end
 	@param callback: Function to call when a registered key is released
 	@return: SignalConnectionStruct - Connection object for disconnecting
 ]]
-function Component.Released(self: UserInputComponent, callback: (key: Enum.KeyCode | Enum.UserInputType) -> ()): SignalConnectionStruct
+function Component.Released(self: UserInputComponent, callback: (key: InputType) -> ()): SignalConnectionStruct
 	if self.inputStruct.LeftUp then
 		return self.KeyReleased:Connect(callback :: (key: Enum.UserInputType) -> ())
 	end
@@ -272,7 +277,7 @@ end
 	@param InputType: New input type ("Gamepad", "Keyboard", or "Mouse")
 	@param Keys: Array of keys to register for the new input type (Optional) (Empty by default)
 ]]
-function Component.ChangeInputType(self: UserInputComponent, InputType: "Gamepad" | "Keyboard" | "Mouse",Keys : {Enum.KeyCode | Enum.UserInputType}?)
+function Component.ChangeInputType(self: UserInputComponent, InputType: "Gamepad" | "Keyboard" | "Mouse",Keys : ArrayOfInput | InputType)
 	-- Clear all registered keys
 	self:ChangeKey((Keys) ~= nil and Keys or {})
 	-- Destroy current input handler
@@ -309,9 +314,12 @@ end
 	Replaces all currently registered keys with a new set
 	@param Keys: Array of KeyCodes to register
 ]]
-function Component.ChangeKey(self: UserInputComponent, Keys: {Enum.KeyCode | Enum.UserInputType | string})
+function Component.ChangeKey(self: UserInputComponent, Keys : ArrayOfInput | InputType)
 	if not Keys then return end
 	table.clear(self.KeysRegistered)
+	if(type(Keys) ~= "table") then
+		Keys = {Keys}
+	end
 	local keyChanged = table.clone(Keys)
 	for _, key in pairs(keyChanged) do
 		if(type(key) == "string" and Enum.KeyCode:FromName(key)) then
@@ -327,9 +335,12 @@ end
 	Adds new keys to the existing registered set
 	@param Keys: Array of KeyCodes to add
 ]]
-function Component.AddKey(self: UserInputComponent, Keys: {Enum.KeyCode | Enum.UserInputType})
+function Component.AddKey(self: UserInputComponent, Keys : ArrayOfInput | InputType)
 	if not Keys then return end
-	for _, key in pairs(Keys) do
+	if(type(Keys) ~= "table") then
+		Keys = {Keys}
+	end
+	for _, key in pairs(Keys :: ArrayOfInput) do
 		if(type(key) == "string" and Enum.KeyCode:FromName(key)) then
 			key = Enum.KeyCode:FromName(key)
 		elseif(type(key) == "string" and Enum.UserInputType:FromName(key)) then
@@ -345,9 +356,12 @@ end
 	Removes specific keys from the registered set
 	@param Keys: Array of KeyCodes to remove
 ]]
-function Component.RemoveKey(self: UserInputComponent, Keys: {Enum.KeyCode | Enum.UserInputType})
+function Component.RemoveKey(self: UserInputComponent, Keys : ArrayOfInput | InputType)
 	if not Keys then return end
-	for _, key in pairs(Keys) do
+	if(type(Keys) ~= "table") then
+		Keys = {Keys}
+	end
+	for _, key in pairs(Keys :: ArrayOfInput) do
 		if(type(key) == "string" and Enum.KeyCode:FromName(key)) then
 			key = Enum.KeyCode:FromName(key)
 		elseif(type(key) == "string" and Enum.UserInputType:FromName(key)) then
