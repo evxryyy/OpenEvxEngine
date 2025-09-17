@@ -26,7 +26,7 @@
     - U32 (32-bit)  : 0 to 4,294,967,295
     - U40 (40-bit)  : 0 to 1,099,511,627,775
     - U48 (48-bit)  : 0 to 281,474,976,710,655
-    - U54 (54-bit)  : 0 to 18,014,398,509,481,980
+    - U54 (54-bit)  : 0 to 18,014,398,509,481,984
     
     ================ FLOATING POINT TYPES ================
     - F16 (16-bit) : Half-precision float
@@ -62,9 +62,19 @@ local Constants = require("@self/Constants")
 -- Debug: string templates and helpers for warnings/errors (e.g., "not enough space")
 local Debug = require("@self/Debug")
 
+-- Enum : custom enumeration system for defining data types
+local BufferEnum = require("@self/BufferType")
+
+-- Util: utility functions for bit manipulation, encoding, etc.
+local Utils = require("@self/Utils")
+
 -- Constructor table: creates BufferComponent instances or wraps an existing buffer
 local BufferConstructor = {}
 BufferConstructor.__index = BufferConstructor
+
+BufferConstructor.Enum = BufferEnum
+BufferConstructor.Constants = Constants
+BufferConstructor.Utils = Utils
 
 -- BufferComponent: instance methods for writing data and managing offsets
 local BufferComponent = {}
@@ -95,6 +105,17 @@ type Readbool8ReturnType = {
 }
 
 --[[
+	Type definition for the Buffer Schema (serialize,deserialize)
+]]
+export type BufferSchema = {
+	[string] : BufferEnum.BufferTypeName | {Type : BufferEnum.BufferTypeName, Length : number?}
+}
+
+type BufferSchemaValue = {
+	[string] : any
+}
+
+--[[
     Create a new BufferComponent with a given initial size (in bytes).
     If size is nil or <= 0, defaults to 1 byte.
 
@@ -106,6 +127,7 @@ function BufferConstructor.create(size : number) : BufferComponentClass
 		offset = 0,
 		instance_offset = 1,
 		buffer = buffer.create(size),
+		instance_buffer = {},
 	},BufferComponent)
 	return self
 end
@@ -148,6 +170,128 @@ function BufferConstructor.fromString(str : string) : BufferComponentClass
 		error(Debug["not a valid type"]:format(type(str),type("str")))
 	end
 	return BufferConstructor.from(buffer.fromstring(str))
+end
+
+-- Serializes the given Values according to the Schema into a BufferComponentClass
+function BufferConstructor.Serialize(Schema : BufferSchema, Values : BufferSchemaValue) : BufferComponentClass
+	-- Calculate total required bytes
+	local nBytes = Utils.getRequiredBytes(Schema, Values)
+	local bufferComponent = BufferConstructor.new(nBytes)
+	for field, fieldType in pairs(Schema) do
+		if not Values[field] then continue end
+		-- Special case: Instance type
+		if fieldType == "Instance" then
+			bufferComponent:WriteInstance(Values[field])
+			continue
+		end
+		-- Complex field (table)
+		if typeof(fieldType) == "table" then
+			if string.find(fieldType.Type, "String") then
+				local splitStringType = string.split(fieldType.Type, "g")
+				if not splitStringType[2] or splitStringType[2] == "" then
+					-- Pad string to fixed length
+					local len = fieldType.Length :: number
+					if #Values[field] < len then
+						Values[field] = Values[field] .. string.rep(string.char(31), len - #Values[field])
+					end
+					bufferComponent["Write"..fieldType.Type](bufferComponent, Values[field])
+				else
+					-- Write string with explicit length
+					bufferComponent["Write"..fieldType.Type](bufferComponent, Values[field], #Values[field])
+				end
+			else
+				bufferComponent["Write"..fieldType.Type](bufferComponent, Values[field])
+			end
+			continue
+		end
+		-- Simple String type
+		if string.find(fieldType, "String") then
+			local splitStringType = string.split(fieldType, "g")
+			if not splitStringType[2] or splitStringType[2] == "" then
+				-- Invalid complex schema error
+				local failed = Debug["not valid type for complex schema"]
+				failed = failed .. ("%s"):format(debug.info(1,"n"))
+				error(failed, 2)
+			else
+				bufferComponent["Write"..fieldType](bufferComponent, Values[field], #Values[field])
+			end
+		else
+			if(string.find(fieldType,"Float")) then
+				local splitType = string.split(fieldType,"t")
+				fieldType = "F" .. splitType[2]
+			end
+			-- Generic type writing
+			bufferComponent["Write"..fieldType](bufferComponent, Values[field])
+		end
+		-- Boolean type handling
+		if string.find(fieldType, "Boolean") then
+			local splitType = string.split(fieldType, "e")
+			fieldType = splitType[1] .. string.sub(splitType[2], 3, 3)
+			bufferComponent["Write"..fieldType](bufferComponent, Values[field])
+		end
+	end
+	return bufferComponent
+end
+
+
+-- Deserializes a BufferComponentClass into a table of values according to Schema
+function BufferConstructor.Deserialize(Schema : BufferSchema, SerializeBuffer : BufferComponentClass) : BufferSchemaValue
+	local offset = 0 -- byte offset for normal types
+	local instance_offset = 1 -- index for Instance types
+	local values = {}
+	for field, fieldType in pairs(Schema) do
+		-- Complex type (table)
+		if typeof(fieldType) == "table" then
+			local len = fieldType.Length
+			local dataType = fieldType.Type
+			-- Only handle String complex types
+			if dataType ~= "String" then continue end
+			local value = SerializeBuffer["Read"..dataType](SerializeBuffer, len, offset)
+			-- Remove padding character
+			value = string.gsub(value, string.char(31), "")
+			values[field] = value
+			offset += len
+		elseif fieldType == "Instance" then
+			-- Instance type
+			values[field] = SerializeBuffer:ReadInstance(instance_offset)
+			instance_offset += 1
+			continue
+		else
+			-- Simple or string/boolean types
+			if string.find(fieldType, "String") then
+				local splitStringType = string.split(fieldType, "g")
+				if not splitStringType[2] or splitStringType[2] == "" then
+					-- Invalid complex schema
+					local failed = Debug["not valid type for complex schema"]
+					failed = failed .. ("%s"):format(debug.info(1,"n"))
+					error(failed, 2)
+				else
+					local len = tonumber(splitStringType[2])
+					local value = SerializeBuffer["ReadString"](SerializeBuffer, len, offset)
+					values[field] = value
+					offset += len
+				end
+			elseif string.find(fieldType, "Boolean") then
+				-- Normalize boolean type key
+				local splitType = string.split(fieldType, "e")
+				fieldType = splitType[1] .. string.sub(splitType[2], 3, 3)
+				local value = SerializeBuffer["Read"..fieldType](SerializeBuffer, offset)
+				values[field] = value
+				offset += Constants.REQUIRED_BYTES[fieldType]
+
+			else
+				-- Generic type reading
+				if(string.find(fieldType,"Float")) then
+					local splitType = string.split(fieldType,"t")
+					fieldType = "F" .. splitType[2]
+				end
+				local value = SerializeBuffer["Read"..fieldType](SerializeBuffer, offset)
+				values[field] = value
+				offset += Constants.REQUIRED_BYTES[fieldType]
+			end
+		end
+	end
+	return values
 end
 
 --[[
@@ -920,14 +1064,12 @@ end
 
 --[[
     Write a 32-bit float to the buffer.
-    - Clamped to [MIN_FLOAT32, MAX_FLOAT32].
     - 4 bytes, big-endian.
 ]]
 function BufferComponent.WriteF32(self : BufferComponentClass,number : number)
 	if(not number or type(number) ~= "number") then
 		error(Debug["not a valid type"]:format(type(number),type(10)))
 	end
-	number = math.clamp(number,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32)
 	local bytes = 4
 	if(buffer.len(self.buffer) < bytes) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
@@ -947,14 +1089,12 @@ end
 
 --[[
     Write a 64-bit float to the buffer.
-    - Clamped to [MIN_FLOAT64, MAX_FLOAT64].
     - 8 bytes, big-endian.
 ]]
 function BufferComponent.WriteF64(self : BufferComponentClass,number : number)
 	if(not number or type(number) ~= "number") then
 		error(Debug["not a valid type"]:format(type(number),type(10)))
 	end
-	number = math.clamp(number,Constants.MIN_FLOAT64,Constants.MAX_FLOAT64)
 	local bytes = 8
 	if(buffer.len(self.buffer) < bytes) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
@@ -1012,12 +1152,11 @@ end
 --[[
     Write a Vector2 as two f64 (x, y).
     - 16 bytes total.
-    - Values are clamped to float64 range.
 ]]
 function BufferComponent.WriteVector2(self : BufferComponentClass,vector2 : Vector2)
 	assert(typeof(vector2) == "Vector2","vector2 must be a Vector2")
-	local x = math.clamp(vector2.X,Constants.MIN_FLOAT64,Constants.MAX_FLOAT64)
-	local y = math.clamp(vector2.Y,Constants.MIN_FLOAT64,Constants.MAX_FLOAT64)
+	local x = vector2.X
+	local y = vector2.Y
 	local bytes = 16
 	if(buffer.len(self.buffer) < bytes) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
@@ -1041,13 +1180,12 @@ end
 --[[
     Write a Vector3 as three f64 (x, y, z).
     - 24 bytes total.
-    - Values are clamped to float64 range.
 ]]
 function BufferComponent.WriteVector3(self : BufferComponentClass,vector3 : Vector3)
 	assert(typeof(vector3) == "Vector3","vector3 must be a Vector3")
-	local x = math.clamp(vector3.X,Constants.MIN_FLOAT64,Constants.MAX_FLOAT64)
-	local y = math.clamp(vector3.Y,Constants.MIN_FLOAT64,Constants.MAX_FLOAT64)
-	local z = math.clamp(vector3.Z,Constants.MIN_FLOAT64,Constants.MAX_FLOAT64)
+	local x = vector3.X
+	local y = vector3.Y
+	local z = vector3.Z
 	local bytes = 24
 	if(buffer.len(self.buffer) < bytes) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
@@ -1194,8 +1332,8 @@ end
 ]]
 function BufferComponent.WriteUdim(self : BufferComponentClass,udim : UDim)
 	assert(typeof(udim) == "UDim","Udim must be a Udim")
-	local Scale = math.clamp(udim.Scale,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32)
-	local Offset = math.clamp(udim.Offset,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32)
+	local Scale = udim.Scale
+	local Offset = udim.Offset
 	local bytes = 8
 	if(buffer.len(self.buffer) < bytes) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
@@ -1222,8 +1360,8 @@ end
 ]]
 function BufferComponent.WriteUdim2(self : BufferComponentClass,udim2 : UDim2)
 	assert(typeof(udim2) == "UDim2","Udim2 must be a Udim2")
-	local ScaleX,ScaleY = math.clamp(udim2.X.Scale,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32),math.clamp(udim2.Y.Scale,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32)
-	local OffsetX,OffsetY = math.clamp(udim2.X.Offset,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32),math.clamp(udim2.Y.Offset,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32)
+	local ScaleX,ScaleY = udim2.X.Scale,udim2.Y.Scale
+	local OffsetX,OffsetY = udim2.X.Offset,udim2.Y.Offset
 	local bytes = 16
 	if(buffer.len(self.buffer) < bytes) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
@@ -1254,9 +1392,9 @@ end
 function BufferComponent.WriteColor3(self : BufferComponentClass,color : Color3)
 	assert(typeof(color) == "Color3","color must be a Color3")
 	local bytes = 12
-	local r = math.clamp(color.R,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32)
-	local g = math.clamp(color.G,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32)
-	local b = math.clamp(color.B,Constants.MIN_FLOAT32,Constants.MAX_FLOAT32)
+	local r = color.R
+	local g = color.G
+	local b = color.B
 	if(buffer.len(self.buffer) < bytes) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
@@ -1905,9 +2043,9 @@ function BufferComponent.ReadBool8(self : BufferComponentClass,offset : number?)
 				local teamFalse = 0
 				for _, bool in next, booleans do
 					if bool == true then
-						teamTrue += 1
+						teamTrue += 1 -- If not supported, use: teamTrue = teamTrue + 1
 					else
-						teamFalse += 1
+						teamFalse += 1 -- If not supported, use: teamFalse = teamFalse + 1
 					end
 				end
 				return (teamTrue > teamFalse) and true or false
@@ -2349,6 +2487,7 @@ function BufferComponent.ReadRegion3(self : BufferComponentClass,offset : number
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local cframe = self:ReadCFrame(offset)
 	local size = self:ReadVector3(offset + 96)
+	print(cframe,size)
 	local halfSize = size * 0.5
 	local min = cframe.Position - halfSize
 	local max = cframe.Position + halfSize
@@ -2442,6 +2581,8 @@ BufferConstructor.New = BufferConstructor.create
 BufferConstructor.From = BufferConstructor.from
 BufferConstructor.FromString = BufferConstructor.fromString
 BufferConstructor.Tostring = BufferConstructor.tostring
+BufferConstructor.serialize = BufferConstructor.Serialize
+BufferConstructor.deserialize = BufferConstructor.Deserialize
 
 --Component alias
 BufferComponent.Allocate = BufferComponent.allocate
