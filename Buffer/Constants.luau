@@ -28,10 +28,10 @@ return {
 	MAX_INT54 = 9007199254740991,
 
 	--FLOAT TYPES--
-	MIN_FLOAT32 = -1.1754943508222875e-38, -- (2 ^ (-126))
-	MAX_FLOAT32 = 3.4028234663852886e+38, -- (2 - 2 ^ -23) * 2 ^ 127
-	MIN_FLOAT64 = -2.2250738585072014e-308, -- (2 ^ (-1022))
-	MAX_FLOAT64 = 1.7976931348623157e+308, -- (2 - 2 ^ (-52)) * 2 ^ 1023
+	--MIN_FLOAT32 = -1.1754943508222875e-38, -- (2 ^ (-126))
+	--MAX_FLOAT32 = 3.4028234663852886e+38, -- (2 - 2 ^ -23) * 2 ^ 127
+	--MIN_FLOAT64 = -2.2250738585072014e-308, -- (2 ^ (-1022))
+	--MAX_FLOAT64 = 1.7976931348623157e+308, -- (2 - 2 ^ (-52)) * 2 ^ 1023
 
 	--STRING TYPES--
 	MIN_STRING = 1,
@@ -40,6 +40,49 @@ return {
 	MAX_STRING32 = 32,
 	MAX_STRING64 = 64,
 
+	REQUIRED_BYTES = {
+		I1 = 1,
+		I8 = 1,
+		I16 = 2,
+		I24 = 3,
+		I32 = 4,
+		I40 = 5,
+		I48 = 6,
+		I54 = 7,
+		U1 = 1,
+		U8 = 1,
+		U16 = 2,
+		U24 = 3,
+		U32 = 4,
+		U40 = 5,
+		U48 = 6,
+		U54 = 7,
+		F16 = 2,
+		F32 = 4,
+		F64 = 8,
+		String = function(str) : number
+			return #str	
+		end,
+		String8 = 8,
+		String16 = 16,
+		String32 = 32,
+		String64 = 64,
+		Bool1 = 1,
+		Bool8 = 1,
+		Color3 = 12,
+		Vector2 = 16,
+		Vector2int16 = 4,
+		Vector3 = 24,
+		Vector3int16 = 6,
+		CFrame = 96,
+		LossyCFrame = 48,
+		Rect = 32,
+		Region3 = 120,
+		Region3int16 = 12,
+		UDim = 8,
+		UDim2 = 16,
+	},
+
 	--VERSION--
-	VERSION = "1.5",
+	VERSION = "1.6",
 }
