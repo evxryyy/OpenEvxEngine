@@ -4,6 +4,18 @@
 
 ## Logs
 
+Version : 1.3.3
+- You can now put string or directly Enum for keys.
+  ```lua
+  local MouseTest = UserInput.new({InputType = "Keyboard",Keys = "E"})
+  
+  MouseTest:AddKey("C")
+  MouseTest:RemoveKey({"E","C"})
+  MouseTest:ChangeKey("A")
+  MouseTest:ChangeInputType("Mouse","MouseButton1")
+  ```
+- Fixed an issue where ChangeInputType only detected Enum.KeyCode and Enum.UserInputType, and did not support string input.
+
 Version : 1.3.2
 - string is now supported when adding,removing and changing keys
   ```lua
