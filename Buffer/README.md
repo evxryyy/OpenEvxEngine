@@ -10,7 +10,7 @@
 - Fixed a bug where writting some data-type with negative values doesn't work properly.
 
 #### Changes
-- In the file Constants MIN_FLOAT32-64 and MAX_FLOAT32-64 are disable this was causing problem when reading and writting the following type : Vectors , Regions Udims, F32 , F64
+- In the file Constants MIN_FLOAT32-64 and MAX_FLOAT32-64 are disable this was causing problem when reading and writting the following type : Vectors , Regions , Udims, F32 , F64
 
 #### News
 - alias for Serialize and Deserialize
