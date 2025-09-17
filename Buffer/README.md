@@ -2,11 +2,118 @@
 
 ## What next
 
-I'm implementing buffer serialization/deserialization. Still under development, please wait.
-
 ## Logs
 
-### Version : 1.5 (Latest update)
+### Version : 1.6 (Latest update)
+
+#### Fixes
+- Fixed a bug where writting some data-type with negative values doesn't work properly.
+
+#### Changes
+- In the file Constants MIN_FLOAT32-64 and MAX_FLOAT32-64 are disable this was causing problem when reading and writting the following type : Vectors , Regions Udims, F32 , F64
+
+#### News
+- added Serialization and Deserialization
+ ```lua
+  -- Recommend using Buffer.BufferSchema to get the list of all supported data types for serialization
+  local TestSchema : Buffer.BufferSchema = {
+      abc = "String16" --> allocates 16 bytes in the buffer
+  }
+  
+  local ValueSchema = {
+      abc = "Hello World"
+  }
+  
+  -- Serialize the data according to the schema
+  -- This returns a BufferComponentClass representing the serialized data
+  local serialized = Buffer.Serialize(TestSchema, ValueSchema)
+  
+  -- Deserialize the buffer back into a Lua table using the same schema
+  local deserialized = Buffer.Deserialize(TestSchema, serialized)
+  
+  print(serialized)   --> Shows BufferComponents and BufferSize: 16
+  print(deserialized) --> {abc = "Hello World"}
+  
+  -- Example of complex serialization with nested schema
+  local ComplexSchema : Buffer.BufferSchema = {
+      message = {
+          --[[
+             THIS IS ONLY SUPPORTED FOR THE "String" TYPE AND NOT OTHER TYPES.
+             Note: if the string length is below the defined length, a padding character (e.g., string.char(31)) will be added.
+             On deserialization, these characters will be automatically removed.
+          ]]
+          Type = "String",
+          Length = 11,   -- Allocate 11 bytes for the string
+      },
+      myAge = "I8",      -- 8-bit integer
+  }
+  
+  local ComplexValueSchema = {
+      message = "Hello World",
+      myAge = 17,
+  }
+  
+  -- Serialize complex data structure
+  local serialized = Buffer.Serialize(ComplexSchema, ComplexValueSchema)
+  
+  -- Deserialize complex buffer back to Lua table
+  local deserialized = Buffer.Deserialize(ComplexSchema, serialized)
+  
+  print(serialized)   --> BufferComponents, BufferSize: 12
+  print(deserialized) --> {message = "Hello World", myAge = 17}
+ ```
+
+- Constants does now have a REQUIRED_BYTES list for all types
+ ```lua
+ REQUIRED_BYTES = {
+ 		I1 = 1,
+ 		I8 = 1,
+ 		I16 = 2,
+ 		I24 = 3,
+ 		I32 = 4,
+ 		I40 = 5,
+ 		I48 = 6,
+ 		I54 = 7,
+ 		U1 = 1,
+ 		U8 = 1,
+ 		U16 = 2,
+ 		U24 = 3,
+ 		U32 = 4,
+ 		U40 = 5,
+ 		U48 = 6,
+ 		U54 = 7,
+ 		F16 = 2,
+ 		F32 = 4,
+ 		F64 = 8,
+ 		String = function(str) : number
+ 			return #str	
+ 		end,
+ 		String8 = 8,
+ 		String16 = 16,
+ 		String32 = 32,
+ 		String64 = 64,
+ 		Bool1 = 1,
+ 		Bool8 = 1,
+ 		Color3 = 12,
+ 		Vector2 = 16,
+ 		Vector2int16 = 4,
+ 		Vector3 = 24,
+ 		Vector3int16 = 6,
+ 		CFrame = 96,
+ 		LossyCFrame = 48,
+ 		Rect = 32,
+ 		Region3 = 120,
+ 		Region3int16 = 12,
+ 		UDim = 8,
+ 		UDim2 = 16,
+ 	},
+ ```
+
+- Buffer now has a property called Enum, which refers to the list of all data types in the Buffer module.
+- Buffer now has a property called Constants, which refers to the Constants module containg all minimum and maximum values of data-type including REQUIRED_BYTES list.
+- Buffer now has a property callled Utils, which refers to the new Utils files containing functions.
+
+### Version : 1.5
 
 #### Fixes
 
