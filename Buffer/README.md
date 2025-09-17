@@ -2,6 +2,8 @@
 
 ## What next
 
+I'm implementing buffer serialization/deserialization. Still under development, please wait.
+
 ## Logs
 
 ### Version : 1.5 (Latest update)
