@@ -13,6 +13,12 @@
 - In the file Constants MIN_FLOAT32-64 and MAX_FLOAT32-64 are disable this was causing problem when reading and writting the following type : Vectors , Regions Udims, F32 , F64
 
 #### News
+- alias for Serialize and Deserialize
+ ```lua
+ BufferConstructor.serialize = BufferConstructor.Serialize
+ BufferConstructor.deserialize = BufferConstructor.Deserialize
+ ```
+
 - added Serialization and Deserialization
  ```lua
   -- Recommend using Buffer.BufferSchema to get the list of all supported data types for serialization
