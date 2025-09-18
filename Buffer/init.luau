@@ -205,6 +205,13 @@ function BufferConstructor.Serialize(Schema : BufferSchema, Values : BufferSchem
 			end
 			continue
 		end
+		-- Boolean type handling
+		if string.find(fieldType, "Boolean") then
+			local splitType = string.split(fieldType, "e")
+			fieldType = splitType[1] .. string.sub(splitType[2], 3, 3)
+			bufferComponent["Write"..fieldType](bufferComponent, copiedValues[field])
+			continue
+		end
 		-- Simple String type
 		if string.find(fieldType, "String") then
 			local splitStringType = string.split(fieldType, "g")
@@ -228,12 +235,6 @@ function BufferConstructor.Serialize(Schema : BufferSchema, Values : BufferSchem
 				fieldType = "F" .. splitType[2]
 			end
 			-- Generic type writing
-			bufferComponent["Write"..fieldType](bufferComponent, copiedValues[field])
-		end
-		-- Boolean type handling
-		if string.find(fieldType, "Boolean") then
-			local splitType = string.split(fieldType, "e")
-			fieldType = splitType[1] .. string.sub(splitType[2], 3, 3)
 			bufferComponent["Write"..fieldType](bufferComponent, copiedValues[field])
 		end
 	end
@@ -289,7 +290,6 @@ function BufferConstructor.Deserialize(Schema : BufferSchema, SerializeBuffer : 
 				local value = SerializeBuffer["Read"..fieldType](SerializeBuffer, offset)
 				values[field] = value
 				offset += Constants.REQUIRED_BYTES[fieldType]
-
 			else
 				-- Generic type reading
 				if(string.find(fieldType,"Float")) then
@@ -367,6 +367,7 @@ function BufferComponent.WriteI8(self : BufferComponentClass,number : number) : 
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
+	print(self.offset)
 	local success,outOfBounds = pcall(buffer.writei8,self.buffer,self.offset,number)
 	if(outOfBounds) then
 		if(Debug[outOfBounds]) then
@@ -958,7 +959,6 @@ end
 
 --[[
     Write a single boolean using 1 bit.
-    - Document says "this takes 1 byte", but code writes only 1 bit.
     - nil/false -> 0, anything else -> 1
 ]]
 function BufferComponent.WriteBool1(self : BufferComponentClass,value : any)
@@ -967,7 +967,9 @@ function BufferComponent.WriteBool1(self : BufferComponentClass,value : any)
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
-	local success,outOfBounds = pcall(buffer.writebits,self.buffer,0,1,if(value) then 1 else 0)
+	local bitsToWrite = 1
+	local bitOffset =  (self.offset and (self.offset * 8)) or 0
+	local success,outOfBounds = pcall(buffer.writebits,self.buffer,bitOffset,bitsToWrite,if(value) then 1 else 0)
 	if(outOfBounds) then
 		if(Debug[outOfBounds]) then
 			warn(outOfBounds, "-" , Debug[outOfBounds])
