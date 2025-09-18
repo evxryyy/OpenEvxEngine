@@ -45,6 +45,22 @@ Utils.getRequiredBytes = function(Schema : BufferSchema,Values : BufferSchemaVal
 			local splitType = string.split(fieldType,"e")
 			fieldType = splitType[1] .. string.sub(splitType[2],3,3)
 			n += listOfBytes[fieldType]
+		elseif(string.find(fieldType,"String")) then
+			local splitStringType = string.split(fieldType, "g")
+			if not splitStringType[2] or splitStringType[2] == "" then
+				-- Invalid complex schema error
+				local failed = Debug["not valid type for complex schema"]
+				failed = failed .. ("%s"):format(debug.info(1,"n"))
+				error(failed, 2)
+			else
+				local len = tonumber(splitStringType[2]) :: number
+				if #Values[field] < len then
+					Values[field] = Values[field] .. string.rep(string.char(31), len - #Values[field])
+				elseif(#Values[field] > len) then
+					Values[field] = string.sub(Values[field],1,len)
+				end
+				n += listOfBytes.String(Values[field])
+			end
 		else
 			if(string.find(fieldType,"Float")) then
 				local splitType = string.split(fieldType,"t")
