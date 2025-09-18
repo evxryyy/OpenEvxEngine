@@ -19,4 +19,13 @@ return {
 		example:
 		"1 byte(s) is required to write a Int8"
 	]]
+	
+	["not valid type for complex schema"] = "Complex fields are only supported for values of type 'string'. \n e.g {Type = String,Length = number}"
+	--[[
+		abc = {
+			Type = "Vector3",
+			Length = 5 -> ERROR
+		}
+		Instead of abc = "Vector3"
+	]]
 }
