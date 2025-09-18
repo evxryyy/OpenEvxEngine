@@ -4,6 +4,9 @@
 
 ## Logs
 
+Version : 1.6.3 (Latest Update)
+- Fixed a bug where Serializing a UDim or UDim2 was not working properly.
+
 Version : 1.6.2 (Latest update)
 - Fixed a bug where Serializing a Bool1 with other type causing problem on Serialize and Deserialize.
 
