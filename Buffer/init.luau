@@ -1344,7 +1344,7 @@ end
     Write a UDim as two f32 (Scale, Offset).
     - 8 bytes total.
 ]]
-function BufferComponent.WriteUdim(self : BufferComponentClass,udim : UDim)
+function BufferComponent.WriteUDim(self : BufferComponentClass,udim : UDim)
 	assert(typeof(udim) == "UDim","Udim must be a Udim")
 	local Scale = udim.Scale
 	local Offset = udim.Offset
@@ -1372,7 +1372,7 @@ end
     Write a UDim2 as four f32 (X.Scale, Y.Scale, X.Offset, Y.Offset).
     - 16 bytes total.
 ]]
-function BufferComponent.WriteUdim2(self : BufferComponentClass,udim2 : UDim2)
+function BufferComponent.WriteUDim2(self : BufferComponentClass,udim2 : UDim2)
 	assert(typeof(udim2) == "UDim2","Udim2 must be a Udim2")
 	local ScaleX,ScaleY = udim2.X.Scale,udim2.Y.Scale
 	local OffsetX,OffsetY = udim2.X.Offset,udim2.Y.Offset
@@ -2681,10 +2681,12 @@ BufferComponent.writeCFrame = BufferComponent.WriteCFrame
 BufferComponent.writecframe = BufferComponent.WriteCFrame
 BufferComponent.writeLossyCFrame = BufferComponent.WriteLossyCFrame
 BufferComponent.writelossyCFrame = BufferComponent.WriteLossyCFrame
-BufferComponent.writeUdim = BufferComponent.WriteUdim
-BufferComponent.writeudim = BufferComponent.WriteUdim
-BufferComponent.writeUdim2 = BufferComponent.WriteUdim2
-BufferComponent.writeudim2 = BufferComponent.WriteUdim2
+BufferComponent.writeUdim = BufferComponent.WriteUDim
+BufferComponent.writeudim = BufferComponent.WriteUDim
+BufferComponent.WriteUdim = BufferComponent.WriteUDim
+BufferComponent.writeUdim2 = BufferComponent.WriteUDim2
+BufferComponent.writeudim2 = BufferComponent.WriteUDim2
+BufferComponent.WriteUdim2 = BufferComponent.WriteUDim2
 BufferComponent.writeColor3 = BufferComponent.WriteColor3
 BufferComponent.writecolor3 = BufferComponent.WriteColor3
 BufferComponent.writeRect = BufferComponent.WriteRect
