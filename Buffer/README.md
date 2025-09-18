@@ -4,7 +4,11 @@
 
 ## Logs
 
-### Version : 1.6 (Latest update)
+Version : 1.6.1 (Latest update)
+- Fixed a bug where writting String8-64 with other type inside the schema cause problem on Deserialize.
+- Fixed a bug where the Serialize function modify the ValueSchema instead of copying it.
+
+### Version : 1.6 
 
 #### Fixes
 - Fixed a bug where writting some data-type with negative values doesn't work properly.
