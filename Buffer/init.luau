@@ -175,13 +175,14 @@ end
 -- Serializes the given Values according to the Schema into a BufferComponentClass
 function BufferConstructor.Serialize(Schema : BufferSchema, Values : BufferSchemaValue) : BufferComponentClass
 	-- Calculate total required bytes
-	local nBytes = Utils.getRequiredBytes(Schema, Values)
+	local copiedSchema,copiedValues = table.clone(Schema), table.clone(Values)
+	local nBytes = Utils.getRequiredBytes(copiedSchema, copiedValues)
 	local bufferComponent = BufferConstructor.new(nBytes)
-	for field, fieldType in pairs(Schema) do
-		if not Values[field] then continue end
+	for field, fieldType in pairs(copiedSchema) do
+		if not copiedValues[field] then continue end
 		-- Special case: Instance type
 		if fieldType == "Instance" then
-			bufferComponent:WriteInstance(Values[field])
+			bufferComponent:WriteInstance(copiedValues[field])
 			continue
 		end
 		-- Complex field (table)
@@ -191,16 +192,16 @@ function BufferConstructor.Serialize(Schema : BufferSchema, Values : BufferSchem
 				if not splitStringType[2] or splitStringType[2] == "" then
 					-- Pad string to fixed length
 					local len = fieldType.Length :: number
-					if #Values[field] < len then
-						Values[field] = Values[field] .. string.rep(string.char(31), len - #Values[field])
+					if #copiedValues[field] < len then
+						copiedValues[field] = copiedValues[field] .. string.rep(string.char(31), len - #copiedValues[field])
 					end
-					bufferComponent["Write"..fieldType.Type](bufferComponent, Values[field])
+					bufferComponent["Write"..fieldType.Type](bufferComponent, copiedValues[field])
 				else
 					-- Write string with explicit length
-					bufferComponent["Write"..fieldType.Type](bufferComponent, Values[field], #Values[field])
+					bufferComponent["Write"..fieldType.Type](bufferComponent, copiedValues[field], #copiedValues[field])
 				end
 			else
-				bufferComponent["Write"..fieldType.Type](bufferComponent, Values[field])
+				bufferComponent["Write"..fieldType.Type](bufferComponent, copiedValues[field])
 			end
 			continue
 		end
@@ -213,7 +214,13 @@ function BufferConstructor.Serialize(Schema : BufferSchema, Values : BufferSchem
 				failed = failed .. ("%s"):format(debug.info(1,"n"))
 				error(failed, 2)
 			else
-				bufferComponent["Write"..fieldType](bufferComponent, Values[field], #Values[field])
+				local len = tonumber(splitStringType[2]) :: number
+				if #copiedValues[field] < len then
+					copiedValues[field] = copiedValues[field] .. string.rep(string.char(31), len - #copiedValues[field])
+				elseif(#Values[field] > len) then
+					copiedValues[field] = string.sub(copiedValues[field],1,len)
+				end
+				bufferComponent["Write"..fieldType](bufferComponent, copiedValues[field], #copiedValues[field])
 			end
 		else
 			if(string.find(fieldType,"Float")) then
@@ -221,15 +228,17 @@ function BufferConstructor.Serialize(Schema : BufferSchema, Values : BufferSchem
 				fieldType = "F" .. splitType[2]
 			end
 			-- Generic type writing
-			bufferComponent["Write"..fieldType](bufferComponent, Values[field])
+			bufferComponent["Write"..fieldType](bufferComponent, copiedValues[field])
 		end
 		-- Boolean type handling
 		if string.find(fieldType, "Boolean") then
 			local splitType = string.split(fieldType, "e")
 			fieldType = splitType[1] .. string.sub(splitType[2], 3, 3)
-			bufferComponent["Write"..fieldType](bufferComponent, Values[field])
+			bufferComponent["Write"..fieldType](bufferComponent, copiedValues[field])
 		end
 	end
+	table.clear(copiedSchema)
+	table.clear(copiedValues)
 	return bufferComponent
 end
 
@@ -239,7 +248,8 @@ function BufferConstructor.Deserialize(Schema : BufferSchema, SerializeBuffer : 
 	local offset = 0 -- byte offset for normal types
 	local instance_offset = 1 -- index for Instance types
 	local values = {}
-	for field, fieldType in pairs(Schema) do
+	local copiedSchema = table.clone(Schema)
+	for field, fieldType in pairs(copiedSchema) do
 		-- Complex type (table)
 		if typeof(fieldType) == "table" then
 			local len = fieldType.Length
@@ -268,6 +278,7 @@ function BufferConstructor.Deserialize(Schema : BufferSchema, SerializeBuffer : 
 				else
 					local len = tonumber(splitStringType[2])
 					local value = SerializeBuffer["ReadString"](SerializeBuffer, len, offset)
+					value = string.gsub(value, string.char(31), "")
 					values[field] = value
 					offset += len
 				end
@@ -291,6 +302,7 @@ function BufferConstructor.Deserialize(Schema : BufferSchema, SerializeBuffer : 
 			end
 		end
 	end
+	table.clear(copiedSchema)
 	return values
 end
 
