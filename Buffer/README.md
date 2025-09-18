@@ -4,7 +4,10 @@
 
 ## Logs
 
-Version : 1.6.1 (Latest update)
+Version : 1.6.2 (Latest update)
+- Fixed a bug where Serializing a Bool1 with other type causing problem on Serialize and Deserialize.
+
+Version : 1.6.1
 - Fixed a bug where writting String8-64 with other type inside the schema cause problem on Deserialize.
 - Fixed a bug where the Serialize function modify the ValueSchema instead of copying it.
 
