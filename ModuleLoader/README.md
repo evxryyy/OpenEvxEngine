@@ -2,7 +2,14 @@
 
 ## What Next
 
+I am re-building it for more control and readability.
+
 ## Logs
+
+Version : 1.3
+- fixed a bug where calling :Load with GetDescedant() was causing dupplication.
+- now module need a attribute named IsLoaderComponent otherwise the module will not be loaded.
+
 
 Version : 1.2
 - fixed a bug where calling the :Start and putting the settings SHOW_DEBUG_PRINT on false was not initializing and starting any module
