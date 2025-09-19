@@ -79,26 +79,26 @@ local function initTargetModule(descendant : Instance,settings : Settings)
 	if(settings.USE_DESCENDANT) then
 		for i,module in pairs(descendant:GetDescendants()) do
 			if(module:IsA("ModuleScript")) then
+				if(not module:GetAttribute("IsLoaderComponent")) then continue end
 				table.insert(loaded_module,{
 					instance = module,
 					module = require(module),
 					priority = module:GetAttribute("Priority") or 1
 				} :: Registery)
 			else
-				ModuleLoader.Load(module)
 				continue
 			end
 		end 
 	else
 		for i,module in pairs(descendant:GetChildren()) do
 			if(module:IsA("ModuleScript")) then
+				if(not module:GetAttribute("IsLoaderComponent")) then continue end
 				table.insert(loaded_module,{
 					instance = module,
 					module = require(module),
 					priority = module:GetAttribute("Priority") or 1
 				} :: Registery)
 			else
-				ModuleLoader.Load(module)
 				continue
 			end
 		end 
@@ -120,21 +120,21 @@ end
 function ModuleLoader.Load(descendant : Instance) : ()
 	if(RunService:IsServer()) then
 		if(SETTINGS.SHOW_DEBUG_PRINT) then
-			warn((SERVER_PRINT):format(`Loading all modules`))
+			print((SERVER_PRINT):format(`Loading all modules`))
 		end
 		initTargetModule(descendant,SETTINGS)
 		sortRegistery()
 		if(SETTINGS.SHOW_DEBUG_PRINT) then
-			warn((SERVER_PRINT):format(`Loaded all modules and sorted correctly.`))
+			print((SERVER_PRINT):format(`Loaded all modules and sorted correctly.`))
 		end
 	else
 		if(SETTINGS.SHOW_DEBUG_PRINT) then
-			warn((CLIENT_PRINT):format(`Loading all modules`))
+			print((CLIENT_PRINT):format(`Loading all modules`))
 		end
 		initTargetModule(descendant,SETTINGS)
 		sortRegistery()
 		if(SETTINGS.SHOW_DEBUG_PRINT) then
-			warn((CLIENT_PRINT):format(`Loaded all modules and sorted correctly.`))
+			print((CLIENT_PRINT):format(`Loaded all modules and sorted correctly.`))
 		end
 	end
 end
