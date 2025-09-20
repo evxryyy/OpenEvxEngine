@@ -16,7 +16,8 @@
   - ASCII (Binary)
   - Nexus (Networking)
   - ModuleLoader (Loader)
-  - Task
+  - Task (OLD garbage collection/cleanup utility module)
+  - Collect (Improved garbage collection/cleanup utility module)
   - Enum
   - Option
   - SyncHandler (SignalLike for BindableFunction)
