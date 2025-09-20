@@ -2,9 +2,10 @@
 
 ## What Next
 
-I am re-building it for more control and readability.
-
 ## Logs
+
+Version : 1.4
+- fixed a bug where alias was not showed from the intelisense.
 
 Version : 1.3
 - fixed a bug where calling :Load with GetDescedant() was causing dupplication.
