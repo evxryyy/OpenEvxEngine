@@ -1,4 +1,4 @@
-return {
+return table.freeze({
 	--INTEGER TYPES--
 	MIN_UINT = 0,
 	MAX_UINT1 = 1,
@@ -84,5 +84,5 @@ return {
 	},
 
 	--VERSION--
-	VERSION = "1.6.3",
-}
+	VERSION = "1.6.4",
+})
