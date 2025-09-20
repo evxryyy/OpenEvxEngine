@@ -16,7 +16,7 @@
   - ASCII (Binary)
   - Nexus (Networking)
   - ModuleLoader (Loader)
-  - Task (OLD garbage collection/cleanup utility module)
+  - Task (Old garbage collection/cleanup utility module)
   - Collect (Improved garbage collection/cleanup utility module)
   - Enum (System for creating and managing enums)
   - Option (Implements the Option type pattern)
