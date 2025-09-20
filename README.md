@@ -11,15 +11,15 @@
   - [Docs](https://evxryyy.github.io/OpenEvxEngine)
 
 ## Engine API
-  - Buffer
-  - UserInput
+  - Buffer (A powerful library to write, serialize/deserialize,read data with the "buffer" type.)
+  - UserInput (A input handling system for keyboard,gamepad, and mouse input with dynamic switching)
   - ASCII (Binary)
   - Nexus (Networking)
   - ModuleLoader (Loader)
   - Task (OLD garbage collection/cleanup utility module)
   - Collect (Improved garbage collection/cleanup utility module)
-  - Enum
-  - Option
+  - Enum (System for creating and managing enums)
+  - Option (Implements the Option type pattern)
   - SyncHandler (SignalLike for BindableFunction)
   - SyncSignal (SignalLike for BindableEvent)
   - ConnectionStore (Store RBXScriptConnection or callback)
