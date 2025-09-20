@@ -26,7 +26,7 @@
     - U32 (32-bit)  : 0 to 4,294,967,295
     - U40 (40-bit)  : 0 to 1,099,511,627,775
     - U48 (48-bit)  : 0 to 281,474,976,710,655
-    - U54 (54-bit)  : 0 to 18,014,398,509,481,984
+    - U54 (54-bit)  : 0 to 18,014,398,509,481,980
     
     ================ FLOATING POINT TYPES ================
     - F16 (16-bit) : Half-precision float
@@ -243,7 +243,6 @@ function BufferConstructor.Serialize(Schema : BufferSchema, Values : BufferSchem
 	return bufferComponent
 end
 
-
 -- Deserializes a BufferComponentClass into a table of values according to Schema
 function BufferConstructor.Deserialize(Schema : BufferSchema, SerializeBuffer : BufferComponentClass) : BufferSchemaValue
 	local offset = 0 -- byte offset for normal types
@@ -311,6 +310,27 @@ end
 ]]
 function BufferComponent.__tostring(self : BufferComponentClass)
 	return `BufferComponent(Size:{buffer.len(self.buffer)})`
+end
+
+--[[
+    __len metamethod for buffer length.
+    - Returns the length of the buffer in bytes.
+]]
+function BufferComponent.__len(self : BufferComponentClass)
+	return buffer.len(self.buffer)
+end
+
+--[[
+    __add metamethod for buffer resizing.
+    - Resizes the buffer by the specified number of bytes.
+    - Returns the updated BufferComponent instance.
+]]
+function BufferComponent.__add(self : BufferComponentClass,value : number)
+	if(not value or type(value) ~= "number") then
+		error(Debug["not a valid type"]:format(type(value),type(10)))
+	end
+	self:allocate(value)
+	return self
 end
 
 --[[
