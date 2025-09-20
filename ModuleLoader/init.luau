@@ -52,18 +52,6 @@ export type Settings = {
 	USE_DESCENDANT : boolean,	
 }
 
-export type ModuleLoader = {
-	Load : (descendant : Instance) -> (),
-	Start : () -> (),
-	SetSettings : (customSettings : Settings) -> (),
-	Each : (callback : (Module : ModuleScript) -> boolean) -> (),
-	Clear : () -> (),
-	Find : (ModulePath : ModuleScript | string) -> RegisteryIndex?,
-	WaitUntilStarted : () -> number,
-	IsStarted : () -> boolean,
-	Stop : () -> (),
-}
-
 export type ModuleLoaderComponent = {
 	Init : (...any)  -> (),
 	Start : (...any)  -> (),
@@ -73,6 +61,10 @@ export type ModuleLoaderComponent = {
 
 local ModuleLoader = {}
 ModuleLoader.__index = ModuleLoader
+
+export type ModuleLoader = typeof(setmetatable({} :: {
+	
+},ModuleLoader))
 
 --init all module and register the current one in the registery
 local function initTargetModule(descendant : Instance,settings : Settings)
