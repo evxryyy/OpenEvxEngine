@@ -4,7 +4,22 @@
 
 ## Logs
 
-Version : 1.6.3 (Latest Update)
+Version : 1.6.4
+- added __len and __add metamethod.
+ ```lua
+    myBuffer += 10 -- buffer size will be increased by 10
+    local bufLen = #myBuffer -- return the size of the buffer
+ ```
+- Constants return table is now freeze.
+- added Utils.ConvertByte(To : ConvertEnum, bytes : number) -> number
+  ```lua
+  --Converts bytes to a specified unit.
+  type ConvertEnum = "Kilobytes" | "Megabytes" | "Gigabyte"
+  bytes : number
+  return : number
+  ```
+
+Version : 1.6.3
 - Fixed a bug where Serializing a UDim or UDim2 was not working properly.
 
 Version : 1.6.2
