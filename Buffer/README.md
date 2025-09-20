@@ -1,7 +1,7 @@
 # Buffer
 
 ## What next
-I'm trying to see if a Serialize/Deserialize that use buffer directly instead of returning a BufferComponentClass will be great.
+I'm trying to see if a Serialize/Deserialize that return a buffer directly instead of returning a BufferComponentClass will be great.
 
 ## Logs
 
