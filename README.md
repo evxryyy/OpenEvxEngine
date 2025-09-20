@@ -11,10 +11,10 @@
   - [Docs](https://evxryyy.github.io/OpenEvxEngine)
 
 ## Engine API
-  - Buffer (A powerful library to write, serialize/deserialize,read data with the "buffer" type.)
+  - Buffer (A powerful library to write, serialize/deserialize,read data with the "buffer" type)
   - UserInput (A input handling system for keyboard,gamepad, and mouse input with dynamic switching)
-  - ASCII (Binary)
-  - Nexus (Networking)
+  - ASCII (Binary and ASCII Conversion Utilities)
+  - Nexus (Networking library)
   - ModuleLoader (Loader)
   - Task (Old garbage collection/cleanup utility module)
   - Collect (Improved garbage collection/cleanup utility module)
