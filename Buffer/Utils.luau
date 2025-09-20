@@ -17,6 +17,8 @@ type BufferSchemaValue = {
 	[string] : any
 }
 
+type ConvertEnum = "Kilobytes" | "Megabytes" | "Gigabyte"
+
 local Utils = {}
 Utils.__index = Utils
 
@@ -69,8 +71,19 @@ Utils.getRequiredBytes = function(Schema : BufferSchema,Values : BufferSchemaVal
 			n += listOfBytes[fieldType]
 		end
 	end
-
 	return n
+end
+
+--Converts bytes to a specified unit.
+function Utils.ConvertByte(To : ConvertEnum,bytes : number) : number
+	if(To == "Kilobytes") then
+		return bytes / 1024
+	elseif(To == "Megabytes") then
+		return bytes / 1_048_576
+	elseif(To == "Gigabyte") then
+		return bytes / 1_073_741_824
+	end
+	return -1
 end
 
 return Utils
