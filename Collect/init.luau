@@ -394,6 +394,29 @@ function Component.Extend<T...>(self : CollectComponent<T...>) : CollectComponen
 	return self:Construct(Constructor)
 end
 
+-- Merges another CollectComponent into this one, taking ownership of all its tracked items
+-- The source component is destroyed after merging
+-- @param self: Target CollectComponent that will receive the items
+-- @param CollectComponent: Source CollectComponent to merge from (will be destroyed)
+function Component.Merge<T...,K...>(self : CollectComponent<T...>, CollectComponent : CollectComponent<K...>)
+	-- Prevent merging if this component is being cleaned up
+	if(self._cleaning) then return end
+	-- Get all tasks from the source component
+	local tasks = CollectComponent._task
+	-- Transfer all tasks to this component
+	if(#tasks > 0) then
+		for i = 1,#tasks do
+			table.insert(self._task,tasks[i])
+		end
+		-- Clear the source component's tasks without cleaning them
+		-- (ownership has been transferred to this component)
+		CollectComponent:RemoveAll()
+	end
+	-- Destroy the source component completely
+	table.clear(CollectComponent :: any)
+	setmetatable(CollectComponent :: any,nil)
+end
+
 -- Cleans up all tracked items and destroys the component
 -- This is the main cleanup method - call when done with the component
 function Component.Clean<T...>(self : CollectComponent<T...>)
@@ -434,6 +457,7 @@ Component.findAllInstance = Component.FindAllInstance
 Component.findAllConstructor = Component.FindAllConstructor
 Component.construct = Component.Construct
 Component.extend = Component.Extend
+Component.merge = Component.Merge
 Component.clean = Component.Clean
 Component.destroy = Component.Clean
 Component.Destroy = Component.Clean
