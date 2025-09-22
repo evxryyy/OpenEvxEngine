@@ -9,7 +9,16 @@ Version : 1.0
 
 ## Notes
 
-You can find disabled scripts inside you are free to remove it they are just for examples.
+- You can find disabled scripts inside you are free to remove it they are just for examples.
+- For string data type please use something like this :
+  ```lua
+	local schema : Socket.BufferSchema = {
+		Value = {
+			Type = "String",
+			Length = 1024
+		} -- This will require 1024 bytes
+	}
+  ```
 
 ## Examples
 
