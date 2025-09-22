@@ -5,6 +5,9 @@ I'm trying to see if a Serialize/Deserialize that return a buffer directly inste
 
 ## Logs
 
+Version : 1.6.6
+- Fixed a bug where WriteI8 and ReadRegion3 was showing values in the output.
+
 Version : 1.6.5
 - Changed ```type BufferSchemaValue``` to ```export type BufferSchemaValue```
 
