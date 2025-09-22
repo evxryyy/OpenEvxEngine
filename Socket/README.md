@@ -10,9 +10,12 @@ Version : 1.0
 ## Examples
 
 ### RemoteEvent
-```lua
--- SERVER SIDE
 
+-----------
+
+Server : 
+
+```lua
 -- Import the Socket module (contains all networking utilities)
 local Socket = require(path.to.Socket)
 
@@ -39,9 +42,13 @@ Function:InsertHandle(function(player, invokeValueSchema)
 	-- Return both schema and value - they'll be serialized and sent to client
 	return schema, value
 end)
+```
 
--- CLIENT SIDE
+---------
 
+Client :
+
+```lua
 -- Import the Socket module (contains all networking utilities)
 local Socket = require(path.to.Socket)
 
