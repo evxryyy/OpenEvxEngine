@@ -387,7 +387,6 @@ function BufferComponent.WriteI8(self : BufferComponentClass,number : number) : 
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
-	print(self.offset)
 	local success,outOfBounds = pcall(buffer.writei8,self.buffer,self.offset,number)
 	if(outOfBounds) then
 		if(Debug[outOfBounds]) then
@@ -2521,7 +2520,6 @@ function BufferComponent.ReadRegion3(self : BufferComponentClass,offset : number
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
 	local cframe = self:ReadCFrame(offset)
 	local size = self:ReadVector3(offset + 96)
-	print(cframe,size)
 	local halfSize = size * 0.5
 	local min = cframe.Position - halfSize
 	local max = cframe.Position + halfSize
