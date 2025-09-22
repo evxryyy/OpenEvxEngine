@@ -9,7 +9,9 @@ Version : 1.0
 
 ## Examples
 
-### RemoteEvent
+-----------
+
+### RemoteFunction
 
 -----------
 
@@ -73,3 +75,60 @@ local result = Remote:Fire({Message = "Hello"},{Value = "I8"})
 print(result)
 ```
 
+-----------
+
+## RemoteEvent
+
+-----------
+
+Server : 
+
+```lua
+-- Import the Socket module (contains all networking utilities)
+local Socket = require(path.to.Socket)
+
+-- Create a new SocketRemote (server-side RemoteEvent wrapper)
+-- Parameters:
+--   "Test" - Unique name for this event endpoint
+--   Schema table - Defines expected data structure from clients
+--     Money: expects a 64-bit floating point number (double precision)
+local Remote = Socket.Server.Remote.Create("Test",{
+	Money = "Float64";  -- Clients must send data matching this schema: {Money = 123.45}
+})
+
+-- Set up a listener to handle events fired by clients
+-- The handler receives:
+--   player: Player who fired the event
+--   valueSchema: Deserialized data sent by client (validated against schema above)
+Remote:Connect(function(player, valueSchema)
+	-- Print received data for debugging/logging
+	-- Example output: [Player] {Money = 99.99}
+	print(player, valueSchema)
+end)
+```
+
+-----------
+
+Client : 
+
+```lua
+-- Import the Socket module (contains all networking utilities)
+local Socket = require(path.to.Socket)
+
+-- Find the existing RemoteEvent created by the server
+-- Parameters:
+--   "Test" - Name of the RemoteEvent (must match server's name)
+--   Schema table - Defines expected data structure for this event
+--     Money: expects a 64-bit floating point number (double precision)
+local Remote = Socket.Client.Remote.Find("Test",{
+	Money = "Float64";  -- Must match schema defined on server
+})
+
+-- Fire an event to the server with data
+-- Parameter:
+--   {Money = 15.155} - Data to send to server (must match schema above)
+-- Note: This is "fire-and-forget" - no response is expected or returned
+Remote:Fire({
+	Money = 15.155  -- Send money value to server
+})
+```
