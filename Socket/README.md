@@ -19,6 +19,7 @@ Version : 1.0
 		} -- This will require 1024 bytes
 	}
   ```
+- I also recommend to learn the Buffer module i made so you will know its serialized and deserialized also you will know every type that you can write correctly.
 
 ## Examples
 
