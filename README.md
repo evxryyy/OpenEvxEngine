@@ -15,6 +15,7 @@
   - UserInput (A input handling system for keyboard,gamepad, and mouse input with dynamic switching)
   - ASCII (Binary and ASCII Conversion Utilities)
   - Nexus (Networking library)
+  - Socket (Buffer-Networking library)
   - ModuleLoader (Loader)
   - Task (Old garbage collection/cleanup utility module)
   - Collect (Improved garbage collection/cleanup utility module)
