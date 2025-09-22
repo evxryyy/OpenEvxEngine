@@ -111,7 +111,7 @@ export type BufferSchema = {
 	[string] : BufferEnum.BufferTypeName | {Type : BufferEnum.BufferTypeName, Length : number?}
 }
 
-type BufferSchemaValue = {
+export type BufferSchemaValue = {
 	[string] : any
 }
 
