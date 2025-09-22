@@ -7,6 +7,10 @@
 Version : 1.0
 - Released the module.
 
+## Notes
+
+You can find disabled scripts inside you are free to remove it they are just for examples.
+
 ## Examples
 
 -----------
