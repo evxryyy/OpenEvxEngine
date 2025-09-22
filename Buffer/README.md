@@ -5,6 +5,9 @@ I'm trying to see if a Serialize/Deserialize that return a buffer directly inste
 
 ## Logs
 
+Version : 1.6.7
+- Fixed a bug where reading a Boolean1 set to false using Serialize and Deserialize was causing issues.
+
 Version : 1.6.6
 - Fixed a bug where WriteI8 and ReadRegion3 was showing values in the output.
 
