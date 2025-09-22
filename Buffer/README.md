@@ -5,6 +5,9 @@ I'm trying to see if a Serialize/Deserialize that return a buffer directly inste
 
 ## Logs
 
+Version : 1.6.5
+- Changed ```type BufferSchemaValue``` to ```export type BufferSchemaValue```
+
 Version : 1.6.4
 - added __len and __add metamethod.
  ```lua
