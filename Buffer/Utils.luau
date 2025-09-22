@@ -27,7 +27,7 @@ Utils.getRequiredBytes = function(Schema : BufferSchema,Values : BufferSchemaVal
 	local listOfBytes = Constants.REQUIRED_BYTES
 	local n = 0
 	for field,fieldType in pairs(Schema) do
-		if(not Values[field]) then continue end
+		if(Values[field] == nil) then continue end
 		if(typeof(fieldType) == "table") then
 			if(fieldType.Type ~= "String") then
 				local failed = Debug["not valid type for complex schema"]
