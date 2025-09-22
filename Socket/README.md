@@ -132,3 +132,66 @@ Remote:Fire({
 	Money = 15.155  -- Send money value to server
 })
 ```
+
+-----------
+
+## UnreliableRemoteEvent
+
+-----------
+
+Server : 
+
+```lua
+-- WARNING: UnreliableRemoteEvents have a 1000 byte maximum payload size
+
+-- Import the Socket module (contains all networking utilities)
+local Socket = require(path.to.Socket)
+
+-- Create a new SocketUnreliableRemote (server-side UnreliableRemoteEvent wrapper)
+-- Parameters:
+--   "Test" - Unique name for this unreliable event endpoint
+--   Schema table - Defines expected data structure from clients
+--     Money: expects a 64-bit floating point number (8 bytes)
+local Remote = Socket.Server.UnreliableRemote.Create("Test",{
+	Money = "Float64";  -- 8 bytes - well within 1000 byte limit
+})
+
+-- Set up a listener to handle unreliable events fired by clients
+-- IMPORTANT: Some events may be dropped or arrive out of order
+-- The handler receives:
+--   player: Player who fired the event
+--   valueSchema: Deserialized data sent by client (if packet arrived)
+Remote:Connect(function(player, valueSchema)
+	-- Print received data for debugging
+	-- Note: This may not print every event sent by client due to packet loss
+	print(player, valueSchema)
+end)
+```
+
+-----------
+
+Client :
+
+```lua
+-- WARNING: UnreliableRemoteEvents have a 1000 byte maximum payload size
+
+-- Import the Socket module (contains all networking utilities)
+local Socket = require(path.to.Socket)
+
+-- Find the existing UnreliableRemoteEvent created by the server
+-- Parameters:
+--   "Test" - Name of the UnreliableRemoteEvent (must match server's name)
+--   Schema table - Defines expected data structure for this event
+--     Money: expects a 64-bit floating point number (8 bytes)
+local Remote = Socket.Client.UnreliableRemote.Find("Test",{
+	Money = "Float64";  -- 8 bytes - well within 1000 byte limit
+})
+
+-- Fire an unreliable event to the server
+-- Parameter:
+--   {Money = 15.155} - Data to send (must match schema)
+-- IMPORTANT: This packet may be dropped and never reach the server
+Remote:Fire({
+	Money = 15.155  -- Send money value - may not arrive!
+})
+```
