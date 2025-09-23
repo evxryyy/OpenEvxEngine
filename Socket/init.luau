@@ -9,14 +9,12 @@
 -- Import sub-modules
 local SocketClient = require('@self/SocketClient')  -- Client-side networking APIs
 local SocketServer = require('@self/SocketServer')  -- Server-side networking APIs
-local Buffer = require('./Buffer')                  -- Buffer serialization system
+local Buffer = require('@self/Buffer')                  -- Buffer serialization system
 
 -- Export type definitions for external use
 export type BufferComponent = Buffer.BufferComponentClass  -- Buffer instance type
 export type BufferSchema = Buffer.BufferSchema           -- Schema definition type
-export type BufferSchemaValue = {                        -- Data structure type
-	[string] : any
-}
+export type BufferSchemaValue = Buffer.BufferSchemaValue    -- Data structure type
 
 -- Create the main Socket namespace
 local Socket = {}
