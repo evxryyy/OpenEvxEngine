@@ -4,6 +4,9 @@
 
 ## Logs
 
+Version : 1.1
+- Fixed a bug where Socket was requiring Buffer module like this ```./Buffer``` instead of ```@self/Buffer```
+
 Version : 1.0
 - Released the module.
 
