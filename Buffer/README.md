@@ -4,6 +4,9 @@
 
 ## Logs
 
+Version : 1.6.8
+- Fixed a bug where reading a Boolean1 was using ```offset``` instead of ```offset * 8```
+
 Version : 1.6.7
 - Fixed a bug where reading a Boolean1 set to false using Serialize and Deserialize was causing issues.
 
