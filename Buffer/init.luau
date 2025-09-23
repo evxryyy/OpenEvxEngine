@@ -2034,7 +2034,7 @@ end
 ]]
 function BufferComponent.ReadBool1(self : BufferComponentClass,offset : number?) : boolean | nil
 	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
-	local bitOffset = (offset * 8) and offset or 0
+	local bitOffset = (offset * 8 >= 0) and offset * 8 or 0
 	local success, valueORoutOfBounds = pcall(function()
 		return (buffer.readbits(self.buffer, bitOffset, 1) == 1) and true or false
 	end)
