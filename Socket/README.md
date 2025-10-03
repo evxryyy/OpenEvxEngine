@@ -12,7 +12,8 @@ SocketClient.GetRemote<T...>(SocketName : string, Schema : Buffer.BufferSchema) 
 SocketClient.GetFunction<T...>(SocketName : string, Schema : Buffer.BufferSchema) --> equivalent to Socket.Client.Function.get()
 SocketClient.GetUnreliableRemote<T...>(SocketName : string, Schema : Buffer.BufferSchema) --> equivalent to Socket.Client.UnreliableRemote.get()
 
-SocketClient.GetExtendedRemote<T...>(Configuration : extendedRemoteConfiguration) --> --[[
+SocketClient.GetExtendedRemote<T...>(Configuration : extendedRemoteConfiguration) --> [[
+--[[
 	local Remote = Socket.Client.GetExtendedRemote({
 		SocketName = "HelloWorld",
 		Schema = {Message = "String8"},
@@ -33,6 +34,7 @@ SocketServer.BuildFunction<T...>(SocketName : string, Schema : Buffer.BufferSche
 SocketServer.BuildUnreliableRemote<T...>(SocketName : string, Schema : Buffer.BufferSchema) --  equivalent to Socket.Server.UnreliableRemote.Create()
 
 SocketServer.BuildExtendedRemote<T...>(Configuration : extendedRemoteConfiguration) --> [[
+--[[
 	local Remote = Socket.Server.BuildExtendedRemote({
 		SocketName = "Test",
 		Schema = {Money = "Float64"},
