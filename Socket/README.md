@@ -12,7 +12,7 @@ SocketClient.GetRemote<T...>(SocketName : string, Schema : Buffer.BufferSchema) 
 SocketClient.GetFunction<T...>(SocketName : string, Schema : Buffer.BufferSchema) --> equivalent to Socket.Client.Function.get()
 SocketClient.GetUnreliableRemote<T...>(SocketName : string, Schema : Buffer.BufferSchema) --> equivalent to Socket.Client.UnreliableRemote.get()
 
-SocketClient.GetExtendedRemote<T...>(Configuration : extendedRemoteConfiguration) --> [[
+SocketClient.GetExtendedRemote<T...>(Configuration : extendedRemoteConfiguration) --> --[[
 	local Remote = Socket.Client.GetExtendedRemote({
 		SocketName = "HelloWorld",
 		Schema = {Message = "String8"},
