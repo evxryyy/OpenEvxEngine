@@ -4,6 +4,14 @@
 
 ## Logs
 
+Version : 1.6.9
+- Added more alias.
+ ```lua
+BufferComponent.ReadVector2Int16 = BufferComponent.ReadVector2int16
+BufferComponent.ReadVector3Int16 = BufferComponent.ReadVector3int16
+BufferComponent.ReadRegion3Int16 = BufferComponent.ReadRegion3int16
+ ```
+
 Version : 1.6.8
 - Fixed a bug where reading a Boolean1 was using ```offset``` instead of ```offset * 8```
 
