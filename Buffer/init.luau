@@ -2712,6 +2712,7 @@ BufferComponent.writeRect = BufferComponent.WriteRect
 BufferComponent.writerect = BufferComponent.WriteRect
 BufferComponent.writeRegion3 = BufferComponent.WriteRegion3
 BufferComponent.writeregion3 = BufferComponent.WriteRegion3
+BufferComponent.WriteRegion3Int16 = BufferComponent.WriteRegion3int16
 BufferComponent.writeRegion3int16 = BufferComponent.WriteRegion3int16
 BufferComponent.writeregion3int16 = BufferComponent.WriteRegion3int16
 
@@ -2777,12 +2778,14 @@ BufferComponent.readinstance = BufferComponent.ReadInstance
 --[Reader] roblox type alias
 BufferComponent.readVector2 = BufferComponent.ReadVector2
 BufferComponent.readvector2 = BufferComponent.ReadVector2
+BufferComponent.ReadVector2Int16 = BufferComponent.ReadVector2int16
 BufferComponent.readVector2int16 = BufferComponent.ReadVector2int16
 BufferComponent.readvector2int16 = BufferComponent.ReadVector2int16
 BufferComponent.readVector3 = BufferComponent.ReadVector3
 BufferComponent.readvector3 = BufferComponent.ReadVector3
 BufferComponent.readVector3int16 = BufferComponent.ReadVector3int16
 BufferComponent.readvector3int16 = BufferComponent.ReadVector3int16
+BufferComponent.ReadVector3Int16 = BufferComponent.ReadVector3int16
 BufferComponent.readCFrame = BufferComponent.ReadCFrame
 BufferComponent.readcframe = BufferComponent.ReadCFrame
 BufferComponent.readLossyCFrame = BufferComponent.ReadLossyCFrame
@@ -2799,6 +2802,7 @@ BufferComponent.readRect = BufferComponent.ReadRect
 BufferComponent.readrect = BufferComponent.ReadRect
 BufferComponent.readRegion3 = BufferComponent.ReadRegion3
 BufferComponent.readregion3 = BufferComponent.ReadRegion3
+BufferComponent.ReadRegion3Int16 = BufferComponent.ReadRegion3int16
 BufferComponent.readRegion3int16 = BufferComponent.ReadRegion3int16
 BufferComponent.readregion3int16 = BufferComponent.ReadRegion3int16
 
