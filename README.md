@@ -23,7 +23,7 @@
   - Option (Implements the Option type pattern)
   - SyncHandler (SignalLike for BindableFunction)
   - SyncSignal (SignalLike for BindableEvent)
-  - ConnectionStore (Store RBXScriptConnection or callback)
+  - ConnectionStore (Store RBXScriptConnection or threads)
 
 ## Description
 
