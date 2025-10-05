@@ -6,7 +6,7 @@
     author : evxry_ll
     
     -------------------
-    A utility module to manage RBXScriptConnections (or cleanup callbacks)
+    A utility module to manage RBXScriptConnections (or threads)
     in both "local" and "global" registries.
 
     Purpose:
@@ -15,7 +15,7 @@
     - Differentiate between "Local" (per-instance/module scope) and "Global" (shared scope).
 ]]
 
-type Executable<T...> = RBXScriptConnection | (T...) -> T... | thread
+type Executable<T...> = RBXScriptConnection | thread
 
 -- Global registry (shared across all ConnectionStore users)
 local ConnectionStoreRegistery = {} :: {[string] : Executable<...any>}
