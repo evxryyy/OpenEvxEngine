@@ -4,7 +4,7 @@
 
 ## Logs
 
-Version : 1.2:
+Version : 1.2
 - functions are now unsupported.
 
 Version : 1.1
