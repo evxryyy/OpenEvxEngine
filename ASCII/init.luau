@@ -1,244 +1,282 @@
 --[[
-	ASCII Module - Binary and ASCII Conversion Utilities
-	
-	A utility module for converting between strings, ASCII values, and binary representations.
-	Provides functions to encode/decode text and numbers using ASCII and binary formats.
-	
-	=== USAGE EXAMPLE ===
-	
-	local ReplicatedStorage = game:GetService("ReplicatedStorage")
-	local ASCII = require(ReplicatedStorage:WaitForChild("ASCII"))
-	
-	-- String to ASCII conversion
-	print(ASCII.StrASCII("Hello World!")) -- Output: {72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33}
-	
-	-- ASCII to String conversion
-	print(ASCII.ASCIIStr({72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33})) -- Output: "Hello World!"
-	
-	-- Number to Binary conversion
-	local binary = ASCII.BinaryNumber(10) -- Returns buffer containing binary representation
-	
-	-- Binary to Number conversion
-	local number = ASCII.BinaryToNumber(binary) -- Output: 10
-	
-	=== API REFERENCE ===
-	
-	ASCII.StrASCII(str: string) -> {number}
-		Converts a string into an array of ASCII values.
-		
-		Parameters:
-			str - The input string to convert
-			
-		Returns:
-			Array of numbers representing ASCII values of each character
-			
-		Example:
-			ASCII.StrASCII("Hi") -> {72, 105}
-	
-	
-	ASCII.ASCIIStr(num: number | {number}) -> string
-		Converts ASCII value(s) back into a string.
-		
-		Parameters:
-			num - Single ASCII value or array of ASCII values
-			
-		Returns:
-			String representation of the ASCII values
-			
-		Examples:
-			ASCII.ASCIIStr(72) -> "H"
-			ASCII.ASCIIStr({72, 105}) -> "Hi"
-	
-	
-	ASCII.BinaryNumber(num: number | {number}) -> buffer | {buffer}
-		Converts number(s) into binary representation using buffers.
-		
-		Parameters:
-			num - Single number or array of numbers to convert
-			
-		Returns:
-			- If single number: buffer containing binary representation
-			- If array: array of buffers, each containing binary representation
-			
-		Examples:
-			ASCII.BinaryNumber(10) -> buffer (containing 1010)
-			ASCII.BinaryNumber({10, 15}) -> {buffer, buffer}
-	
-	
-	ASCII.BinaryToNumber(bits: buffer | {buffer}) -> number
-		Converts binary representation back to decimal number.
-		
-		Parameters:
-			bits - Buffer or array of buffers containing binary data
-			
-		Returns:
-			Decimal number representation of the binary data
-			
-		Notes:
-			- Single buffer: converts directly to number
-			- Array of buffers: concatenates all binary data then converts
-			
-		Examples:
-			ASCII.BinaryToNumber(buffer) -> 10
-			ASCII.BinaryToNumber({buffer1, buffer2}) -> Combined decimal value
-	
-	=== IMPLEMENTATION NOTES ===
-	
-	- Uses UTF-8 encoding for string operations
-	- Binary data is stored in Roblox buffer objects for efficiency
-	- Supports both single value and batch operations
-	- Automatically handles float to integer conversion
-	- Task.wait() is used in loops to prevent script timeout on large datasets
---]]
+	ASCII Conversion Module
+	Author: evxry_ll
+	Description: Provides utilities for converting between ASCII strings, numbers, and binary buffer representations.
+	Features:
+	- Convert strings to ASCII numbers and vice versa
+	- Convert numbers to compressed binary buffers
+	- Decompress binary buffers back to numbers
+	- Support for single values and arrays
+]]
 
--- Helper function to expand buffer size
--- @param b: Existing buffer to expand
--- @param size: Number of bytes to add
--- @return: New buffer with expanded size and copied data
-local function allocate(b : buffer,size : number)
-	if(not size) then return end
-	if(not b) then return end
-	local targetSize = buffer.len(b)+size
+type ConvertType = "Merge" | "Single"
+
+--[[
+	Allocates additional space to a buffer by creating a new buffer with increased size
+	and copying the existing data.
+	@param b: The original buffer
+	@param size: Number of additional bytes to allocate
+	@return: New buffer with increased capacity
+]]
+local function allocate(b: buffer, size: number)
+	if not size then return end
+	if not b then return end
+	local targetSize = buffer.len(b) + size
 	local new_buffer = buffer.create(targetSize)
-	buffer.copy(new_buffer,0,b,0,buffer.len(b))
+	buffer.copy(new_buffer, 0, b, 0, buffer.len(b))
 	return new_buffer
 end
 
--- Converts a string to an array of ASCII numbers
--- @param str: Input string to convert
--- @return: Array of ASCII values for each character
-local function StrToASCIINums(str : string) : {number}
-	assert(type(str) == "string","1st argument must be a string value")
-	local _len = utf8.len(str)
-	if(_len <= 0) then return {} end
+--[[
+	Decompresses a merged buffer or table of buffers into a single number.
+	Used when multiple binary buffers represent a single large number.
+	@param b: Buffer or table of buffers containing merged binary data
+	@return: Reconstructed number from all binary segments
+]]
+local function decompressMergedBuffer(b: buffer | {buffer}): number
+	local binaryString = ""
+	local num = 0
+	local sum = 0
+
+	if type(b) == "buffer" then
+		-- Single buffer case
+		local bitCount = buffer.readu8(b, 0)
+		-- Read only the significant bits (skip padding)
+		for k = 8, 8 + bitCount - 1 do
+			local extract_bit = math.modf(buffer.readbits(b, k, 1))
+			binaryString = binaryString .. tostring(extract_bit)
+		end
+
+		-- Convert binary string to decimal
+		binaryString = string.reverse(binaryString)
+		for i = 1, #binaryString do
+			num = string.sub(binaryString, i, i) == "1" and 1 or 0
+			sum = sum + num * math.pow(2, i - 1)
+		end
+		return sum
+
+	elseif type(b) == "table" then
+		-- Multiple buffers case (merged representation)
+		for i, binaryBuffer in pairs(b) do
+			local bitCount = buffer.readu8(binaryBuffer, 0)
+			-- Read significant bits from each buffer and concatenate
+			for k = 8, 8 + bitCount - 1 do
+				local extract_bit = math.modf(buffer.readbits(binaryBuffer, k, 1))
+				binaryString = binaryString .. tostring(extract_bit)
+			end
+		end
+
+		-- Convert combined binary string to decimal
+		binaryString = string.reverse(binaryString)
+		for i = 1, #binaryString do
+			num = string.sub(binaryString, i, i) == "1" and 1 or 0
+			sum = sum + num * math.pow(2, i - 1)
+		end
+		return sum
+	end
+
+	return sum
+end
+
+--[[
+	Decompresses a buffer or array of buffers back to numbers.
+	Supports both single numbers and arrays of numbers.
+	@param b: Buffer or table of buffers to decompress
+	@return: Single number or table of numbers
+]]
+local function decompressBuffer(b: buffer | {buffer}): number | {number}
+	if type(b) == "buffer" then
+		-- Single buffer decompression
+		local binaryString = ""
+		local num = 0
+		local sum = 0
+		local bitCount = buffer.readu8(b, 0)
+
+		-- Read significant bits
+		for k = 8, 8 + bitCount - 1 do
+			local extract_bit = math.modf(buffer.readbits(b, k, 1))
+			binaryString = binaryString .. tostring(extract_bit)
+		end
+
+		-- Convert to decimal
+		binaryString = string.reverse(binaryString)
+		for i = 1, #binaryString do
+			num = string.sub(binaryString, i, i) == "1" and 1 or 0
+			sum = sum + num * math.pow(2, i - 1)
+		end
+		return sum
+	end
+
+	-- Multiple buffers decompression
 	local nums = {}
-	for i = 1,_len do
-		local ascii_num = string.byte(str,i)
-		table.insert(nums,ascii_num)
+	for i, binaryBuffer in ipairs(b) do
+		local binaryString = ""
+		local num = 0
+		local sum = 0
+		local bitCount = buffer.readu8(binaryBuffer, 0)
+
+		-- Read significant bits from each buffer
+		for k = 8, 8 + bitCount - 1 do
+			local extract_bit = math.modf(buffer.readbits(binaryBuffer, k, 1))
+			binaryString = binaryString .. tostring(extract_bit)
+		end
+
+		-- Convert to decimal
+		binaryString = string.reverse(binaryString)
+		for i = 1, #binaryString do
+			num = string.sub(binaryString, i, i) == "1" and 1 or 0
+			sum = sum + num * math.pow(2, i - 1)
+		end
+		table.insert(nums, sum)
 	end
 	return nums
 end
 
--- Converts ASCII number(s) to string representation
--- @param num: Single ASCII value or array of ASCII values
--- @return: String formed from the ASCII values
-local function ASCIIToStr(num : number | {number}) : string
-	assert(type(num) == "number" or type(num) == "table","1st argument must be a number or a an array of numbers")
+-- Module table
+local ASCII = {}
+ASCII.__index = ASCII
+
+--[[
+	Converts a string to an array of ASCII numbers.
+	@param str: Input string to convert
+	@return: Table of ASCII numbers representing each character
+]]
+function ASCII.ConvertASCIIString(str: string): {number}
+	assert(type(str) == "string", "1st argument must be a string value")
+	local _len = utf8.len(str)
+	if _len <= 0 then return {} end
+
+	local nums = {}
+	for i = 1, _len do
+		local ascii_num = string.byte(str, i)
+		table.insert(nums, ascii_num)
+	end
+	return nums
+end
+
+--[[
+	Converts numbers or arrays of numbers back to a string.
+	@param num: Single number or table of ASCII numbers
+	@return: String reconstructed from ASCII numbers
+]]
+function ASCII.ConvertNumsToString(num: number | {number}): string
+	assert(type(num) == "number" or type(num) == "table", "1st argument must be a number or an array of numbers")
 	local str = ""
-	if(type(num) == "number") then
+
+	if type(num) == "number" then
+		-- Single number to character
 		str = str .. string.char(num)
-	elseif(type(num) == "table") then
-		for i = 1,#num do
-			if(type(num[i]) ~= "number") then continue end
-			local extractFloat = math.modf(num[i])  -- Extract integer part
+	elseif type(num) == "table" then
+		-- Array of numbers to string
+		for i = 1, #num do
+			if type(num[i]) ~= "number" then continue end
+			local extractFloat = math.modf(num[i])
 			str = str .. string.char(extractFloat)
 		end
 	end
 	return str
 end
 
--- Converts decimal number(s) to binary representation
--- @param num: Single number or array of numbers
--- @return: Buffer or array of buffers containing binary data
-local function binaryNumber(num : number | {number}) : buffer | {buffer}
-	assert(type(num) == "number" or type(num) == "table","1st argument must be a number or a an array of numbers")
+--[[
+	Converts numbers to compressed binary buffer representation.
+	Stores the actual bit count to avoid padding issues.
+	@param num: Single number or table of numbers to convert
+	@return: Buffer or table of buffers containing binary representation
+]]
+function ASCII.ConvertNumberToBinary(num: number | {number}): buffer | {buffer}
+	assert(type(num) == "number" or type(num) == "table", "1st argument must be a number or an array of numbers")
 	local bits = {}
-	if(type(num) == "number") then
+
+	if type(num) == "number" then
 		-- Single number conversion
-		local _bits = buffer.create(0)
+		local _bits = buffer.create(1)
 		local _bits_offset = 0
 		local rest = 0
-		local extractFloat = math.modf(num)  -- Extract integer part
-		-- Convert to binary using division method
+		local extractFloat = math.modf(num)
+
+		-- Convert number to binary digits
 		while extractFloat > 0 do
-			rest = math.fmod(extractFloat,2)
-			bits[#bits+1] = rest
-			extractFloat = (extractFloat-rest) / 2
-			task.wait()  -- Prevent timeout on large numbers
+			rest = math.fmod(extractFloat, 2)
+			bits[#bits + 1] = rest
+			extractFloat = (extractFloat - rest) / 2
+			task.wait()  -- Yield to prevent timeout on large numbers
 		end
-		-- Reverse the bits (division method produces reversed binary)
-		local concat = table.concat(bits,"")
+
+		-- Reverse binary digits (division method produces reversed result)
+		local concat = table.concat(bits, "")
 		local reverse = string.reverse(concat)
+
+		-- Store actual bit count in first byte
+		buffer.writeu8(_bits, 0, #reverse)
+		_bits_offset = 8  -- Start writing bits after the count byte
+
 		table.clear(bits)
-		-- Write bits to buffer
-		for k = 1,#reverse do
-			_bits = allocate(_bits,1)
-			buffer.writebits(_bits,_bits_offset,1,tonumber(string.sub(reverse,k,k)))
+
+		-- Write significant bits to buffer
+		for k = 1, #reverse do
+			-- Allocate more space if needed
+			if _bits_offset % 8 == 0 then 
+				_bits = allocate(_bits, 1) 
+			end
+			buffer.writebits(_bits, _bits_offset, 1, tonumber(string.sub(reverse, k, k)))
 			_bits_offset += 1
 		end
 		return _bits
 	else
 		-- Array of numbers conversion
-		for i = 1,#num do
-			if(type(num[i]) ~= "number") then continue end
+		for i = 1, #num do
+			if type(num[i]) ~= "number" then continue end
+
 			local rest = 0
 			local extractFloat = math.modf(num[i])
-			table.insert(bits,{})
-			-- Convert each number to binary
+			table.insert(bits, {})
+
+			-- Convert each number to binary digits
 			while extractFloat > 0 do
-				rest = math.fmod(extractFloat,2)
-				bits[i][#bits[i]+1] = rest
-				extractFloat = (extractFloat-rest) / 2
+				rest = math.fmod(extractFloat, 2)
+				bits[i][#bits[i] + 1] = rest
+				extractFloat = (extractFloat - rest) / 2
 			end
-			-- Process and store in buffer
-			local concat = table.concat(bits[i],"")
+
+			-- Reverse binary digits
+			local concat = table.concat(bits[i], "")
 			local reverse = string.reverse(concat)
 			table.clear(bits[i])
-			local stack = buffer.create(0)
+
+			-- Create buffer for this number
+			local stack = buffer.create(1)
 			local stack_offset = 0
-			for k = 1,#reverse do
-				stack = allocate(stack,1)
-				buffer.writebits(stack,stack_offset,1,tonumber(string.sub(reverse,k,k)))
+			buffer.writeu8(stack, 0, #reverse)  -- Store bit count
+			stack_offset = 8
+
+			-- Write bits to buffer
+			for k = 1, #reverse do
+				if stack_offset % 8 == 0 then 
+					stack = allocate(stack, 1) 
+				end
+				buffer.writebits(stack, stack_offset, 1, tonumber(string.sub(reverse, k, k)))
 				stack_offset += 1
 			end
+
 			bits[i] = stack
-			task.wait()  -- Prevent timeout on large arrays
+			task.wait()  -- Yield between conversions
 		end
 	end
 	return bits
 end
 
--- Converts binary buffer(s) back to decimal number
--- @param bits: Buffer or array of buffers containing binary data
--- @return: Decimal representation of the binary data
-local function binaryToNumber(bits : buffer | {buffer}) : number
-	assert(type(bits) == "table" or type(bits) == "buffer","1st argument must be a table")
-	local binaryString = ""
-	-- Extract binary string from buffer(s)
-	if(type(bits) == "table") then
-		-- Multiple buffers - concatenate all binary data
-		for i,binaryBuffer in ipairs(bits) do
-			for k = 0,buffer.len(binaryBuffer)-1 do
-				local extract_bit = math.modf(buffer.readbits(binaryBuffer,k,1))
-				binaryString = binaryString .. tostring(extract_bit)
-			end
-		end
-	elseif(type(bits) == "buffer") then
-		-- Single buffer
-		for k = 0,buffer.len(bits)-1 do
-			local extract_bit = math.modf(buffer.readbits(bits,k,1))
-			binaryString = binaryString .. tostring(extract_bit)
-		end
+--[[
+	Converts binary buffers back to numbers.
+	@param b: Buffer or table of buffers to convert
+	@param convertType: "Merge" for combined buffers, "Single" for individual (default)
+	@return: Number or table of numbers
+]]
+function ASCII.ConvertBinaryToNumber(b: buffer | {buffer}, convertType: ConvertType?)
+	assert(type(b) == "buffer" or type(b) == "table", "1st argument must be a buffer or an array of buffers")
+	if convertType == "Merge" then
+		return decompressMergedBuffer(b)
 	end
-	-- Convert binary string to decimal
-	local num = 0
-	local sum = 0
-	binaryString = string.reverse(binaryString)
-	for i = 1,#binaryString do
-		num = string.sub(binaryString,i,i) == "1" and 1 or 0
-		sum = sum + num * math.pow(2,i-1)
-	end
-	return sum
+	return decompressBuffer(b)
 end
 
--- Module definition
-local Constructor = {}
-Constructor.__index = Constructor
-
--- Public API
-Constructor.StrASCII = StrToASCIINums;      -- String to ASCII array
-Constructor.ASCIIStr = ASCIIToStr;          -- ASCII to String
-Constructor.BinaryNumber = binaryNumber;     -- Number to Binary
-Constructor.BinaryToNumber = binaryToNumber; -- Binary to Number
-
-return Constructor
+return ASCII
