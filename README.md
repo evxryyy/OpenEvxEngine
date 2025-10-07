@@ -21,8 +21,6 @@
   - Collect (Improved garbage collection/cleanup utility module)
   - Enum (System for creating and managing enums)
   - Option (Implements the Option type pattern)
-  - SyncHandler (SignalLike for BindableFunction)
-  - SyncSignal (SignalLike for BindableEvent)
   - ConnectionStore (Store RBXScriptConnection or threads)
 
 ## Description
