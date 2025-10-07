@@ -11,7 +11,8 @@
 
 -- Type aliases for better readability
 type Some<T> = T
-type None = () -> ()
+type SomeCallback<T,K> = (T) -> K
+type None<T,K> = () -> K
 
 -- Callback type definitions used throughout the module
 type Callback<T> = () -> T                          -- Function that returns a value of type T
@@ -117,11 +118,11 @@ end
 	@param Options Table with Some and None callbacks
 	@return Result of the executed callback
 ]]
-function OptionComponent.Match<T>(self : OptionComponent<T>,Options : {Some : (T) -> T,None : None,})
+function OptionComponent.Match<T,K>(self : OptionComponent<T>,Options : {Some : SomeCallback<T,K>,None : None<T,K>}) : K
 	if(self:IsNone()) then
-		return Options.None()
+		return Options.None() :: K
 	else
-		return Options.Some(self.Some :: T)
+		return Options.Some(self.Some) :: K
 	end
 end
 
@@ -184,7 +185,7 @@ function OptionComponent.GetOrElse<T, K>(self : OptionComponent<T>,callback : Ca
 	if(self:IsSome()) then
 		return self.Some :: T
 	else
-		return callback()
+		return callback() :: K
 	end
 end
 
@@ -194,7 +195,7 @@ end
 	@param OptionB The other Option to XOR with
 	@return Result of XOR operation
 ]]
-function OptionComponent.XOR<T>(self : OptionComponent<T>,OptionB : OptionComponent<T>)
+function OptionComponent.XOR<T,K>(self : OptionComponent<T>,OptionB : OptionComponent<K>) : OptionComponent<T | K | nil>
 	local ValidOptionB = OptionConstructor.IsOption(OptionB)
 	if(not ValidOptionB) then return self :: OptionComponent<T> end
 	if(self:IsSome() and OptionB:IsSome()) then
@@ -202,7 +203,7 @@ function OptionComponent.XOR<T>(self : OptionComponent<T>,OptionB : OptionCompon
 	elseif(self:IsSome()) then
 		return self :: OptionComponent<T>
 	else
-		return OptionB :: OptionComponent<T>
+		return OptionB :: OptionComponent<K>
 	end
 end
 
@@ -246,7 +247,7 @@ end
 	Unwraps the contained value, panicking with default message if None
 	@return The contained value
 	@error Throws "Called UnWrap() on None" if Option is None
-]]
+]]	
 function OptionComponent.UnWrap<T>(self : OptionComponent<T>)
 	return self:Expect("Called UnWrap() on None")
 end
