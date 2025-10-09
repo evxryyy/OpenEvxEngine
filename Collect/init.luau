@@ -1,7 +1,7 @@
 --[[
 	Author : evxry_ll
 
-	-- CollectComponent: A garbage collection/cleanup utility module
+	-- Collect: A garbage collection/cleanup utility module
 	-- Manages and cleans up various types of resources (connections, instances, threads, etc.)
 ]]
 
@@ -148,7 +148,7 @@ function Component.Remove<T...>(self : CollectComponent<T...>,object : Executabl
 		if(value.Item == object) then
 			table.remove(tasks,index)
 			-- Clean up if requested
-			if(clean) then
+			if(clean or type(clean) == "nil") then
 				if(value.CleanupMethod) then
 					-- Call the object's cleanup method
 					(value.Item :: any)[value.CleanupMethod](value.Item)
@@ -156,6 +156,8 @@ function Component.Remove<T...>(self : CollectComponent<T...>,object : Executabl
 					-- Handle threads and functions
 					if(typeof(value.Item) == "thread") then
 						task.cancel((value.Item :: thread))
+					elseif(typeof(value.Item) == "RBXScriptConnection") then
+						(value.Item :: RBXScriptConnection):Disconnect()
 					else
 						(value.Item :: any)()
 					end
@@ -189,7 +191,7 @@ function Component.RemoveAll<R,T...>(self : CollectComponent<T...>,clean : boole
 	-- Clean up each item if requested
 	for i = 1, #tasks do
 		local value = tasks[i]
-		if(clean) then
+		if(clean or type(clean) == "nil") then
 			if value.CleanupMethod then
 				-- Call object's cleanup method with additional args
 				(value.Item :: any)[value.CleanupMethod](value.Item, ...)
@@ -197,6 +199,8 @@ function Component.RemoveAll<R,T...>(self : CollectComponent<T...>,clean : boole
 				-- Handle threads and functions
 				if typeof(value.Item) == "thread" then
 					task.cancel((value.Item :: thread))
+				elseif(typeof(value.Item) == "RBXScriptConnection") then
+					(value.Item :: any):Disconnect()
 				else
 					(value.Item :: any)(...)
 				end
@@ -303,7 +307,7 @@ function Component.RemoveAllFunc<R,T...>(self : CollectComponent<T...>,clean : b
 	for i = 1, #tasks do
 		local value = tasks[i]
 		if typeof(value.Item) == "function" then
-			if clean then value.Item(...) end
+			if clean or type(clean) == "nil" then value.Item(...) end
 			table.insert(removeIndices, i)
 		end
 	end
@@ -323,7 +327,7 @@ function Component.RemoveAllConstructor<R,T...>(self : CollectComponent<T...>,cl
 	for i = 1, #tasks do
 		local value = tasks[i]
 		if typeof(value.Item) == "table" and value.CleanupMethod then
-			if clean then (value.Item :: any)[value.CleanupMethod](value.Item, ...) end
+			if clean or type(clean) == "nil" then (value.Item :: any)[value.CleanupMethod](value.Item, ...) end
 			table.insert(removeIndices, i)
 		end
 	end
@@ -341,7 +345,7 @@ function Component.RemoveAllInstance<T...>(self : CollectComponent<T...>,clean :
 	for i = 1, #tasks do
 		local value = tasks[i]
 		if typeof(value.Item) == "Instance" then
-			if clean then value.Item:Destroy() end
+			if clean or type(clean) == "nil" then value.Item:Destroy() end
 			table.insert(removeIndices, i)
 		end
 	end
@@ -360,7 +364,7 @@ function Component.RemoveAllThread<T...>(self : CollectComponent<T...>,clean : b
 	for i = 1, #tasks do
 		local value = tasks[i]
 		if typeof(value.Item) == "thread" then
-			if clean then task.cancel((value.Item :: thread)) end
+			if clean or type(clean) == "nil" then task.cancel((value.Item :: thread)) end
 			table.insert(removeIndices, i)
 		end
 	end
