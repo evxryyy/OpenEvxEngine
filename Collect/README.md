@@ -4,6 +4,10 @@
 
 ## Logs
 
+Version : 1.2
+- Fixed a bug where RBXScriptConnection causing error on calling :RemoveAll and :Remove
+- Now on every :Remove function then `clean` argument is optional and is true by default. 
+
 Version : 1.1
 - Added :Merge()
   ```lua
