@@ -3,20 +3,87 @@ site_url: "https://evxry.portfolio"
 theme:
   name: material
   icon:
-    logo: fontawesome/solid/bottle-water
+    admonition:
+      note: octicons/tag-16
+      abstract: octicons/checklist-16
+      info: octicons/info-16
+      tip: octicons/squirrel-16
+      success: octicons/check-16
+      question: octicons/question-16
+      warning: octicons/alert-16
+      failure: octicons/x-circle-16
+      danger: octicons/zap-16
+      bug: octicons/bug-16
+      example: octicons/beaker-16
+      quote: octicons/quote-16
+    logo: fontawesome/solid/chart-simple
   palette: 
       - scheme: slate
         toggle:
-          icon: material/moon-first-quarter
+          icon: material/eye-outline
           name: Dark Mode
         primary: black
         accent: blue
       - scheme: default
         toggle:
-          icon: material/sun-angle
+          icon: material/eye
           name: Light Mode
-        primary: black
+        primary: white
         accent: blue
+    
+nav:
+  - Getting Started: index.md
+  - API:
+      - Buffer:
+          - Overview: API/Buffer/index.md
+          - Methods: API/Buffer/Methods/index.md
+          - Writing: API/Buffer/Writing/index.md
+          - Reading: API/Buffer/Reading/index.md
+          - Serialization: API/Buffer/Serialization/index.md
+          - Utilities:
+              - Buffer.Enum: API/Buffer/Utilities/Buffer.Enum/index.md
+              - Buffer.Utils: API/Buffer/Utilities/Buffer.Utils/index.md
+              - Buffer.Constants: API/Buffer/Utilities/Buffer.Constants/index.md
+          - Advanced: API/Buffer/Advanced/index.md
+      - ConnectionStore:
+          - Overview: API/ConnectionStore/index.md
+          - Global: API/ConnectionStore/Global/index.md
+          - Local: API/ConnectionStore/Local/index.md
+      - ASCII:
+          - Overview: API/ASCII/index.md
+          - Methods: API/ASCII/Methods/index.md
+      - UserInput:
+          - Overview: API/UserInput/index.md
+          - Methods: API/UserInput/Methods/index.md
+          - Input:
+              - Gamepad: API/UserInput/Gamepad/index.md
+              - Keyboard: API/UserInput/Keyboard/index.md
+              - Mouse: API/UserInput/Mouse/index.md
+      - Option:
+          - Overview: API/Option/index.md
+          - Methods: API/Option/Methods/index.md
+      - Collect:
+          - Overview: API/Collect/index.md
+          - Methods: API/Collect/Methods/index.md
+      - Task:
+          - Overview: API/Task/index.md
+          - Methods: API/Task/Methods/index.md
+      - Enum:
+          - Overview: API/Enum/index.md
+          - Methods: API/Enum/Methods/index.md
+      - Nexus:
+          - Overview: API/Nexus/index.md
+          - Types:
+              - RemoteEvent: API/Nexus/Types/RemoteEvent/index.md
+              - RemoteFunction: API/Nexus/Types/RemoteFunction/index.md
+              - UnreliableRemoteEvent: API/Nexus/Types/UnreliableRemoteEvent/index.md
+      - Socket:
+          - Overview: API/Socket/index.md
+          - Types:
+              - RemoteEvent: API/Socket/Types/RemoteEvent/index.md
+              - RemoteFunction: API/Socket/Types/RemoteFunction/index.md
+              - UnreliableRemoteEvent: API/Socket/Types/UnreliableRemoteEvent/index.md
+          - Advanced: API/Socket/Advanced/index.md
 
 markdown_extensions:
   - attr_list
@@ -57,6 +124,6 @@ extra:
         - icon: simple/roblox
           link: https://www.roblox.com/users/3813642140/profile
         - icon: simple/github
-          link: https://github.com/evxryyy
-
+          link: https://github.com/evxryyy  
+          
 copyright: © 2025 evxry. All rights reserved.
