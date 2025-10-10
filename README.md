@@ -16,7 +16,6 @@
   - ASCII (Binary and ASCII Conversion Utilities)
   - Nexus (Networking library)
   - Socket (Buffer-Networking library)
-  - ModuleLoader (Loader)
   - Task (Old garbage collection/cleanup utility module)
   - Collect (Improved garbage collection/cleanup utility module)
   - Enum (System for creating and managing enums)
