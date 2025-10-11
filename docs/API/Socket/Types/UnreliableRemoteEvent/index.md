@@ -1,4 +1,4 @@
-﻿## Getting Started
+## Getting Started
 
 All information for creating UnreliableRemoteEvents with `Socket` will be here.
 
@@ -100,7 +100,7 @@ Fires data to a specific client through the UnreliableRemoteEvent
 - @param ValueSchema: Data to send (must match Schema structure)
 
 !!! warning
-Please see the examples for firing data to the server/client.
+    Please see the examples for firing data to the server/client.
 
 ----
 
@@ -164,7 +164,7 @@ Fires data to the server through the UnreliableRemoteEvent
 - @param ValueSchema: Data to send (must match Schema structure)
 
 !!! warning
-Please see the examples for firing data to the server/client.
+    Please see the examples for firing data to the server/client.
 
 ----
 
