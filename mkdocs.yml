@@ -65,6 +65,7 @@ nav:
       - Collect:
           - Overview: API/Collect/index.md
           - Methods: API/Collect/Methods/index.md
+          - Advanced: API/Collect/Advanced/index.md
       - Task:
           - Overview: API/Task/index.md
           - Methods: API/Task/Methods/index.md
