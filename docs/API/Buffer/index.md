@@ -14,7 +14,7 @@ as well as some utilities like Buffer.Enum, Buffer.Constants, and Buffer.Utils.
 
 ## Version
 
-### [Buffer V1.7](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
+### [Buffer V1.7.1](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
 
 ----
 
@@ -210,3 +210,4 @@ Read Methods List :
     - [:octicons-arrow-right-24: Read Enum](Reading/index.md#reading-enum)
 
 ----
+
