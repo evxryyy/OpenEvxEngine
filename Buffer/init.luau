@@ -37,13 +37,14 @@
     - Boolean (1-bit and 8-bit packed)
     - Strings (with various length limits: 8, 16, 32, 64 chars or unlimited)
     - Color3
-    - Vector2, Vector3
+    - Vector2, Vector3,vector (luau library)
     - Vector2int16, Vector3int16
     - CFrame (both regular and lossy compressed versions)
     - UDim, UDim2
     - Rect
     - Region3, Region3int16
     - Instances (stored in a separate instance buffer)
+    - Enum
 
     You are free to edit this as you want, but if you want to publish it PLEASE READ THE LICENSE.
 
@@ -67,6 +68,9 @@ local BufferEnum = require("@self/BufferType")
 
 -- Util: utility functions for bit manipulation, encoding, etc.
 local Utils = require("@self/Utils")
+
+-- EnumsMap
+local EnumsIds,IdsEnums = Utils.GenerateEnumMapping()
 
 -- Constructor table: creates BufferComponent instances or wraps an existing buffer
 local BufferConstructor = {}
@@ -355,7 +359,9 @@ function BufferComponent.WriteI1(self : BufferComponentClass,number : number) : 
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT1,Constants.MAX_INT1)
 	local bytes = 1
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -383,7 +389,9 @@ function BufferComponent.WriteI8(self : BufferComponentClass,number : number) : 
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT8,Constants.MAX_INT8)
 	local bytes = 1
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -410,7 +418,9 @@ function BufferComponent.WriteI16(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT16,Constants.MAX_INT16)
 	local bytes = 2
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -438,7 +448,9 @@ function BufferComponent.WriteI24(self : BufferComponentClass,number : number)
 	number = math.max(Constants.MIN_INT24,math.min(Constants.MAX_INT24,number))
 	number = math.modf(number)
 	local bytes = 3
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -470,7 +482,9 @@ function BufferComponent.WriteI32(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT32,Constants.MAX_INT32)
 	local bytes = 4
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -502,7 +516,9 @@ function BufferComponent.WriteI40(self : BufferComponentClass,number : number) :
 		number += 0x10000000000
 	end
 	local bytes = 5
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -541,7 +557,9 @@ function BufferComponent.WriteI48(self : BufferComponentClass,number : number) :
 		number += 0x1000000000000 -- 2^48
 	end
 	local bytes = 6
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -587,7 +605,9 @@ function BufferComponent.WriteI54(self : BufferComponentClass,number : number) :
 		number += Constants.MAX_UINT54
 	end
 	local bytes = 7
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -630,7 +650,9 @@ function BufferComponent.WriteU8(self : BufferComponentClass,number : number) : 
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT8)
 	local bytes = 1
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -657,7 +679,9 @@ function BufferComponent.WriteU16(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT16)
 	local bytes = 2
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -685,7 +709,9 @@ function BufferComponent.WriteU24(self : BufferComponentClass,number : number)
 	number = math.max(Constants.MIN_UINT,math.min(Constants.MAX_UINT24,number))
 	number = math.modf(number)
 	local bytes = 3
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -717,7 +743,9 @@ function BufferComponent.WriteU32(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT32)
 	local bytes = 4
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -747,7 +775,9 @@ function BufferComponent.WriteU40(self : BufferComponentClass,number : number) :
 	local byte5 = math.floor(number / 0x100000000) % 0x100 
 	local remainder = number % 0x100000000
 	local bytes = 5
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -781,7 +811,9 @@ function BufferComponent.WriteU48(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT48)
 	local bytes = 6
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -822,7 +854,9 @@ function BufferComponent.WriteU54(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT54)
 	local bytes = 7
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -864,7 +898,9 @@ function BufferComponent.WriteString8(self : BufferComponentClass,value : string
 	assert(type(value) == "string" and type(len) == "number",`{type(value)} and {type(len)} is not valid please include a string and a number`)
 	value = string.sub(value,1,math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING8))
 	len = math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING8);
-	if(buffer.len(self.buffer) < len) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= len and len <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -888,7 +924,9 @@ function BufferComponent.WriteString16(self : BufferComponentClass,value : strin
 	assert(type(value) == "string" and type(len) == "number",`{type(value)} and {type(len)} is not valid please include a string and a number`)
 	value = string.sub(value,1,math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING16))
 	len = math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING16);
-	if(buffer.len(self.buffer) < len) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= len and len <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -912,7 +950,9 @@ function BufferComponent.WriteString32(self : BufferComponentClass,value : strin
 	assert(type(value) == "string" and type(len) == "number",`{type(value)} and {type(len)} is not valid please include a string and a number`)
 	value = string.sub(value,1,math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING32))
 	len = math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING32);
-	if(buffer.len(self.buffer) < len) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= len and len <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -936,7 +976,9 @@ function BufferComponent.WriteString64(self : BufferComponentClass,value : strin
 	assert(type(value) == "string" and type(len) == "number",`{type(value)} and {type(len)} is not valid please include a string and a number`)
 	value = string.sub(value,1,math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING64))
 	len = math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING64);
-	if(buffer.len(self.buffer) < len) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= len and len <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -960,7 +1002,9 @@ end
 function BufferComponent.WriteString(self : BufferComponentClass,value : string)
 	assert(type(value) == "string","please insert a string to write")
 	local bytes = #value
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -982,7 +1026,9 @@ end
 ]]
 function BufferComponent.WriteBool1(self : BufferComponentClass,value : any)
 	local bytes = 1
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1008,7 +1054,9 @@ end
 function BufferComponent.WriteBool8(self : BufferComponentClass,value : {any})
 	assert(type(value) == "table","please insert an array")
 	local bytes = 1
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1038,7 +1086,9 @@ function BufferComponent.WriteF16(self : BufferComponentClass,number : number)
 		error(Debug["not a valid type"]:format(type(number),type(10)))
 	end
 	local bytes = 2
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1104,7 +1154,9 @@ function BufferComponent.WriteF32(self : BufferComponentClass,number : number)
 		error(Debug["not a valid type"]:format(type(number),type(10)))
 	end
 	local bytes = 4
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1129,7 +1181,9 @@ function BufferComponent.WriteF64(self : BufferComponentClass,number : number)
 		error(Debug["not a valid type"]:format(type(number),type(10)))
 	end
 	local bytes = 8
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1155,7 +1209,9 @@ function BufferComponent.WriteU1(self : BufferComponentClass,number : number)
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT1)
 	local bytes = 1
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1191,7 +1247,9 @@ function BufferComponent.WriteVector2(self : BufferComponentClass,vector2 : Vect
 	local x = vector2.X
 	local y = vector2.Y
 	local bytes = 16
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1220,7 +1278,9 @@ function BufferComponent.WriteVector3(self : BufferComponentClass,vector3 : Vect
 	local y = vector3.Y
 	local z = vector3.Z
 	local bytes = 24
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1250,7 +1310,9 @@ function BufferComponent.WriteVector2Int16(self : BufferComponentClass,vector2in
 	local x = math.clamp(vector2int16.X,Constants.MIN_INT16,Constants.MAX_INT16)
 	local y = math.clamp(vector2int16.Y,Constants.MIN_INT16,Constants.MAX_INT16)
 	local bytes = 4
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1280,7 +1342,9 @@ function BufferComponent.WriteVector3Int16(self : BufferComponentClass,vector3in
 	local y = math.clamp(vector3int16.Y,Constants.MIN_INT16,Constants.MAX_INT16)
 	local z = math.clamp(vector3int16.Z,Constants.MIN_INT16,Constants.MAX_INT16)
 	local bytes = 6
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1309,7 +1373,9 @@ end
 function BufferComponent.WriteCFrame(self : BufferComponentClass,CF : CFrame)
 	assert(typeof(CF) == "CFrame","CF must be a CFrame")
 	local bytes = 96 
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1338,7 +1404,9 @@ end
 function BufferComponent.WriteLossyCFrame(self : BufferComponentClass,CF : CFrame)
 	assert(typeof(CF) == "CFrame","CF must be a CFrame")
 	local bytes = 48
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1368,7 +1436,9 @@ function BufferComponent.WriteUDim(self : BufferComponentClass,udim : UDim)
 	local Scale = udim.Scale
 	local Offset = udim.Offset
 	local bytes = 8
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1396,7 +1466,9 @@ function BufferComponent.WriteUDim2(self : BufferComponentClass,udim2 : UDim2)
 	local ScaleX,ScaleY = udim2.X.Scale,udim2.Y.Scale
 	local OffsetX,OffsetY = udim2.X.Offset,udim2.Y.Offset
 	local bytes = 16
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1428,7 +1500,9 @@ function BufferComponent.WriteColor3(self : BufferComponentClass,color : Color3)
 	local r = color.R
 	local g = color.G
 	local b = color.B
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1456,7 +1530,9 @@ end
 function BufferComponent.WriteRect(self : BufferComponentClass,rect : Rect)
 	assert(typeof(rect) == "Rect","rect must be a Rect")
 	local bytes = 32
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1471,7 +1547,9 @@ end
 function BufferComponent.WriteRegion3(self : BufferComponentClass,region3 : Region3)
 	assert(typeof(region3) == "Region3","region3 must be a Region3")
 	local bytes = 120
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1488,7 +1566,9 @@ end
 function BufferComponent.WriteRegion3int16(self : BufferComponentClass,region3int16 : Region3int16)
 	assert(typeof(region3int16) == "Region3int16","region3int16 must be a Region3int16")
 	local bytes = 12
-	if(buffer.len(self.buffer) < bytes) then
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
 		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 		return
 	end
@@ -1498,6 +1578,50 @@ function BufferComponent.WriteRegion3int16(self : BufferComponentClass,region3in
 	self:WriteVector3Int16(min)
 end
 
+--[[
+	Write a vector with the 'vector' luau library 
+	- 24 bytes total.
+	- Relies on WriteVector3 to do the actual writing and offset increments.
+]]
+function BufferComponent.WriteVector(self : BufferComponentClass,_vector : vector)
+	assert(typeof(_vector) == "Vector3","vector must be a Vector3")
+	local bytes = 24
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
+		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
+		return
+	end
+	self:WriteVector3(_vector)
+end
+
+--[[
+	Writes an EnumItem to the buffer using a compact 4-byte format.
+	
+	The enum is stored as:
+	- 2 bytes (U16): Enum type ID from the IdsEnums mapping table
+	- 2 bytes (U16): Enum item value
+	
+	@param enumItem: EnumItem - The Roblox EnumItem to serialize
+	
+	@example:
+	Buffer:WriteEnum(Enum.KeyCode.E) -- Stores KeyCode.E in 4 bytes
+	Buffer:WriteEnum(Enum.Material.Grass) -- Stores Material.Grass in 4 bytes
+]]
+function BufferComponent.WriteEnum(self : BufferComponentClass,enumItem : EnumItem)
+	assert(typeof(enumItem) == "EnumItem","enumItem must be an EnumItem")
+	local enumType = enumItem.EnumType
+	local typeId = IdsEnums[enumType] :: number
+	local bytes = 4
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
+		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
+		return
+	end
+	self:WriteU16(typeId)
+	self:WriteU16(enumItem.Value)
+end
 
 -->-----------------------READER-----------------------------<--
 
@@ -2547,41 +2671,112 @@ function BufferComponent.ReadRegion3int16(self : BufferComponentClass,offset : n
 	return Region3int16.new(min, max)
 end
 
+--[[
+	Read a 'vector' from <strong>the luau library</strong> at the given offset
+	
+	Returns:
+	- vector on success
+	- nil on failure (if nested reads fail)
+]]
+function BufferComponent.ReadVector(self : BufferComponentClass,offset : number?) : vector | nil
+	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
+	local success, valueORoutOfBounds = pcall(function()
+		return vector.create(
+			buffer.readf64(self.buffer, offset),
+			buffer.readf64(self.buffer, offset + 8),
+			buffer.readf64(self.buffer, offset + 16)
+		)
+	end)
+	if (not success and valueORoutOfBounds) then
+		if (Debug[valueORoutOfBounds]) then
+			warn(valueORoutOfBounds, "-", Debug[valueORoutOfBounds])
+		else
+			warn(valueORoutOfBounds)
+		end
+		return
+	else
+		return valueORoutOfBounds
+	end
+end
+
+--[[
+	Reads an EnumItem from the buffer that was previously written with WriteEnum.
+	
+	Reconstructs the EnumItem from its compact 4-byte representation:
+	- 2 bytes (U16): Enum type ID
+	- 2 bytes (U16): Enum item value
+	
+	@param offset: number? - Optional byte offset to read from. If not provided or invalid, 
+	                         uses the current buffer offset
+	
+	@returns: EnumItem | nil - The deserialized EnumItem, or nil if read fails
+	
+	@example:
+	local keyCode = Buffer:ReadEnum() -- Read from current position
+	local material = Buffer:ReadEnum(16) -- Read from specific offset
+]]
+function BufferComponent.ReadEnum(self : BufferComponentClass,offset : number?) : EnumItem | nil
+	local offset = (type(offset) == "number" and offset <= self.offset) and offset or self.offset
+	local success,valueORoutOfBounds = pcall(function()
+		local typeId = self:ReadU16(offset)
+		local value = self:ReadU16(offset + 2)
+		local enum = EnumsIds[typeId] :: Enum
+		return enum:FromValue(value)
+	end)
+	if (not success and valueORoutOfBounds) then
+		if (Debug[valueORoutOfBounds]) then
+			warn(valueORoutOfBounds, "-", Debug[valueORoutOfBounds])
+		else
+			warn(valueORoutOfBounds)
+		end
+		return
+	else
+		return valueORoutOfBounds
+	end
+end
 
 -->-----------------------Cursor/Buffer-----------------------------<--
 
 --[[
+	return the actual remaining space of the current buffer
+]]
+
+function BufferComponent.GetRemainingSpace(self : BufferComponentClass) : number
+	return buffer.len(self.buffer) - self.offset
+end
+
+--[[
 	return the actual offset of the buffer
 ]]
-function BufferComponent.GetOffset(self : BufferComponentClass)
+function BufferComponent.GetOffset(self : BufferComponentClass) : number
 	return self.offset
 end
 
 --[[
 	return the actual instance offset of the buffer
 ]]
-function BufferComponent.GetInstanceOffset(self : BufferComponentClass)
+function BufferComponent.GetInstanceOffset(self : BufferComponentClass) : number
 	return self.instance_offset
 end
 
 --[[
 	return the current buffer
 ]]
-function BufferComponent.GetBuffer(self : BufferComponentClass)
+function BufferComponent.GetBuffer(self : BufferComponentClass) : buffer
 	return self.buffer
 end
 
 --[[
 	return the current instance buffer
 ]]
-function BufferComponent.GetInstanceBuffer(self : BufferComponentClass)
+function BufferComponent.GetInstanceBuffer(self : BufferComponentClass) : {Instance?}
 	return self.instance_buffer
 end
 
 --[[
 	return the actual buffer size (not the written data size)
 ]]
-function BufferComponent.GetBufferSize(self : BufferComponentClass)
+function BufferComponent.GetBufferSize(self : BufferComponentClass) : number
 	return buffer.len(self.buffer)
 end
 
@@ -2589,17 +2784,18 @@ end
 	clear the buffer to a new one with the same size
 	the offset is also set to 0.
 ]]
-function BufferComponent.clear(self : BufferComponentClass)
+function BufferComponent.clear(self : BufferComponentClass) : BufferComponentClass
 	local buffer_blank = buffer.create(buffer.len(self.buffer))
 	self.buffer = buffer_blank
 	self.offset = 0
+	return self
 end
 
 --[[
 	Destroy the actual BufferComponent.
 	You can't use the BufferComponent after this.
 ]]
-function BufferComponent.Destroy(self : BufferComponentClass)
+function BufferComponent.Destroy(self : BufferComponentClass) : ()
 	self.buffer = nil :: any
 	self.instance_buffer = nil :: any
 	self.instance_offset = nil :: any
@@ -2715,6 +2911,10 @@ BufferComponent.writeregion3 = BufferComponent.WriteRegion3
 BufferComponent.WriteRegion3Int16 = BufferComponent.WriteRegion3int16
 BufferComponent.writeRegion3int16 = BufferComponent.WriteRegion3int16
 BufferComponent.writeregion3int16 = BufferComponent.WriteRegion3int16
+BufferComponent.writeVector = BufferComponent.WriteVector
+BufferComponent.writevector = BufferComponent.WriteVector
+BufferComponent.writeEnum = BufferComponent.WriteEnum
+BufferComponent.writeenum = BufferComponent.WriteEnum
 
 --[Reader] signed interger alias
 BufferComponent.readI1 = BufferComponent.ReadI1
@@ -2805,12 +3005,17 @@ BufferComponent.readregion3 = BufferComponent.ReadRegion3
 BufferComponent.ReadRegion3Int16 = BufferComponent.ReadRegion3int16
 BufferComponent.readRegion3int16 = BufferComponent.ReadRegion3int16
 BufferComponent.readregion3int16 = BufferComponent.ReadRegion3int16
+BufferComponent.readVector = BufferComponent.ReadVector
+BufferComponent.readvector = BufferComponent.ReadVector
+BufferComponent.readEnum = BufferComponent.ReadEnum
+BufferComponent.readenum = BufferComponent.ReadEnum
 
 --[Cursor] alias
 BufferComponent.getOffset = BufferComponent.GetOffset
 BufferComponent.getoffset = BufferComponent.GetOffset
 BufferComponent.getInstanceOffset = BufferComponent.GetInstanceOffset
 BufferComponent.getinstanceoffset = BufferComponent.GetInstanceOffset
+BufferComponent.getRemainingSpace = BufferComponent.GetRemainingSpace
 
 --[Buffer] alias
 BufferComponent.getBuffer = BufferComponent.GetBuffer
