@@ -9,7 +9,7 @@
 ----
 
 #### Fixes
-- Fixed a bug where methods for the curson/buffer was not returning the correct type.
+- Fixed a bug where methods for the cursor/buffer was not returning the correct type.
 
 ----
 
