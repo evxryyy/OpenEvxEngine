@@ -86,5 +86,5 @@ return table.freeze({
 	},
 
 	--VERSION--
-	VERSION = "1.7",
+	VERSION = "1.7.1",
 })
