@@ -216,6 +216,11 @@ function BufferConstructor.Serialize(Schema : BufferSchema, Values : BufferSchem
 			bufferComponent["Write"..fieldType](bufferComponent, copiedValues[field])
 			continue
 		end
+		--Vector (luau library) type
+		if(fieldType == "vector") then
+			bufferComponent:WriteVector(Values[field])
+			continue
+		end
 		-- Simple String type
 		if string.find(fieldType, "String") then
 			local splitStringType = string.split(fieldType, "g")
@@ -291,6 +296,10 @@ function BufferConstructor.Deserialize(Schema : BufferSchema, SerializeBuffer : 
 				local splitType = string.split(fieldType, "e")
 				fieldType = splitType[1] .. string.sub(splitType[2], 3, 3)
 				local value = SerializeBuffer["Read"..fieldType](SerializeBuffer, offset)
+				values[field] = value
+				offset += Constants.REQUIRED_BYTES[fieldType]
+			elseif(fieldType == "vector") then
+				local value = SerializeBuffer:ReadVector(offset)
 				values[field] = value
 				offset += Constants.REQUIRED_BYTES[fieldType]
 			else
