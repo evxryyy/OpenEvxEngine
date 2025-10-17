@@ -17,7 +17,7 @@ type BufferSchemaValue = {
 	[string] : any
 }
 
-type ConvertEnum = "Kilobytes" | "Megabytes" | "Gigabyte"
+type ConvertEnum = "Kilobytes" | "Megabytes" | "Gigabytes"
 
 local Utils = {}
 Utils.__index = Utils
@@ -80,10 +80,26 @@ function Utils.ConvertByte(To : ConvertEnum,bytes : number) : number
 		return bytes / 1024
 	elseif(To == "Megabytes") then
 		return bytes / 1_048_576
-	elseif(To == "Gigabyte") then
+	elseif(To == "Gigabytes") then
 		return bytes / 1_073_741_824
 	end
 	return -1
+end
+
+--[[
+	Generates a mapping of enum values to indices and vice versa.
+	@return {[number] : Enum} & {[Enum] : number}
+]]
+function Utils.GenerateEnumMapping() : {[number] : Enum} & {[Enum] : number}
+	local enumMapping = {}
+	local reverseMapping = {}
+	local index = 1
+	for _, enumType in pairs(Enum:GetEnums()) do
+		enumMapping[index] = enumType
+		reverseMapping[enumType] = index
+		index += 1
+	end
+	return enumMapping, reverseMapping
 end
 
 return Utils
