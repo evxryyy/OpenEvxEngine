@@ -1,4 +1,4 @@
-﻿### Writing Signed-int
+### Writing Signed-int
 
 ----
 
@@ -7,7 +7,7 @@ To write signed numbers, you will need to use methods like
 
 #### Writing I1
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(1)
@@ -23,7 +23,7 @@ The value is clamped to the allowed range and truncated to an integer.
 
 #### Writing I8
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(1)
@@ -38,7 +38,7 @@ Write a signed 8-bit integer (-128 to 127). Clamped and truncated to integer.
 
 #### Writing I16
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(2)
@@ -53,7 +53,7 @@ Write a signed 16-bit integer (-32768 to 32767). Clamped and truncated.
 
 #### Writing I24
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(3)
@@ -69,7 +69,7 @@ Clamped and truncated.
 
 #### Writing I32
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(4)
@@ -85,13 +85,13 @@ Write a signed 32-bit integer (-2,147,483,648 to 2,147,483,647).
 
 #### Writing I40
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(5)
 local num = 549_755_813_887
 
-myBuffer:WriteI32(num)
+myBuffer:WriteI40(num)
 ```
 
 Write a signed 40-bit integer (-549,755,813,888 to 549,755,813,887).
@@ -103,13 +103,13 @@ If negative, add 2^40 to represent as unsigned (two's complement style) before w
 
 #### Writing I48
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(6)
 local num = 140_737_488_355_327
 
-myBuffer:WriteI32(num)
+myBuffer:WriteI48(num)
 ```
 
 Write a signed 48-bit integer (-140,737,488,355,328 to 140,737,488,355,327).
@@ -121,13 +121,13 @@ If negative, add 2^48 to represent as unsigned before writing.
 
 #### Writing I54
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(7)
 local num = 9_007_199_254_740_991
 
-myBuffer:WriteI32(num)
+myBuffer:WriteI54(num)
 ```
 
 Write a signed 54-bit integer (-9,007,199,254,740,992 to 9,007,199,254,740,991).
@@ -145,7 +145,7 @@ For unsigned numbers, you will need to use methods like `:WriteU`, etc.
 
 #### Writing U1
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(1)
@@ -161,7 +161,7 @@ Clamped and truncated.
 
 #### Writing U8
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(1)
@@ -177,7 +177,7 @@ Clamped and truncated.
 
 #### Writing U16
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(2)
@@ -193,7 +193,7 @@ Clamped and truncated.
 
 #### Writing U24
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(3)
@@ -209,7 +209,7 @@ Clamped and truncated.
 
 #### Writing U32
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(4)
@@ -225,7 +225,7 @@ Clamped and truncated.
 
 #### Writing U40
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(4)
@@ -241,7 +241,7 @@ Clamped.
 
 #### Writing U48
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(4)
@@ -257,7 +257,7 @@ Clamped and truncated.
 
 #### Writing U54
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(4)
@@ -282,7 +282,7 @@ For floating-point numbers, you will need to use methods like `:WriteF`, etc.
 
 #### Writing F16
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(2)
@@ -299,7 +299,7 @@ NaN/Inf are handled, finite values are encoded with sign/exponent/mantissa.
 
 #### Writing F32
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(4)
@@ -314,7 +314,7 @@ Write a 32-bit float to the buffer.
 
 #### Writing F64
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(8)
@@ -335,7 +335,7 @@ For character strings, you must use methods like `:WriteString`, etc.
 
 #### Writing String8
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(8)
@@ -353,7 +353,7 @@ The input string is truncated to `len` (clamped to [1, 8]).
 
 #### Writing String16
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(16)
@@ -371,7 +371,7 @@ The input string is truncated to `len` (clamped to [1, 16]).
 
 #### Writing String32
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(32)
@@ -389,7 +389,7 @@ The input string is truncated to `len` (clamped to [1, 32]).
 
 #### Writing String64
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(64)
@@ -407,7 +407,7 @@ The input string is truncated to `len` (clamped to [1, 64]).
 
 #### Writing String
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(11)
@@ -431,7 +431,7 @@ For other types like boolean, vector, etc. please use `:Write[TypeName]`, etc.
 
 #### Writing Bool1
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(1)
@@ -446,7 +446,7 @@ Write a single boolean using 1 bit.
 
 #### Writing Bool8
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(1)
@@ -475,7 +475,7 @@ Each truthy value sets the corresponding bit to 1.
 
 #### Writing Instance
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(0) --> byte are not required if you only write instance
@@ -492,7 +492,7 @@ Does not write anything to the raw byte buffer.
 
 #### Writing Vector2
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 
 local Buffer = require(somewhere.Buffer)
     
@@ -509,7 +509,7 @@ Write a Vector2 as two f64 (x, y).
 
 #### Writing Vector3
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 
 local Buffer = require(somewhere.Buffer)
     
@@ -526,7 +526,7 @@ Write a Vector3 as three f64 (x, y, z).
 
 #### Writing Vector2Int16
 
-```luau linenums="1"
+```luau linenums="1" linenums="1"
 
 local Buffer = require(somewhere.Buffer)
     
@@ -544,7 +544,7 @@ Values clamped to int16 range.
 
 #### Writing Vector3Int16
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(4)
@@ -561,7 +561,7 @@ Values clamped to int16 range.
 
 #### Writing CFrame
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(96)
@@ -577,7 +577,7 @@ Write a full-precision CFrame as 12 f64 components (position + rotation matrix).
 
 #### Writing LossyCFrame
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(48)
@@ -593,7 +593,7 @@ Write a lossy (compressed) CFrame as 12 f32 components.
 
 #### Writing UDim
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(8)
@@ -609,7 +609,7 @@ Write a UDim as two f32 (Scale, Offset).
 
 #### Writing UDim2
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(16)
@@ -625,7 +625,7 @@ Write a UDim2 as four f32 (X.Scale, Y.Scale, X.Offset, Y.Offset).
 
 #### Writing Color3
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(12)
@@ -642,7 +642,7 @@ Values clamped to float32 range [0f,1f] typically already valid.
 
 #### Writing Rect
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(32)
@@ -660,7 +660,7 @@ Relies on WriteVector2 to do the actual writing and offset increments.
 
 #### Writing Region3
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(120)
@@ -681,7 +681,7 @@ Intended: CFrame (12 f64 = 96 bytes) + Vector3 (3 f64 = 24 bytes) = 120 bytes.
 
 #### Writing Region3Int16
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(12)
@@ -693,3 +693,43 @@ local region = Region3int16.new(
 
 myBuffer:WriteRegion3int16(region)
 ```
+
+Write a Region3int16 as two Vector3int16 (Max then Min).
+
+----
+
+#### Writing Vector (luau library)
+
+```luau linenums="1" linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(24)
+
+--the current vector library
+local vect = vector.create(10,1,1)
+
+myBuffer:WriteVector(vect) -- YOU CAN USE :WriteVector3() AS WELL
+```
+
+Write a vector with the 'vector' luau linenums="1" library 
+
+- 24 bytes total.
+
+----
+
+#### Writing Enum
+
+```luau linenums="1" linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(4)
+
+myBuffer:WriteEnum(Enum.KeyCode.A) -- or any enumItem you want
+```
+
+Writes an EnumItem to the buffer using a compact 4-byte format.
+	
+The enum is stored as:
+
+- 2 bytes (U16): Enum type ID
+- 2 bytes (U16): Enum item value
