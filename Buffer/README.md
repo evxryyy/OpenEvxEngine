@@ -4,6 +4,49 @@
 
 ## Logs
 
+### Version : 1.7
+
+----
+
+#### Fixes
+- Fixed a bug where methods for the curson/buffer was not returning the correct type.
+
+----
+
+#### Changes
+- `clear` now return self this allow you to chain (e.g `myBuffer:clear():Destroy()`).
+- Improved the capacity check when writing data it will now check the remaining space.
+- `Utils.ConvertByte` the type `Gigabyte` is now renamed `Gigabytes` futures changes may occur.
+
+----
+
+#### News
+- the type `vector` from the luau library is added, SEE THE API.
+```luau
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(24)
+
+--the current vector library
+local vect = vector.create(10,1,1)
+
+myBuffer:WriteVector(vect) -- YOU CAN USE :WriteVector3() AS WELL
+print(myBuffer:ReadVector(0)) -- return the actual vector.
+```
+- you can now write `Enum` inside the buffer, SEE THE API.
+```luau
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(4)
+
+myBuffer:WriteEnum(Enum.KeyCode.A) -- or any enumItem you want
+print(myBuffer:ReadEnum(0)) -- return the actual enum
+```
+- added `.GetRemainingSpace` this will return the remaining space in the buffer.
+- added alias for `WriteVector` and `WriteEnum`.
+
+----
+
 Version : 1.6.9
 - Added more alias.
  ```lua
