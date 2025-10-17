@@ -4,6 +4,11 @@
 
 ## Logs
 
+Version : 1.7.1
+- Fixed a bug where serializing a `vector` was causing errors
+
+----
+
 ### Version : 1.7
 
 ----
