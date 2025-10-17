@@ -56,6 +56,8 @@ export type BufferTypeName =
 	| "Instance"
 	| "UDim"
 	| "UDim2"
+	| "vector"
+	| "Enum"
 
 -- Define a generic type "BufferTypeEnum" based on an enumeration name
 -- Each field corresponds to a buffer type and holds a value of type EnumType.EnumIndex
@@ -100,11 +102,13 @@ export type BufferTypeEnum<EnumName = string> = {
 	Instance: EnumType.EnumIndex<EnumName>,
 	UDim: EnumType.EnumIndex<EnumName>,
 	UDim2: EnumType.EnumIndex<EnumName>,
+	vector : EnumType.EnumIndex<EnumName>,
+	Enum : EnumType.EnumIndex<EnumName>,
 }
 
 -- Actual creation of the "BufferType" enumeration using EnumModule
 -- Each value is a buffer type name, typed as BufferTypeName
--- The cast :: BufferTypeEnum<"Buffer"> ensures the result matches the defined type
+-- The cast :: BufferTypeEnum<"BufferType"> ensures the result matches the defined type
 local BufferType = EnumModule.new("BufferType", {
 	"I1",
 	"I8",
@@ -145,7 +149,9 @@ local BufferType = EnumModule.new("BufferType", {
 	"Instance",
 	"UDim",
 	"UDim2",
-} :: {BufferTypeName}) :: BufferTypeEnum<"Buffer">
+	"vector",
+	"Enum",
+} :: {BufferTypeName}) :: BufferTypeEnum<"BufferType">
 
 -- Export the enumeration for use in other modules
 return BufferType
