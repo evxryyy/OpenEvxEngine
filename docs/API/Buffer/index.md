@@ -1,4 +1,4 @@
-﻿# Buffer
+# Buffer
 
 -----
 
@@ -14,7 +14,7 @@ as well as some utilities like Buffer.Enum, Buffer.Constants, and Buffer.Utils.
 
 ## Version
 
-### [Buffer V1.6.9](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
+### [Buffer V1.7](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
 
 ----
 
@@ -101,6 +101,8 @@ Buffer contains over 30 data types. Find each type here:
 |   `Region3`    | 120 bytes                                                    |
 | `Region3Int16` | 16 bytes                                                     |
 |   `Instance`   | Stored in a separate instance buffer                         |
+|    `vector`    | luau vector library (24 byte)                                |
+|     `Enum`     | Roblox EnumItem (4 byte)                                     |
 
 
 ----
@@ -149,6 +151,8 @@ Write Methods List :
     - [:octicons-arrow-right-24: Write Rect](Writing/index.md#writing-rect)
     - [:octicons-arrow-right-24: Write Region3](Writing/index.md#writing-region3)
     - [:octicons-arrow-right-24: Write Region3Int16](Writing/index.md#writing-region3int16)
+    - [:octicons-arrow-right-24: Write vector (luau library)](Writing/index.md#writing-vector-luau-library)
+    - [:octicons-arrow-right-24: Write Enum](Writing/index.md#writing-enum)
 
 ----
 
@@ -202,6 +206,7 @@ Read Methods List :
     - [:octicons-arrow-right-24: Read Rect](Reading/index.md#reading-rect)
     - [:octicons-arrow-right-24: Read Region3](Reading/index.md#reading-region3)
     - [:octicons-arrow-right-24: Read Region3Int16](Reading/index.md#reading-region3int16)
-
+    - [:octicons-arrow-right-24: Read vector (luau library)](Reading/index.md#reading-vector-luau-library)
+    - [:octicons-arrow-right-24: Read Enum](Reading/index.md#reading-enum)
 
 ----
