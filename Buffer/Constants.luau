@@ -81,8 +81,10 @@ return table.freeze({
 		Region3int16 = 12,
 		UDim = 8,
 		UDim2 = 16,
+		vector = 24,
+		Enum = 4,
 	},
 
 	--VERSION--
-	VERSION = "1.6.9",
+	VERSION = "1.7",
 })
