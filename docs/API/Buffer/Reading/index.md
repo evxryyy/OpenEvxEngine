@@ -1,4 +1,4 @@
-﻿# Reading
+# Reading
 
 ## Reading Signed-int
 
@@ -8,7 +8,7 @@ To read signed numbers, the methods to use will be `:ReadI`, etc.
 
 ### Reading I1
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(1)
@@ -31,7 +31,7 @@ Returns:
 
 ### Reading I8
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(1)
@@ -49,7 +49,7 @@ Returns number in [-128, 127] or nil on failure.
 
 ### Reading I16
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(2)
@@ -67,7 +67,7 @@ Returns number in [-32768, 32767] or nil on failure.
 
 ### Reading I24
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(3)
@@ -88,7 +88,7 @@ Returns:
 
 ### Reading I32
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(4)
@@ -106,7 +106,7 @@ Returns number in [-2^31, 2^31-1] or nil on failure.
 
 ### Reading I40
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(5)
@@ -130,7 +130,7 @@ Returns:
 
 ### Reading I48
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(6)
@@ -154,7 +154,7 @@ Returns:
 
 ### Reading I54
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(7)
@@ -184,7 +184,7 @@ To read unsigned numbers, the methods to use will be `:ReadU`, etc.
 
 ### Reading U1
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(1)
@@ -204,7 +204,7 @@ Returns:
 
 ### Reading U8
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(1)
@@ -222,7 +222,7 @@ Returns number in [0, 255] or nil on failure.
 
 ### Reading U16
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(2)
@@ -240,7 +240,7 @@ Returns number in [0, 65535] or nil on failure.
 
 ### Reading U24
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(3)
@@ -261,7 +261,7 @@ Returns:
 
 ### Reading U32
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(4)
@@ -279,7 +279,7 @@ Returns number in [0, 2^32-1]
 
 ### Reading U40
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(5)
@@ -300,7 +300,7 @@ Returns:
 
 ### Reading U48
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(6)
@@ -321,7 +321,7 @@ Returns:
 
 ### Reading U54
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(7)
@@ -348,7 +348,7 @@ For floats, methods like `:ReadF` will be used.
 
 ### Reading F16
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(2)
@@ -381,7 +381,7 @@ Notes on special cases:
 
 ### Reading F32
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(4)
@@ -402,7 +402,7 @@ Returns:
 
 ### Reading F64
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(8)
@@ -429,7 +429,7 @@ For strings, only one method is available: `:ReadString`.
 
 ### Reading String
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(11)
@@ -462,7 +462,7 @@ For reading Roblox types, the methods to use are `:Read[TypeName]`.
 
 ### Reading Bool1
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(1)
@@ -483,7 +483,7 @@ Returns:
 
 ### Reading Bool8
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(1)
@@ -527,7 +527,7 @@ A table:
 
 ### Reading Instance
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
     
 local myBuffer = Buffer.create(0)
@@ -547,7 +547,7 @@ Returns:
 
 ### Reading Vector2
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(16)
@@ -568,7 +568,7 @@ Returns:
 
 ### Reading Vector3
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(24)
@@ -589,7 +589,7 @@ Returns:
 
 ### Reading Vector2Int16
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(4)
@@ -610,7 +610,7 @@ Returns:
 
 ### Reading Vector3Int16
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(6)
@@ -631,7 +631,7 @@ Returns:
 
 ### Reading CFrame
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(96)
@@ -654,7 +654,7 @@ Returns:
 
 ### Reading LossyCFrame
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(48)
@@ -677,7 +677,7 @@ Returns:
 
 ### Reading UDim
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(8)
@@ -700,7 +700,7 @@ Returns:
 
 ### Reading UDim2
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(16)
@@ -725,7 +725,7 @@ Returns:
 
 ### Reading Color3
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(12)
@@ -748,7 +748,7 @@ Returns:
 
 ### Reading Rect
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(32)
@@ -777,7 +777,7 @@ Returns:
 
 ### Reading Region3
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(120)
@@ -803,7 +803,7 @@ Returns:
 
 ### Reading Region3Int16
 
-```luau
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
 local myBuffer = Buffer.create(12)
@@ -824,3 +824,49 @@ Returns:
 
 - Region3int16 on success
 - nil on failure (if nested reads fail)
+
+----
+
+### Reading vector (luau library)
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(24)
+
+local vect = vector.create(10,1,1)
+
+myBuffer:WriteVector(vect)
+
+print(myBuffer:ReadVector(0)) --> return the `vector`
+```
+
+Read a 'vector' from <strong>the luau library</strong> at the given offset
+	
+Returns:
+
+- vector on success
+- nil on failure (if nested reads fail)
+
+----
+
+### Reading Enum
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(4)
+
+myBuffer:WriteEnum(Enum.KeyCode.A)
+
+print(myBuffer:ReadEnum(0)) --> return the actual enum (e.g Enum.KeyCode.A)
+```
+
+Reads an EnumItem from the buffer that was previously written with WriteEnum.
+
+Returns: 
+
+- EnumItem 
+- nil
+
+The deserialized EnumItem, or nil if read fails
