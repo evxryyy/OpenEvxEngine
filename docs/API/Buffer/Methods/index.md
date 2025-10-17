@@ -1,4 +1,4 @@
-﻿----
+----
 
 ## Creating Component
 
@@ -65,6 +65,20 @@ myBuffer:allocate(size : number)
 ## Others
 
 Other useful methods are available in the component.
+
+----
+
+### GetRemainingSpace
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(4)
+
+print(myBuffer:GetRemainingSpace()) --> 4 cause we didn't write anything yet
+```
+
+return the actual remaining space of the current buffer
 
 ----
 
@@ -278,6 +292,10 @@ BufferComponent.writeregion3 = BufferComponent.WriteRegion3
 BufferComponent.WriteRegion3Int16 = BufferComponent.WriteRegion3int16
 BufferComponent.writeRegion3int16 = BufferComponent.WriteRegion3int16
 BufferComponent.writeregion3int16 = BufferComponent.WriteRegion3int16
+BufferComponent.writeVector = BufferComponent.WriteVector
+BufferComponent.writevector = BufferComponent.WriteVector
+BufferComponent.writeEnum = BufferComponent.WriteEnum
+BufferComponent.writeenum = BufferComponent.WriteEnum
 
 --[Reader] signed interger alias
 BufferComponent.readI1 = BufferComponent.ReadI1
@@ -368,12 +386,17 @@ BufferComponent.readregion3 = BufferComponent.ReadRegion3
 BufferComponent.ReadRegion3Int16 = BufferComponent.ReadRegion3int16
 BufferComponent.readRegion3int16 = BufferComponent.ReadRegion3int16
 BufferComponent.readregion3int16 = BufferComponent.ReadRegion3int16
+BufferComponent.readVector = BufferComponent.ReadVector
+BufferComponent.readvector = BufferComponent.ReadVector
+BufferComponent.readEnum = BufferComponent.ReadEnum
+BufferComponent.readenum = BufferComponent.ReadEnum
 
 --[Cursor] alias
 BufferComponent.getOffset = BufferComponent.GetOffset
 BufferComponent.getoffset = BufferComponent.GetOffset
 BufferComponent.getInstanceOffset = BufferComponent.GetInstanceOffset
 BufferComponent.getinstanceoffset = BufferComponent.GetInstanceOffset
+BufferComponent.getRemainingSpace = BufferComponent.GetRemainingSpace
 
 --[Buffer] alias
 BufferComponent.getBuffer = BufferComponent.GetBuffer
