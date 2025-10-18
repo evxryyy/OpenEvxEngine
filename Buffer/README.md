@@ -2,6 +2,15 @@
 
 ## What next
 
+- adding support of :
+  - `FloatCurveKey`
+  - `RotationCurveKey`
+  - `ColorSequence`
+  - `NumberRange`
+  - `NumberSequence`
+
+- adding a table in the api to show all types that you can serialize.
+
 ## Logs
 
 Version : 1.7.1
