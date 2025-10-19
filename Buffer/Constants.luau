@@ -83,8 +83,21 @@ return table.freeze({
 		UDim2 = 16,
 		vector = 24,
 		Enum = 4,
+		FloatCurveKey = function(floatKey : FloatCurveKey)
+			return (floatKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 24 or 16
+		end,
+		RotationCurveKey = function(rotationKey : RotationCurveKey)
+			return (rotationKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 112 or 108
+		end,
+		ColorSequence = function(sequence : ColorSequence)
+			return 1 + (16 * #sequence.Keypoints)
+		end,
+		NumberRange = 8,
+		NumberSequence = function(sequence : NumberSequence)
+			return 1 + (12 * #sequence.Keypoints)
+		end,
 	},
 
 	--VERSION--
-	VERSION = "1.7.1",
+	VERSION = "1.8",
 })
