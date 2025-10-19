@@ -1,4 +1,4 @@
-﻿## Getting Started
+## Getting Started
 
 To serialize a BufferComponent, you simply need to assign a Schema and the table containing the values.
 
@@ -86,3 +86,56 @@ print(deserialized) -- will print { Hello = "Hello World !" }
 ```
 
 Deserializes a BufferComponentClass into a table of values according to Schema
+
+----
+
+## Serializable Types
+
+|       Type       | Bytes                                                      |
+|:----------------:|------------------------------------------------------------|
+|        I1        | 1                                                          | 
+|        I8        | 1                                                          | 
+|       I16        | 2                                                          | 
+|       I24        | 3                                                          |
+|       I32        | 4                                                          | 
+|       I40        | 5                                                          | 
+|       I48        | 6                                                          | 
+|       I54        | 7                                                          | 
+|        U1        | 1                                                          | 
+|        U8        | 1                                                          | 
+|       U16        | 2                                                          | 
+|       U24        | 3                                                          |
+|       U32        | 4                                                          | 
+|       U40        | 5                                                          | 
+|       U48        | 6                                                          | 
+|       U54        | 7                                                          | 
+|       F16        | 2                                                          | 
+|       F32        | 4                                                          | 
+|       F64        | 8                                                          | 
+|      Bool1       | 1                                                          |
+|      Bool8       | 1                                                          | 
+|     String8      | 8 (8-character max)                                        | 
+|     String16     | 16 (16-character max)                                      | 
+|     String32     | 32 (32-character max)                                      | 
+|     String64     | 64 (64-character max)                                      | 
+|      String      | desired len (must use `{Type = "String",Length = number}`) | 
+|     String16     | 16 (16-character max)                                      | 
+|      Color3      | 12                                                         | 
+|     Vector2      | 16                                                         | 
+|   Vector2int16   | 4                                                          | 
+|     Vector3      | 24                                                         |
+|   Vector3int16   | 6                                                          |
+|      CFrame      | 96                                                         | 
+|   LossyCFrame    | 48                                                         | 
+|       Rect       | 32                                                         | 
+|     Region3      | 120                                                        |
+|   Region3int16   | 12                                                         |
+|       UDim       | 8                                                          | 
+|      UDim2       | 16                                                         | 
+|      vector      | 24                                                         | 
+|       Enum       | 4                                                          | 
+|   NumberRange    | 8                                                          | 
+|  FloatCurveKey   | 16 or 24 `(if you use KeyInterpolationMode.Cubic)`         | 
+| RotationCurveKey | 108 or 112 `(if you use KeyInterpoliationMode.Cubic)`      | 
+|  ColorSequence   | 1 + 16 * number of `ColorSequenceKeypoint`                 | 
+|  NumberSequence  | 1 + 12 * number of `NumberSequenceKeypoint`                | 
