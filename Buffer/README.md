@@ -10,7 +10,7 @@
   - `NumberSequence` [Done]
 
 - adding a table in the api to show all types that you can serialize.
-- adding `@since v1.[update] to function added in recent version.
+- adding `@since v1.[update] to function added in recent version. [Done]
 - removing complex type (e.g `{Type = "String",Length = number}` will now be just `String`
 - fixing a bug where `vector` from the luau library was causing issue with `.Serialize`
 
