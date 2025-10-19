@@ -15,6 +15,8 @@ Version : 1.8
 - added `@since v1.[update]` to function added in the recent version
 - fixed a bug where `vector` from the luau library was causing issue with `.Serialize`
 
+----
+
 Version : 1.7.1
 - Fixed a bug where serializing a `vector` was causing errors
 
