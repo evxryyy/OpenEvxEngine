@@ -58,6 +58,11 @@ export type BufferTypeName =
 	| "UDim2"
 	| "vector"
 	| "Enum"
+	| "FloatCurveKey"
+	| "RotationCurveKey"
+	| "ColorSequence"
+	| "NumberRange"
+	| "NumberSequence"
 
 -- Define a generic type "BufferTypeEnum" based on an enumeration name
 -- Each field corresponds to a buffer type and holds a value of type EnumType.EnumIndex
@@ -104,6 +109,11 @@ export type BufferTypeEnum<EnumName = string> = {
 	UDim2: EnumType.EnumIndex<EnumName>,
 	vector : EnumType.EnumIndex<EnumName>,
 	Enum : EnumType.EnumIndex<EnumName>,
+	FloatCurveKey : EnumType.EnumIndex<EnumName>,
+	RotationCurveKey : EnumType.EnumIndex<EnumName>,
+	ColorSequence : EnumType.EnumIndex<EnumName>,
+	NumberRange : EnumType.EnumIndex<EnumName>,
+	NumberSequence : EnumType.EnumIndex<EnumName>,
 }
 
 -- Actual creation of the "BufferType" enumeration using EnumModule
@@ -151,6 +161,11 @@ local BufferType = EnumModule.new("BufferType", {
 	"UDim2",
 	"vector",
 	"Enum",
+	"FloatCurveKey",
+	"RotationCurveKey",
+	"ColorSequence",
+	"NumberRange",
+	"NumberSequence",
 } :: {BufferTypeName}) :: BufferTypeEnum<"BufferType">
 
 -- Export the enumeration for use in other modules
