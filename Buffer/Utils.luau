@@ -21,6 +21,9 @@ type ConvertEnum = "Kilobytes" | "Megabytes" | "Gigabytes"
 
 local Utils = {}
 Utils.__index = Utils
+Utils.ValidComplexType = {
+	String = true,
+}
 
 -- Calculates how many bytes are needed for the provided values.
 Utils.getRequiredBytes = function(Schema : BufferSchema,Values : BufferSchemaValue) : number
@@ -29,18 +32,20 @@ Utils.getRequiredBytes = function(Schema : BufferSchema,Values : BufferSchemaVal
 	for field,fieldType in pairs(Schema) do
 		if(Values[field] == nil) then continue end
 		if(typeof(fieldType) == "table") then
-			if(fieldType.Type ~= "String") then
+			if(not Utils.ValidComplexType[fieldType]) then
 				local failed = Debug["not valid type for complex schema"]
 				failed = failed .. ("%s"):format(debug.info(1,"n"))
 				error(failed,2)
 			end
-			local len = fieldType.Length :: number
-			if(#Values[field] < len) then
-				Values[field] = Values[field] .. string.rep(string.char(31),len - #Values[field])
-			elseif(#Values[field] > len) then
-				Values[field] = string.sub(Values[field],1,len)
+			if(fieldType.Type == "String") then
+				local len = fieldType.Length :: number
+				if(#Values[field] < len) then
+					Values[field] = Values[field] .. string.rep(string.char(31),len - #Values[field])
+				elseif(#Values[field] > len) then
+					Values[field] = string.sub(Values[field],1,len)
+				end
+				n += listOfBytes.String(Values[field])
 			end
-			n += listOfBytes.String(Values[field])
 		elseif(fieldType == "Instance") then
 			continue
 		elseif(string.find(fieldType,"Boolean")) then
@@ -63,6 +68,16 @@ Utils.getRequiredBytes = function(Schema : BufferSchema,Values : BufferSchemaVal
 				end
 				n += listOfBytes.String(Values[field])
 			end
+		elseif(fieldType == "vector") then
+			n += listOfBytes.Vector3
+		elseif(fieldType == "FloatCurveKey") then
+			n += listOfBytes.FloatCurveKey(Values[field])
+		elseif(fieldType == "RotationCurveKey") then
+			n += listOfBytes.RotationCurveKey(Values[field])
+		elseif(fieldType == "ColorSequence") then
+			n += listOfBytes.ColorSequence(Values[field])
+		elseif(fieldType == "NumberSequence") then
+			n += listOfBytes.NumberSequence(Values[field])
 		else
 			if(string.find(fieldType,"Float")) then
 				local splitType = string.split(fieldType,"t")
