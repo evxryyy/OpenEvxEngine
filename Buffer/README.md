@@ -3,13 +3,16 @@
 ## What next
 
 - adding support of :
-  - `FloatCurveKey`
-  - `RotationCurveKey`
-  - `ColorSequence`
-  - `NumberRange`
-  - `NumberSequence`
+  - `FloatCurveKey` [Done]
+  - `RotationCurveKey` [Done]
+  - `ColorSequence` [Done]
+  - `NumberRange` [Done]
+  - `NumberSequence` [Done]
 
 - adding a table in the api to show all types that you can serialize.
+- adding `@since v1.[update] to function added in recent version.
+- removing complex type (e.g `{Type = "String",Length = number}` will now be just `String`
+- fixing a bug where `vector` from the luau library was causing issue with `.Serialize`
 
 ## Logs
 
