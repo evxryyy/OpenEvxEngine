@@ -2,18 +2,18 @@
 
 ## What next
 
-- adding support of :
-  - `FloatCurveKey` [Done]
-  - `RotationCurveKey` [Done]
-  - `ColorSequence` [Done]
-  - `NumberRange` [Done]
-  - `NumberSequence` [Done]
-
-- adding a table in the api to show all types that you can serialize.
-- adding `@since v1.[update] to function added in recent version. [Done]
-- fixing a bug where `vector` from the luau library was causing issue with `.Serialize` [Done]
-
 ## Logs
+
+Version : 1.8
+- added support of :
+  - `FloatCurveKey` 
+  - `RotationCurveKey` 
+  - `ColorSequence` 
+  - `NumberRange`
+  - `NumberSequence`
+- added a table in the API so you can see all serializable types.
+- added `@since v1.[update]` to function added in the recent version
+- fixed a bug where `vector` from the luau library was causing issue with `.Serialize`
 
 Version : 1.7.1
 - Fixed a bug where serializing a `vector` was causing errors
