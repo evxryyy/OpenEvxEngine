@@ -2,6 +2,12 @@
 
 ## What next
 
+Buffer V1.9 (will take some time)
+- adding `.__mult` to increase the size of the buffer
+- fixing documentations and missing informations
+- adding `:Deserialize` on the Component
+- adding `.__call` to write types.
+
 ## Logs
 
 Version : 1.8
