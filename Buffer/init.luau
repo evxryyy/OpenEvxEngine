@@ -116,6 +116,8 @@ type Readbool8ReturnType = {
 	majority : () -> boolean,
 }
 
+type ValueType = BufferEnum.BufferTypeName
+
 --[[
 	Type definition for the Buffer Schema (serialize,deserialize)
 ]]
@@ -401,6 +403,61 @@ function BufferComponent.__add(self : BufferComponentClass,value : number)
 	end
 	self:allocate(value)
 	return self
+end
+
+--[[
+	Expands the underlying buffer by a numeric factor using the * operator.
+
+	- Allocates a new buffer of size modf(oldSize * value), float are not allowed.
+	- Copies the old contents into the new buffer (starting at offset 0).
+	- Keeps the same write offset.
+	- Returns the updated BufferComponent instance.
+	- Throws an error if the value is less than or equal to 1.
+
+	@since v1.9 
+]]
+function BufferComponent.__mul(self : BufferComponentClass,value : number)
+	if(not value or type(value) ~= "number") then
+		error(Debug["not a valid type"]:format(type(value),type(10)))
+	end
+	value = math.modf(value)
+	if(value <= 1) then error("You can't reduce the buffer size") end
+	local newSize = (buffer.len(self.buffer) * value)
+	local newBuffer = buffer.create(newSize)
+	buffer.copy(newBuffer,0,self.buffer,0,buffer.len(self.buffer))
+	self.buffer = newBuffer
+	return self
+end
+
+--[[
+	Dynamic writer dispatch via __call.
+	Examples:
+	  buffer("U32", 10)
+	  buffer("String", "hello")
+	  buffer("Boolean1", true)
+	  buffer("Float32", 1.5)
+	  buffer("FloatCurveKey", key)
+	  buffer("RotationCurveKey", rKey)
+	  buffer("ColorSequence", cseq)
+	  buffer("NumberSequence", nseq)
+	  buffer("vector", v)
+	  
+	@since v1.9
+]]
+function BufferComponent.__call<T>(self : BufferComponentClass,valueType : ValueType,value : T)
+	local boolBits = valueType:match("^Boolean(%d+)$")
+	local floatBits = valueType:match("^Float(%d+)$")
+	if(boolBits) then
+		valueType = "WriteBool" .. boolBits
+		self[valueType](self,value)
+	elseif(floatBits) then
+		valueType = "WriteF" .. floatBits
+		self[valueType](self,value)
+	elseif(valueType == "vector") then
+		self:WriteVector(value)
+	else
+		self["Write"..valueType](self,value)
+	end
 end
 
 --[[
