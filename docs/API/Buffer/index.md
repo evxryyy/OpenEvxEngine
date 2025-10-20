@@ -14,7 +14,7 @@ as well as some utilities like Buffer.Enum, Buffer.Constants, and Buffer.Utils.
 
 ## Version
 
-### [Buffer V1.8](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
+### [Buffer V1.9](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
 
 ----
 
@@ -83,27 +83,31 @@ Buffer contains over 30 data types. Find each type here:
 
 #### Roblox Types
 
-|      Type      | Description                                                  |
-|:--------------:|--------------------------------------------------------------|
-|    `Bool1`     | 1-bit                                                        | 
-|    `Bool8`     | 8-bit (each bool cost 1 bit)                                 |
-|   `Strings`    | With various length limits: 8, 16, 32, 64 chars or unlimited |
-|    `Color3`    | RGB                                                          |
-|   `Vector2`    | X,Y (16 bytes)                                               |
-|   `Vector3`    | X,Y,Z (24 bytes)                                             |
-| `Vector2Int16` | X,Y (4 bytes)                                                |
-| `Vector3Int16` | X,Y,Z (6 bytes)                                              |
-|    `CFrame`    | 96 bytes                                                     |
-| `LossyCFrame`  | Compressed version of CFrame (48 bytes)                      |
-|     `UDim`     | Scale,Offset (8 bytes)                                       |
-|    `UDim2`     | X.Scale, Y.Scale, X.Offset, Y.Offset  (16 bytes)             |
-|     `Rect`     | 32 bytes                                                     |
-|   `Region3`    | 120 bytes                                                    |
-| `Region3Int16` | 16 bytes                                                     |
-|   `Instance`   | Stored in a separate instance buffer                         |
-|    `vector`    | luau vector library (24 byte)                                |
-|     `Enum`     | Roblox EnumItem (4 byte)                                     |
-
+|        Type        | Description                                                  |
+|:------------------:|--------------------------------------------------------------|
+|      `Bool1`       | 1-bit                                                        | 
+|      `Bool8`       | 8-bit (each bool cost 1 bit)                                 |
+|     `Strings`      | With various length limits: 8, 16, 32, 64 chars or unlimited |
+|      `Color3`      | RGB                                                          |
+|     `Vector2`      | X,Y (16 bytes)                                               |
+|     `Vector3`      | X,Y,Z (24 bytes)                                             |
+|   `Vector2Int16`   | X,Y (4 bytes)                                                |
+|   `Vector3Int16`   | X,Y,Z (6 bytes)                                              |
+|      `CFrame`      | 96 bytes                                                     |
+|   `LossyCFrame`    | Compressed version of CFrame (48 bytes)                      |
+|       `UDim`       | Scale,Offset (8 bytes)                                       |
+|      `UDim2`       | X.Scale, Y.Scale, X.Offset, Y.Offset  (16 bytes)             |
+|       `Rect`       | 32 bytes                                                     |
+|     `Region3`      | 120 bytes                                                    |
+|   `Region3Int16`   | 16 bytes                                                     |
+|     `Instance`     | Stored in a separate instance buffer                         |
+|      `vector`      | luau vector library (24 byte)                                |
+|       `Enum`       | Roblox EnumItem (4 byte)                                     |
+|   `NumberRange`    | 8                                                            | 
+|  `FloatCurveKey`   | 16 or 24 `(if you use KeyInterpolationMode.Cubic)`           | 
+| `RotationCurveKey` | 108 or 112 `(if you use KeyInterpoliationMode.Cubic)`        | 
+|  `ColorSequence`   | 1 + 16 * number of `ColorSequenceKeypoint`                   | 
+|  `NumberSequence`  | 1 + 12 * number of `NumberSequenceKeypoint`                  | 
 
 ----
 
