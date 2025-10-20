@@ -2,13 +2,18 @@
 
 ## What next
 
-Buffer V1.9 (will take some time)
-- adding `.__mult` to increase the size of the buffer
-- fixing documentations and missing informations
-- adding `:Deserialize` on the Component
-- adding `.__call` to write types.
+Buffer V2.0
+- overhaul of `.Serialize` and `.Deserialize` for performance.
+- etc...
 
 ## Logs
+
+Version : 1.9
+- added `.mul` to increate the size of the buffer with `*` operator.
+- fixed missing informations in the API.
+- added `.__call` to write type (See API and go to API/Buffer/Advanced).
+
+----
 
 Version : 1.8
 - added support of :
