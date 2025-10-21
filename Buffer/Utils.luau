@@ -25,68 +25,40 @@ Utils.ValidComplexType = {
 	String = true,
 }
 
+local function debugComplexSchema()
+	local failed = Debug["not valid type for complex schema"]
+	failed = failed .. ("%s"):format(debug.info(1,"n"))
+	error(failed,2)
+end
+
 -- Calculates how many bytes are needed for the provided values.
-Utils.getRequiredBytes = function(Schema : BufferSchema,Values : BufferSchemaValue) : number
-	local listOfBytes = Constants.REQUIRED_BYTES
-	local n = 0
-	for field,fieldType in pairs(Schema) do
-		if(Values[field] == nil) then continue end
-		if(typeof(fieldType) == "table") then
-			if(not Utils.ValidComplexType[fieldType]) then
-				local failed = Debug["not valid type for complex schema"]
-				failed = failed .. ("%s"):format(debug.info(1,"n"))
-				error(failed,2)
-			end
-			if(fieldType.Type == "String") then
-				local len = fieldType.Length :: number
-				if(#Values[field] < len) then
-					Values[field] = Values[field] .. string.rep(string.char(31),len - #Values[field])
-				elseif(#Values[field] > len) then
-					Values[field] = string.sub(Values[field],1,len)
-				end
-				n += listOfBytes.String(Values[field])
-			end
-		elseif(fieldType == "Instance") then
+function Utils.GetRequiredBytes<T>(Schema : BufferSchema,Values : {[string] : T})
+	local size = 0
+	for field,fieldType in Schema do
+		if(not Values[field]) then continue end
+		if(fieldType == "Instance") then continue end
+		if(typeof(fieldType) ~= "table" and Utils.ValidComplexType[fieldType]) then
+			debugComplexSchema()
+		end
+		if(typeof(fieldType) == "table" and Utils.ValidComplexType[fieldType.Type]) then
+			size += fieldType.Length
 			continue
-		elseif(string.find(fieldType,"Boolean")) then
-			local splitType = string.split(fieldType,"e")
-			fieldType = splitType[1] .. string.sub(splitType[2],3,3)
-			n += listOfBytes[fieldType]
-		elseif(string.find(fieldType,"String")) then
-			local splitStringType = string.split(fieldType, "g")
-			if not splitStringType[2] or splitStringType[2] == "" then
-				-- Invalid complex schema error
-				local failed = Debug["not valid type for complex schema"]
-				failed = failed .. ("%s"):format(debug.info(1,"n"))
-				error(failed, 2)
-			else
-				local len = tonumber(splitStringType[2]) :: number
-				if #Values[field] < len then
-					Values[field] = Values[field] .. string.rep(string.char(31), len - #Values[field])
-				elseif(#Values[field] > len) then
-					Values[field] = string.sub(Values[field],1,len)
-				end
-				n += listOfBytes.String(Values[field])
-			end
-		elseif(fieldType == "vector") then
-			n += listOfBytes.Vector3
-		elseif(fieldType == "FloatCurveKey") then
-			n += listOfBytes.FloatCurveKey(Values[field])
-		elseif(fieldType == "RotationCurveKey") then
-			n += listOfBytes.RotationCurveKey(Values[field])
-		elseif(fieldType == "ColorSequence") then
-			n += listOfBytes.ColorSequence(Values[field])
-		elseif(fieldType == "NumberSequence") then
-			n += listOfBytes.NumberSequence(Values[field])
+		end
+		if(typeof(Constants.REQUIRED_BYTES[fieldType]) == "function") then
+			size += Constants.REQUIRED_BYTES[fieldType](Values[field])
 		else
-			if(string.find(fieldType,"Float")) then
-				local splitType = string.split(fieldType,"t")
-				fieldType = "F" .. splitType[2]
+			local boolBits = fieldType:match("^Boolean(%d+)$")
+			local floatBits = fieldType:match("^Float(%d+)$")
+			if(not boolBits and not floatBits) then 
+				size += Constants.REQUIRED_BYTES[fieldType] 
+			elseif(boolBits and not floatBits) then
+				size += Constants.REQUIRED_BYTES["Bool"..boolBits]
+			elseif(floatBits and not boolBits) then
+				size += Constants.REQUIRED_BYTES["F"..floatBits]
 			end
-			n += listOfBytes[fieldType]
 		end
 	end
-	return n
+	return size
 end
 
 --Converts bytes to a specified unit.
