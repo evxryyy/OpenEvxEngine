@@ -2,11 +2,13 @@
 
 ## What next
 
-Buffer V2.0
-- overhaul of `.Serialize` and `.Deserialize` for performance.
-- etc...
-
 ## Logs
+
+Version : 2.0
+- Rewritten `Serialize` and `Deserialize`; they are more performant now.
+- Rewritten `Utils.GetRequiredBytes`; it is more performant now and its not `getRequiredBytes` anymore.
+
+----
 
 Version : 1.9
 - added `.mul` to increate the size of the buffer with `*` operator.
