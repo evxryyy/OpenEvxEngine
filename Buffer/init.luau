@@ -195,179 +195,141 @@ end
 --[[ 
 	Serializes the given Values according to the Schema into a BufferComponentClass
 
-	@since v1.6
+	@since v2.0
 ]]
-function BufferConstructor.Serialize(Schema : BufferSchema, Values : BufferSchemaValue) : BufferComponentClass
-	-- Calculate total required bytes
-	local copiedSchema,copiedValues = table.clone(Schema), table.clone(Values)
-	local nBytes = Utils.getRequiredBytes(copiedSchema, copiedValues)
-	local bufferComponent = BufferConstructor.new(nBytes)
-	for field, fieldType in pairs(copiedSchema) do
-		if not copiedValues[field] then continue end
-		-- Special case: Instance type
-		if fieldType == "Instance" then
-			bufferComponent:WriteInstance(copiedValues[field])
-			continue
-		end
-		-- Complex field (table)
-		if typeof(fieldType) == "table" then
-			if string.find(fieldType.Type, "String") then
-				local splitStringType = string.split(fieldType.Type, "g")
-				if not splitStringType[2] or splitStringType[2] == "" then
-					-- Pad string to fixed length
-					local len = fieldType.Length :: number
-					if #copiedValues[field] < len then
-						copiedValues[field] = copiedValues[field] .. string.rep(string.char(31), len - #copiedValues[field])
-					end
-					bufferComponent["Write"..fieldType.Type](bufferComponent, copiedValues[field])
-				else
-					-- Write string with explicit length
-					bufferComponent["Write"..fieldType.Type](bufferComponent, copiedValues[field], #copiedValues[field])
-				end
-			else
-				bufferComponent["Write"..fieldType.Type](bufferComponent, copiedValues[field])
+function BufferConstructor.Serialize<T>(Schema : BufferSchema,Values : {T}) : BufferComponentClass
+	-- Defensive clones to avoid mutating the caller's tables
+	local copiedSchema = table.clone(Schema)
+	local copiedValues = table.clone(Values)
+	-- Compute exact required capacity and create the buffer
+	local size = Utils.GetRequiredBytes(copiedSchema,copiedValues)
+	local component = BufferConstructor.new(size)
+	for field, fieldType in copiedSchema do
+		-- Skip absent values (keeps buffer deterministic and avoids writing garbage)
+		if(copiedValues[field] == nil) then continue end
+		-- Complex descriptor branch: { Type = "String", Length = N }
+		if(typeof(fieldType) == "table" and ValidComplexType[fieldType.Type]) then
+			local value = copiedValues[field]
+			-- Right-pad with char(31) to reach exact fixed length
+			if(#value < fieldType.Length) then
+				value = value .. string.rep(string.char(31),fieldType.Length - #copiedValues[field])
 			end
+			-- Dispatch to the correct writer via __call (e.g., "String")
+			component(fieldType.Type,value)
 			continue
 		end
+		-- If a complex-only type is given as a plain string (e.g., "String" without Length), error out
+		if(ValidComplexType[fieldType]) then
+			local failed = Debug["not valid type for complex schema"]
+			failed = failed .. ("%s"):format(debug.info(1,"n"))
+			error(failed,2)
+		end
+		-- Parametrized fixed-size string: "StringN" (e.g., "String32")
+		if(string.find(fieldType,"String")) then
+			local stringBits = fieldType:match("^String(%d+)$")
+			local value = copiedValues[field]
+			-- Only pad if N is present (fixed-size variant)
+			if(stringBits) then
+				if(#value < tonumber(stringBits)) then
+					value = value .. string.rep(string.char(31),(tonumber(stringBits) :: number) - #value)
+				end
+			end
+			-- Write using dynamic dispatch (e.g., "String32" -> WriteString32)
+			component(fieldType,value)
+		else
+			-- Generic fallback for all non-string types: "U8", "I32", "F32", "CFrame", "vector", etc.
+			component(fieldType,copiedValues[field])
+		end
+	end
+	return component
+end
+
+--[[
+	Deserializes a BufferComponentClass into a table of values according to Schema
+
+	@since v2.0
+]]
+function BufferConstructor.Deserialize<T>(Schema : BufferSchema,SerializedBuffer : BufferComponentClass) : {[string] : T}
+	-- Make a defensive copy of the schema to avoid any side effects during iteration
+	local copiedSchema = table.clone(Schema)
+	-- Output dictionary of decoded values
+	local values = {}
+	-- Byte cursor into the main data buffer (does not modify SerializedBuffer's own offset)
+	local offset = 0
+	-- Separate index for instance reads (instances are stored/read via a dedicated structure)
+	local instance_offset = 1
+	for field,fieldType in copiedSchema do
+		-- Complex descriptor path: a table like { Type = "String", Length = N }
+		-- ValidComplexType[...] determines which types must use this shape.
+		if(typeof(fieldType) == "table" and ValidComplexType[fieldType.Type]) then
+			-- Read using the typed reader. For fixed-length strings we pass Length and offset.
+			-- IMPORTANT: At the moment, this branch is designed for String with a fixed Length.
+			-- If you add other complex types, ensure their ReadX signature matches
+			-- and DO NOT run string.gsub on non-string values.
+			local value = SerializedBuffer["Read"..fieldType.Type](SerializedBuffer,fieldType.Length,offset)
+			-- Strip padding (char 31) used to fill fixed-size strings.
+			-- This assumes 'value' is a string. If you extend complex types beyond String,
+			-- guard this step with: if type(value) == "string" then ...
+			value = string.gsub(value, string.char(31), "")
+			values[field] = value
+			-- Advance main byte cursor by the declared fixed length
+			offset += fieldType.Length
+			continue
+		end
+		-- If the schema specified a "complex-only" type as a simple string (e.g., "String" without Length),
+		-- throw a clear error explaining the correct shape.
 		if(ValidComplexType[fieldType]) then
 			local failed = Debug["not valid type for complex schema"]
 			failed = failed .. ("%s"):format(debug.info(1,"n"))
 			error(failed, 2)
 		end
-		-- Boolean type handling
-		if string.find(fieldType, "Boolean") then
-			local splitType = string.split(fieldType, "e")
-			fieldType = splitType[1] .. string.sub(splitType[2], 3, 3)
-			bufferComponent["Write"..fieldType](bufferComponent, copiedValues[field])
-			continue
-		end
-		--Vector (luau library) type
-		if(fieldType == "vector") then
-			bufferComponent:WriteVector(copiedValues[field])
-			continue
-		end
-		--FloatCurveKey type
-		if(fieldType == "FloatCurveKey") then
-			bufferComponent:WriteFloatCurveKey(copiedValues[field])
-			continue
-		end
-		-- Simple String type
-		if string.find(fieldType, "String") then
-			local splitStringType = string.split(fieldType, "g")
-			if not splitStringType[2] or splitStringType[2] == "" then
-				-- Invalid complex schema error
-				local failed = Debug["not valid type for complex schema"]
-				failed = failed .. ("%s"):format(debug.info(1,"n"))
-				error(failed, 2)
-			else
-				local len = tonumber(splitStringType[2]) :: number
-				if #copiedValues[field] < len then
-					copiedValues[field] = copiedValues[field] .. string.rep(string.char(31), len - #copiedValues[field])
-				elseif(#Values[field] > len) then
-					copiedValues[field] = string.sub(copiedValues[field],1,len)
-				end
-				bufferComponent["Write"..fieldType](bufferComponent, copiedValues[field], #copiedValues[field])
-			end
-		else
-			if(string.find(fieldType,"Float")) then
-				local splitType = string.split(fieldType,"t")
-				fieldType = "F" .. splitType[2]
-			end
-			-- Generic type writing
-			bufferComponent["Write"..fieldType](bufferComponent, copiedValues[field])
-		end
-	end
-	table.clear(copiedSchema)
-	table.clear(copiedValues)
-	return bufferComponent
-end
+		-- Pattern-based parametrized types:
+		-- BooleanN (e.g., "Boolean1", "Boolean8"), FloatN (e.g., "Float32"), StringN (e.g., "String64")
+		local boolBits = fieldType:match("^Boolean(%d+)$")
+		local floatBits = fieldType:match("^Float(%d+)$")
+		local stringBits = fieldType:match("^String(%d+)$")
+		if(boolBits) then
+			-- Read a packed boolean variant; we assume it consumes exactly 1 byte here.
+			-- If in your implementation BooleanN consumes a different size, adjust the offset increment.
+			local value = SerializedBuffer["ReadBool"..boolBits](SerializedBuffer,offset)
+			values[field] = value
+			offset += 1
+		elseif(floatBits) then
+			-- Read F16/F32/F64 based on the captured bit-size and advance by the configured byte count
+			local value = SerializedBuffer["ReadF"..floatBits](SerializedBuffer,offset)
+			values[field] = value
+			offset += Constants.REQUIRED_BYTES["F"..floatBits]
 
---[[ 
-	Deserializes a BufferComponentClass into a table of values according to Schema
-	
-	@since v1.6
-]]
-function BufferConstructor.Deserialize(Schema : BufferSchema, SerializeBuffer : BufferComponentClass) : BufferSchemaValue
-	local offset = 0 -- byte offset for normal types
-	local instance_offset = 1 -- index for Instance types
-	local values = {}
-	local copiedSchema = table.clone(Schema)
-	for field, fieldType in pairs(copiedSchema) do
-		-- Complex type (table)
-		if typeof(fieldType) == "table" then
-			local len = fieldType.Length
-			local dataType = fieldType.Type
-			-- Only handle valid complex types
-			if(not ValidComplexType[dataType]) then
-				local failed = Debug["not valid type for complex schema"]
-				failed = failed .. ("%s"):format(debug.info(1,"n"))
-				error(failed, 2)
-			end
-			local value = SerializeBuffer["Read"..dataType](SerializeBuffer, len, offset)
-			-- Remove padding character
+		elseif(stringBits) then
+			-- Fixed-length string variant like "String32" -> length = 32
+			local value = SerializedBuffer:ReadString(stringBits,offset)
+			-- Remove padding char(31) added during write for fixed-size strings
 			value = string.gsub(value, string.char(31), "")
 			values[field] = value
-			offset += len
-		elseif fieldType == "Instance" then
-			-- Instance type
-			values[field] = SerializeBuffer:ReadInstance(instance_offset)
+			offset += Constants.REQUIRED_BYTES[fieldType]
+		elseif(fieldType == "vector") then
+			-- Alias for a Vector read (e.g., Vector3) with a known fixed byte size
+			local value = SerializedBuffer:ReadVector(offset)
+			values[field] = value
+			offset += Constants.REQUIRED_BYTES[fieldType]
+		elseif(fieldType == "Instance") then
+			-- Instances are stored in a separate structure and addressed by index.
+			-- We do not advance the main byte cursor for Instances.
+			values[field] = SerializedBuffer:ReadInstance(instance_offset)
 			instance_offset += 1
-			continue
 		else
-			if(ValidComplexType[fieldType]) then
-				local failed = Debug["not valid type for complex schema"]
-				failed = failed .. ("%s"):format(debug.info(1,"n"))
-				error(failed, 2)
-			end
-			-- Simple or string/boolean types
-			if string.find(fieldType, "String") then
-				local splitStringType = string.split(fieldType, "g")
-				local len = tonumber(splitStringType[2])
-				local value = SerializeBuffer["ReadString"](SerializeBuffer, len, offset)
-				value = string.gsub(value, string.char(31), "")
-				values[field] = value
-				offset += len
-			elseif string.find(fieldType, "Boolean") then
-				-- Normalize boolean type key
-				local splitType = string.split(fieldType, "e")
-				fieldType = splitType[1] .. string.sub(splitType[2], 3, 3)
-				local value = SerializeBuffer["Read"..fieldType](SerializeBuffer, offset)
-				values[field] = value
-				offset += Constants.REQUIRED_BYTES[fieldType]
-			elseif(fieldType == "vector") then
-				local value = SerializeBuffer:ReadVector(offset)
-				values[field] = value
-				offset += Constants.REQUIRED_BYTES[fieldType]
-			elseif(fieldType == "RotationCurveKey") then
-				local value = SerializeBuffer:ReadRotationCurveKey(offset)
-				values[field] = value
-				offset += Constants.REQUIRED_BYTES[fieldType](value)
-			elseif(fieldType == "FloatCurveKey") then
-				local value = SerializeBuffer:ReadFloatCurveKey(offset)
-				values[field] = value
-				offset += Constants.REQUIRED_BYTES[fieldType](value)
-			elseif(fieldType == "ColorSequence") then
-				local value = SerializeBuffer:ReadColorSequence(offset)
-				values[field] = value
-				offset += Constants.REQUIRED_BYTES[fieldType](value)
-			elseif(fieldType == "NumberSequence") then
-				local value = SerializeBuffer:ReadNumberSequence(offset)
-				values[field] = value
-				print(Constants.REQUIRED_BYTES[fieldType](value))
+			-- Generic fallback: call a matching Read..Type at the current offset.
+			-- Examples: "U32" -> ReadU32, "CFrame" -> ReadCFrame, "Color3" -> ReadColor3, etc.
+			local value = SerializedBuffer["Read"..fieldType](SerializedBuffer,offset)
+			values[field] = value
+			-- Advance by a fixed size or compute the size dynamically from the decoded value.
+			if(typeof(Constants.REQUIRED_BYTES[fieldType]) == "function") then
 				offset += Constants.REQUIRED_BYTES[fieldType](value)
 			else
-				-- Generic type reading
-				if(string.find(fieldType,"Float")) then
-					local splitType = string.split(fieldType,"t")
-					fieldType = "F" .. splitType[2]
-				end
-				local value = SerializeBuffer["Read"..fieldType](SerializeBuffer, offset)
-				values[field] = value
 				offset += Constants.REQUIRED_BYTES[fieldType]
 			end
 		end
 	end
-	table.clear(copiedSchema)
 	return values
 end
 
