@@ -4,6 +4,11 @@
 
 ## Logs
 
+Version : 2.1
+- Fixed a bug where Serializing a `Bool1` set on false wasn't working.
+
+----
+
 Version : 2.0
 - Rewritten `Serialize` and `Deserialize`; they are more performant now.
 - Rewritten `Utils.GetRequiredBytes`; it is more performant now and its not `getRequiredBytes` anymore.
