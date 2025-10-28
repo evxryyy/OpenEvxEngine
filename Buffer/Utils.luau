@@ -35,7 +35,7 @@ end
 function Utils.GetRequiredBytes<T>(Schema : BufferSchema,Values : {[string] : T})
 	local size = 0
 	for field,fieldType in Schema do
-		if(not Values[field]) then continue end
+		if(Values[field] == nil) then continue end
 		if(fieldType == "Instance") then continue end
 		if(typeof(fieldType) ~= "table" and Utils.ValidComplexType[fieldType]) then
 			debugComplexSchema()
