@@ -152,7 +152,7 @@ Same as Serialize but accepts a table of values and a table of schemas.
 
 Each schema will be serialized with its corresponding value.
 
-!!! Note:
+!!! Note
 	This return a numeric table with BufferComponentClass as values in order.
 
 ```luau linenums="1"
@@ -236,3 +236,4 @@ print(Buffer.DeserializeAll({SchemaA,SchemaB},buff))
 | RotationCurveKey | 108 or 112 `(if you use KeyInterpoliationMode.Cubic)`      | 
 |  ColorSequence   | 1 + 16 * number of `ColorSequenceKeypoint`                 | 
 |  NumberSequence  | 1 + 12 * number of `NumberSequenceKeypoint`                | 
+
