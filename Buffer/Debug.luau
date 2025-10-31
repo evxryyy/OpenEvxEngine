@@ -20,7 +20,7 @@ return {
 		"1 byte(s) is required to write a Int8"
 	]]
 	
-	["not valid type for complex schema"] = "Complex fields are only supported for values of types 'String'. \n e.g {Type = String,Length = number}"
+	["not valid type for complex schema"] = "Complex fields are only supported for values of types 'String'. \n e.g {Type = String,Length = number}",
 	--[[
 		abc = {
 			Type = "Vector3",
@@ -28,4 +28,15 @@ return {
 		}
 		Instead of abc = "Vector3"
 	]]
+	
+	["need atleast 1 Schema"] = "`DeserializeAll` need minimum 1 Schema and 1 BufferComponent to work properly",
+	--[[
+		Buffer.DeserializeAll({},{}) -- both are empty or at least 1 is empty
+	]]
+	
+	["need atleast have 1 Schema or 1 Value"] = "`SerializeAll` need minimum 1 Schema and 1 Valeus to work properly",
+	
+	["must provide a valid Schema and Value"] = "Provided Schema or Value is not table or not a valid BufferSchema",
+	
+	["must provide a valid Schema and BufferComponent"] = "Provided Schema or BufferComponent is not valid",
 }
