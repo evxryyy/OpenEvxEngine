@@ -62,6 +62,9 @@
     Multi-byte integers in this module are written in big-endian order (highest-order byte first).
 --]]
 
+-- Roblox Services: 
+local HttpService = game:GetService("HttpService")
+
 -- Constants: centralizes numeric limits and precision settings (e.g., MIN/MAX for each type)
 local Constants = require("@self/Constants")
 
@@ -299,7 +302,7 @@ function BufferConstructor.Deserialize<T>(Schema : BufferSchema,SerializedBuffer
 			local value = SerializedBuffer["ReadF"..floatBits](SerializedBuffer,offset)
 			values[field] = value
 			offset += Constants.REQUIRED_BYTES["F"..floatBits]
-
+			
 		elseif(stringBits) then
 			-- Fixed-length string variant like "String32" -> length = 32
 			local value = SerializedBuffer:ReadString(stringBits,offset)
@@ -331,6 +334,80 @@ function BufferConstructor.Deserialize<T>(Schema : BufferSchema,SerializedBuffer
 		end
 	end
 	return values
+end
+
+--[[
+	Same as Serialize, but accepts a JSON string.
+	
+	@since v2.2
+]]
+function BufferConstructor.SerializeJSON(Schema : BufferSchema,jsonValues : string) : BufferComponentClass
+	local values = HttpService:JSONDecode(jsonValues) :: BufferSchemaValue
+	return BufferConstructor.Serialize(Schema,values)
+end
+
+--[[
+	Same as Deserialize, but returns a JSON string instead of a table.
+	
+	@since v2.2
+]]
+function BufferConstructor.DeserializeJSON(Schema : BufferSchema,SerializedBuffer : BufferComponentClass) : string
+	local values = BufferConstructor.Deserialize(Schema,SerializedBuffer)
+	return HttpService:JSONEncode(values)
+end
+
+--[[
+	Same as Serialize but accepts a table of values and a table of schemas.
+	Each schema will be serialized with its corresponding value.
+
+	Note:
+	This return a numeric table with BufferComponentClass as values in order.
+
+	@since v2.2
+]]
+function BufferConstructor.SerializeAll(Schemas : {BufferSchema},Values : {BufferSchemaValue}) : {BufferComponentClass}
+	if(#Schemas <= 0 or #Values <= 0) then 
+		error(Debug["need atleast have 1 Schema or 1 Value"])
+	end
+	local serializedBuffers = {}
+	local schemaCount = #Schemas
+	for i = 1,schemaCount,1 do
+		local schema = Schemas[i]
+		local values = Values[i]
+		if(typeof(schema) ~= "table" or typeof(values) ~= "table") then
+			error(Debug["must provide a valid Schema and Value"])
+		end
+		local serializeBuffer = BufferConstructor.Serialize(schema,values)
+		table.insert(serializedBuffers,serializeBuffer)		
+	end
+	return serializedBuffers
+end
+
+--[[
+	Same as Deserialize but accepts a table of serialized buffers and a table of schemas.
+	Each schema will be deserialized with its corresponding serialized buffer.
+	
+	Note:
+	This return a numeric table with each BufferSchemaValue as values from the correspond BufferComponent, in order.
+	
+	@since v2.2
+]]
+function BufferConstructor.DeserializeAll(Schemas : {BufferSchema},SerializedBuffers : {BufferComponentClass}) : {BufferSchemaValue}
+	if(#Schemas <= 0) then 
+		error(Debug["need atleast 1 Schema"])
+	end
+	local deserializedBuffers = {}
+	local schemaCount = #Schemas
+	for i = 1,schemaCount,1 do
+		local schema = Schemas[i]
+		local serializedBuffer = SerializedBuffers[i]
+		if(typeof(schema) ~= "table" or typeof(serializedBuffer) ~= "table") then
+			error(Debug["must provide a valid Schema and BufferComponent"])
+		end
+		local deserializedBuffer = BufferConstructor.Deserialize(schema,serializedBuffer)
+		table.insert(deserializedBuffers,deserializedBuffer)
+	end
+	return deserializedBuffers
 end
 
 --[[
@@ -3517,6 +3594,10 @@ BufferConstructor.FromString = BufferConstructor.fromString
 BufferConstructor.Tostring = BufferConstructor.tostring
 BufferConstructor.serialize = BufferConstructor.Serialize
 BufferConstructor.deserialize = BufferConstructor.Deserialize
+BufferConstructor.deserializeAll = BufferConstructor.DeserializeAll
+BufferConstructor.serializeAll = BufferConstructor.SerializeAll
+BufferConstructor.serializeJSON = BufferConstructor.SerializeJSON
+BufferConstructor.deserializeJSON = BufferConstructor.DeserializeJSON
 
 --Component alias
 BufferComponent.Allocate = BufferComponent.allocate
