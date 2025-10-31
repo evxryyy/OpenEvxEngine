@@ -2,7 +2,15 @@
 
 ## What next
 
+I'm waiting for the EncodingService to release.
+
 ## Logs
+
+Version : 2.2
+- Added `SerializeJSON` and `DeserializeJSON` SEE API.
+- Added `SerializeAll` and `DeserializeAll` SEE API.
+
+----
 
 Version : 2.1
 - Fixed a bug where Serializing a `Bool1` set on false wasn't working.
