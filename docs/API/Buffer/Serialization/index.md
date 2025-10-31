@@ -89,6 +89,103 @@ Deserializes a BufferComponentClass into a table of values according to Schema
 
 ----
 
+### SerializeJSON
+
+Same as Serialize, but accepts a JSON string.
+
+```luau linenums="1"
+local json = Buffer.SerializeJSON(Schema,HttpService:JSONEncode(Values))
+
+print(json)
+print(Buffer.DeserializeJSON(Schema,json)) --> json string
+```
+
+----
+
+### DeserializeJSON
+
+Same as Deserialize, but returns a JSON string instead of a table.
+
+----
+
+### SerializeAll
+
+Same as Serialize but accepts a table of values and a table of schemas.
+
+Each schema will be serialized with its corresponding value.
+
+!!! Note
+    This return a numeric table with BufferComponentClass as values in order.
+
+```luau linenums="1"
+local SchemaA : Buffer.BufferSchema = {
+	Name = {
+		Type = "String",
+		Length = 14,
+	}
+}
+
+local SchemaB : Buffer.BufferSchema = {
+	Name = {
+		Type = "String",
+		Length = 20,
+	}
+}
+
+local A = {
+	Name = "Hello World !!",
+}
+
+local B = {
+	Name = "Goodbye World !!",
+}
+
+--The order is important !
+local buff = Buffer.SerializeAll({SchemaA,SchemaB},{A,B})
+```
+
+----
+
+### DeserializeAll
+
+Same as Serialize but accepts a table of values and a table of schemas.
+
+Each schema will be serialized with its corresponding value.
+
+!!! Note:
+	This return a numeric table with BufferComponentClass as values in order.
+
+```luau linenums="1"
+local SchemaA : Buffer.BufferSchema = {
+	Name = {
+		Type = "String",
+		Length = 14,
+	}
+}
+
+local SchemaB : Buffer.BufferSchema = {
+	Name = {
+		Type = "String",
+		Length = 20,
+	}
+}
+
+local A = {
+	Name = "Hello World !!",
+}
+
+local B = {
+	Name = "Goodbye World !!",
+}
+
+--The order is important for both methods !!!!!
+local buff = Buffer.SerializeAll({SchemaA,SchemaB},{A,B})
+
+print(Buffer.DeserializeAll({SchemaA,SchemaB},buff))
+```
+
+----
+
 ## Serializable Types
 
 |       Type       | Bytes                                                      |
