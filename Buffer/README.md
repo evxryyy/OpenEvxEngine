@@ -6,6 +6,12 @@ I'm waiting for the EncodingService to release.
 
 ## Logs
 
+Version : 2.3.1
+- Added the Documentation website and the change logs in the module.
+- Removed some useless comments.
+
+----
+
 Version : 2.3
 - Fixed an issue with `RotationCurveKey` size
 
