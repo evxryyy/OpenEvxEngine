@@ -4,6 +4,9 @@
     Author: evxry_ll
 
     Buffer: A powerful library to write data with the "buffer" type.
+    
+	Documentation : https://evxryyy.github.io/OpenEvxEngine/API/Buffer
+	ChangeLogs : https://github.com/evxryyy/OpenEvxEngine/blob/main/Buffer/README.md
 
     Supported Data Types:
     
@@ -101,14 +104,12 @@ BufferComponent.__index = BufferComponent
     - instance_offset: current write offset for instance references (if used)
     - buffer: the underlying Roblox buffer
     - instance_buffer: a side-channel storage for Instances (if used elsewhere)
-    - allocate: grows the buffer by the requested size (O(n) copy)
 ]]
 export type BufferComponentClass = typeof(setmetatable({} :: {
 	offset : number,
 	instance_offset : number,
 	buffer : buffer,
 	instance_buffer : { Instance },
-	allocate : (self : BufferComponentClass,size : number) -> (),
 },BufferComponent))
 
 --[[
@@ -266,13 +267,8 @@ function BufferConstructor.Deserialize<T>(Schema : BufferSchema,SerializedBuffer
 		-- ValidComplexType[...] determines which types must use this shape.
 		if(typeof(fieldType) == "table" and ValidComplexType[fieldType.Type]) then
 			-- Read using the typed reader. For fixed-length strings we pass Length and offset.
-			-- IMPORTANT: At the moment, this branch is designed for String with a fixed Length.
-			-- If you add other complex types, ensure their ReadX signature matches
-			-- and DO NOT run string.gsub on non-string values.
 			local value = SerializedBuffer["Read"..fieldType.Type](SerializedBuffer,fieldType.Length,offset)
 			-- Strip padding (char 31) used to fill fixed-size strings.
-			-- This assumes 'value' is a string. If you extend complex types beyond String,
-			-- guard this step with: if type(value) == "string" then ...
 			value = string.gsub(value, string.char(31), "")
 			values[field] = value
 			-- Advance main byte cursor by the declared fixed length
