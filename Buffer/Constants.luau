@@ -87,7 +87,7 @@ return table.freeze({
 			return (floatKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 24 or 16
 		end,
 		RotationCurveKey = function(rotationKey : RotationCurveKey)
-			return (rotationKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 112 or 108
+			return (rotationKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 112 or 104
 		end,
 		ColorSequence = function(sequence : ColorSequence)
 			return 1 + (16 * #sequence.Keypoints)
@@ -99,5 +99,5 @@ return table.freeze({
 	},
 
 	--VERSION--
-	VERSION = "2.2",
+	VERSION = "2.3",
 })
