@@ -233,7 +233,6 @@ print(Buffer.DeserializeAll({SchemaA,SchemaB},buff))
 |       Enum       | 4                                                          | 
 |   NumberRange    | 8                                                          | 
 |  FloatCurveKey   | 16 or 24 `(if you use KeyInterpolationMode.Cubic)`         | 
-| RotationCurveKey | 108 or 112 `(if you use KeyInterpoliationMode.Cubic)`      | 
+| RotationCurveKey | 104 or 112 `(if you use KeyInterpoliationMode.Cubic)`      | 
 |  ColorSequence   | 1 + 16 * number of `ColorSequenceKeypoint`                 | 
 |  NumberSequence  | 1 + 12 * number of `NumberSequenceKeypoint`                | 
-
