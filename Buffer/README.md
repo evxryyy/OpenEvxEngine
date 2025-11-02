@@ -6,6 +6,11 @@ I'm waiting for the EncodingService to release.
 
 ## Logs
 
+Version : 2.3
+- Fixed an issue with `RotationCurveKey` size
+
+----
+
 Version : 2.2
 - Added `SerializeJSON` and `DeserializeJSON` SEE API.
 - Added `SerializeAll` and `DeserializeAll` SEE API.
