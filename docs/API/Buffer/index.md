@@ -14,7 +14,7 @@ as well as some utilities like Buffer.Enum, Buffer.Constants, and Buffer.Utils.
 
 ## Version
 
-### [Buffer V2.2](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
+### [Buffer V2.3](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
 
 ----
 
@@ -105,7 +105,7 @@ Buffer contains over 30 data types. Find each type here:
 |       `Enum`       | Roblox EnumItem (4 byte)                                     |
 |   `NumberRange`    | 8                                                            | 
 |  `FloatCurveKey`   | 16 or 24 `(if you use KeyInterpolationMode.Cubic)`           | 
-| `RotationCurveKey` | 108 or 112 `(if you use KeyInterpoliationMode.Cubic)`        | 
+| `RotationCurveKey` | 104 or 112 `(if you use KeyInterpoliationMode.Cubic)`        | 
 |  `ColorSequence`   | 1 + 16 * number of `ColorSequenceKeypoint`                   | 
 |  `NumberSequence`  | 1 + 12 * number of `NumberSequenceKeypoint`                  | 
 
