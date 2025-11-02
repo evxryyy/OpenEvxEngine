@@ -1875,7 +1875,7 @@ end
 	RotationCurveKeys are used in animation curves to define rotation keyframes.
 	The data is stored as:
 	- 4 bytes (F32): Time value of the keyframe
-	- 48 bytes: CFrame rotation value
+	- 96 bytes: CFrame rotation value
 	- 4 bytes: Interpolation mode (as Enum)
 	- 8 bytes (conditional): Left and Right tangents for Cubic interpolation only
 	
