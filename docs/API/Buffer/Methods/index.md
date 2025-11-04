@@ -160,8 +160,50 @@ local myBuffer = Buffer.create(0)
 myBuffer:Clear()
 ```
 
-clear the buffer to a new one with the same size
-the offset is also set to 0.
+clear the instance_buffer and the buffer itself
+
+both offset will be set to 0.
+
+!!! note
+    this return self allow you to chain method
+
+----
+
+### ClearInstances
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(0)
+
+myBuffer:ClearInstances()
+```
+
+Clear the instance_buffer.
+
+instance_offset will be set to 0.
+
+!!! note
+    this return self allow you to chain method
+
+----
+
+### ClearBuffer
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(0)
+
+myBuffer:ClearBuffer()
+```
+
+Clear the buffer.
+
+The buffer offset will be set to 0.
+
+!!! note
+    this return self allow you to chain method
 
 ----
 
@@ -193,6 +235,10 @@ BufferConstructor.FromString = BufferConstructor.fromString
 BufferConstructor.Tostring = BufferConstructor.tostring
 BufferConstructor.serialize = BufferConstructor.Serialize
 BufferConstructor.deserialize = BufferConstructor.Deserialize
+BufferConstructor.deserializeAll = BufferConstructor.DeserializeAll
+BufferConstructor.serializeAll = BufferConstructor.SerializeAll
+BufferConstructor.serializeJSON = BufferConstructor.SerializeJSON
+BufferConstructor.deserializeJSON = BufferConstructor.DeserializeJSON
 
 --Component alias
 BufferComponent.Allocate = BufferComponent.allocate
@@ -408,5 +454,7 @@ BufferComponent.getbuffersize = BufferComponent.GetBufferSize
 
 --[Lifecycle] alias
 BufferComponent.Clear = BufferComponent.clear
+BufferComponent.ClearInstances = BufferComponent.clearInstances
+BufferComponent.ClearBuffer = BufferComponent.clearBuffer
 BufferComponent.Destroy = BufferComponent.Destroy
 ```
