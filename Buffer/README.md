@@ -6,6 +6,13 @@ I'm waiting for the EncodingService to release.
 
 ## Logs
 
+Version : 2.4
+- Change the functionality of clear: it will now clear both the `instance_buffer` and the `buffer`.
+- Added `clearInstances` and `clearBuffer` SEE API
+- Fixed some missing information in the API for `Methods/Alias`
+  
+----
+
 Version : 2.3.1
 - Added the Documentation website and the change logs in the module.
 - Removed some useless comments.
