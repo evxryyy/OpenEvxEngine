@@ -3554,12 +3554,41 @@ function BufferComponent.GetBufferSize(self : BufferComponentClass) : number
 end
 
 --[[
-	clear the buffer to a new one with the same size
-	the offset is also set to 0.
+	clear the instance_buffer and the buffer itself
+	both offset will be set to 0.
 	
-	@since v1.2
+	@return self -- allow you to chain method
+	
+	@since v2.4
 ]]
 function BufferComponent.clear(self : BufferComponentClass) : BufferComponentClass
+	self:clearInstances()
+	return self:clearBuffer()
+end
+
+--[[
+	Clear the instance_buffer.
+	instance_offset will be set to 0.
+	
+	@return self -- allow you to chain method
+	
+	@since v2.4
+]]
+function BufferComponent.clearInstances(self : BufferComponentClass) : BufferComponentClass
+	table.clear(self.instance_buffer)
+	self.instance_offset = 0
+	return self
+end
+
+--[[
+	Clear the buffer.
+	The buffer offset will be set to 0.
+	
+	@return self -- allow you to chain method
+	
+	@since v2.4
+]]
+function BufferComponent.clearBuffer(self : BufferComponentClass) : BufferComponentClass
 	local buffer_blank = buffer.create(buffer.len(self.buffer))
 	self.buffer = buffer_blank
 	self.offset = 0
@@ -3809,6 +3838,8 @@ BufferComponent.getbuffersize = BufferComponent.GetBufferSize
 
 --[Lifecycle] alias
 BufferComponent.Clear = BufferComponent.clear
+BufferComponent.ClearInstances = BufferComponent.clearInstances
+BufferComponent.ClearBuffer = BufferComponent.clearBuffer
 BufferComponent.Destroy = BufferComponent.Destroy
 
 return BufferConstructor
