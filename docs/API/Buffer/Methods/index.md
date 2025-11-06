@@ -150,6 +150,21 @@ return the actual buffer size (not the written data size)
 
 ----
 
+### Copy
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(0)
+
+local copy_myBuffer = myBuffer:Copy()
+print(buff == copy_myBuffer) --> false
+```
+
+Create and return a copy of the current BufferComponent
+
+----
+
 ### Clear
 
 ```luau linenums="1"
