@@ -3596,6 +3596,20 @@ function BufferComponent.clearBuffer(self : BufferComponentClass) : BufferCompon
 end
 
 --[[
+	Create and return a copy of the current BufferComponent
+	
+	@since v2.5
+]]
+function BufferComponent.copy(self : BufferComponentClass) : BufferComponentClass
+	local copy = BufferConstructor.create(buffer.len(self.buffer))
+	copy.instance_buffer = self.instance_buffer
+	copy.instance_offset = self.instance_offset
+	copy.buffer = self.buffer
+	copy.offset = self.offset
+	return copy
+end
+
+--[[
 	Destroy the actual BufferComponent.
 	You can't use the BufferComponent after this.
 	
@@ -3835,6 +3849,7 @@ BufferComponent.getInstanceBuffer = BufferComponent.GetInstanceBuffer
 BufferComponent.getinstancebuffer = BufferComponent.GetInstanceBuffer
 BufferComponent.getBufferSize = BufferComponent.GetBufferSize
 BufferComponent.getbuffersize = BufferComponent.GetBufferSize
+BufferComponent.Copy = BufferComponent.copy
 
 --[Lifecycle] alias
 BufferComponent.Clear = BufferComponent.clear
