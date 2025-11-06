@@ -3,8 +3,14 @@
 ## What next
 
 I'm waiting for the EncodingService to release.
+I'm also still working on it.
 
 ## Logs
+
+Version : 2.5
+- Added `copy` to the component SEE API.
+
+----
 
 Version : 2.4
 - Change the functionality of clear: it will now clear both the `instance_buffer` and the `buffer`.
