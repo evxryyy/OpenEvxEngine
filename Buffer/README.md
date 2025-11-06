@@ -2,9 +2,6 @@
 
 ## What next
 
-I'm waiting for the EncodingService to release.
-I'm also still working on it.
-
 ## Logs
 
 Version : 2.5
