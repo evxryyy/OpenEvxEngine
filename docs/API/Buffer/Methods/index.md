@@ -68,6 +68,115 @@ Other useful methods are available in the component.
 
 ----
 
+### Compress
+
+```luau linenums="1"
+local my_buffer = Buffer.create(1000)
+
+local compressed_buffer = my_buffer:Compress(Enum.CompressionAlgorithm.Zstd)
+print(compressed_buffer) --> buffer
+```
+
+Return a compressed buffer with the target Compression Algorithm
+
+!!! info
+	- This function use `EncodingService:CompressBuffer()`. Please see the Roblox API for more infos
+
+!!! warning
+    - Do not use this for buffers smaller than 30 bytes or in the 30–50 bytes range.
+
+----
+
+### Decompress (Constructor)
+
+```luau linenums="1"
+local my_buffer = Buffer.create(1000)
+
+local compressed_buffer = my_buffer:Compress(Enum.CompressionAlgorithm.Zstd)
+local decompressed_buffer = Buffer.Decompress(compressed_buffer,Enum.CompressionAlgorithm.Zstd)
+
+print(decompressed_buffer)
+```
+
+Return the decompressed buffer as an `BufferComponentClass` with the target Compression Algorithm.
+
+The buffer must be already compressed with the target Compression Algorithm.
+
+!!! info
+    - This function use <code>EncodingService:DecompressBuffer()</code>. Please see the Roblox API for more infos
+
+!!! warning
+    - Make sure you use the exact same Compression Algorithm as the compressed buffer.
+
+----
+
+### OnOffsetChanged
+
+```luau linenums="1"
+local my_buffer = Buffer.create(10)
+
+my_buffer:OnOffsetChanged(function(oldOffset, newOffset)
+	print(oldOffset,newOffset)
+end)
+
+my_buffer:writei8(127)
+```
+
+Connects a callback to the OffsetChanged signal.
+The callback is called when the offset is changed.
+
+Return : `SignalConnection`
+
+----
+
+### OnInstanceOffsetChanged
+
+```luau linenums="1"
+local my_buffer = Buffer.create(10)
+
+my_buffer:OnInstanceOffsetChanged(function(oldOffset, newOffset)
+	print(oldOffset,newOffset)
+end)
+
+my_buffer:WriteInstance(workspace.Baseplate)
+```
+
+Connects a callback to the InstanceOffsetChanged signal.
+The callback is called when the instance offset is changed.
+
+Return : `SignalConnection`
+
+----
+
+### OnCapacityChanged
+
+```luau linenums="1"
+local my_buffer = Buffer.create(10)
+
+local connection = my_buffer:OnCapacityChanged(function(oldSize, newSize)
+	print(oldSize,newSize)
+end)
+
+my_buffer += 5
+my_buffer:allocate(5)
+my_buffer *= 5
+
+--later
+
+connection:Disconnect()
+```
+
+Connects a callback to the CapacityChanged signal.
+The callback is called when the capacity is changed.
+	
+!!! info
+	- __mult can fire CapacityChanged same for __add
+	- :allocate can fire CapacityChanged
+
+Return : `SignalConnection`
+
+----
+
 ### GetRemainingSpace
 
 ```luau linenums="1"
@@ -222,6 +331,16 @@ The buffer offset will be set to 0.
 
 ----
 
+### DisconnectAllSignals
+
+```luau linenums="1"
+my_buffer:DisconnectAllSignals()
+```
+
+Disconnect all signals `OnOffsetChanged`,`OnInstanceOffset`,`OnCapacityChanged`
+
+----
+
 ### Destroy
 
 ```luau linenums="1"
@@ -252,8 +371,11 @@ BufferConstructor.serialize = BufferConstructor.Serialize
 BufferConstructor.deserialize = BufferConstructor.Deserialize
 BufferConstructor.deserializeAll = BufferConstructor.DeserializeAll
 BufferConstructor.serializeAll = BufferConstructor.SerializeAll
-BufferConstructor.serializeJSON = BufferConstructor.SerializeJSON
-BufferConstructor.deserializeJSON = BufferConstructor.DeserializeJSON
+BufferConstructor.decompress = BufferConstructor.Decompress
+BufferConstructor.serializeCompressed = BufferConstructor.SerializeCompressed
+BufferConstructor.deserializeCompressed = BufferConstructor.DeserializeCompressed
+BufferConstructor.serializeAllCompressed = BufferConstructor.SerializeAllCompressed
+BufferConstructor.deserializeAllCompressed = BufferConstructor.DeserializeAllCompressed
 
 --Component alias
 BufferComponent.Allocate = BufferComponent.allocate
@@ -452,6 +574,12 @@ BufferComponent.readvector = BufferComponent.ReadVector
 BufferComponent.readEnum = BufferComponent.ReadEnum
 BufferComponent.readenum = BufferComponent.ReadEnum
 
+--[Signals] alias
+BufferComponent.onOffsetChanged = BufferComponent.OnOffsetChanged
+BufferComponent.onCapacityChanged = BufferComponent.OnCapacityChanged
+BufferComponent.onInstanceOffsetChanged = BufferComponent.OnInstanceOffsetChanged
+BufferComponent.disconnectAllSignals = BufferComponent.DisconnectAllSignals
+
 --[Cursor] alias
 BufferComponent.getOffset = BufferComponent.GetOffset
 BufferComponent.getoffset = BufferComponent.GetOffset
@@ -460,12 +588,14 @@ BufferComponent.getinstanceoffset = BufferComponent.GetInstanceOffset
 BufferComponent.getRemainingSpace = BufferComponent.GetRemainingSpace
 
 --[Buffer] alias
+BufferComponent.compress = BufferComponent.Compress
 BufferComponent.getBuffer = BufferComponent.GetBuffer
 BufferComponent.getbuffer = BufferComponent.GetBuffer
 BufferComponent.getInstanceBuffer = BufferComponent.GetInstanceBuffer
 BufferComponent.getinstancebuffer = BufferComponent.GetInstanceBuffer
 BufferComponent.getBufferSize = BufferComponent.GetBufferSize
 BufferComponent.getbuffersize = BufferComponent.GetBufferSize
+BufferComponent.Copy = BufferComponent.copy
 
 --[Lifecycle] alias
 BufferComponent.Clear = BufferComponent.clear
