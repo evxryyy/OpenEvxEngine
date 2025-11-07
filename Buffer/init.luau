@@ -1,8 +1,5 @@
 --!nonstrict
 
-
-local Component = require("../Roact/Component")
-
 --[[
     Author: evxry_ll
 
