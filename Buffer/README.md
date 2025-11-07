@@ -6,6 +6,8 @@
 
 ### Version : 2.6
 
+----
+
 ### News
 - Added `Compress (Component)` and `Decompress (Constructor)` (SEE API)
 - Added `SerializeCompressed` and `DeserializeCompressed` (SEE API)
@@ -18,7 +20,7 @@
 - `SerializeJSON` and `DeserializeJSON` have been removed
 - Documentation for both old and new functions has been improved for clarity
 
----
+----
 
 ### Fixes
 - Fixed a bug in serialization with `String[Bits]` caused by the function rewrite
