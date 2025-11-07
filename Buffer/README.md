@@ -4,6 +4,27 @@
 
 ## Logs
 
+### Version : 2.6
+
+### News
+- Added `Compress (Component)` and `Decompress (Constructor)` (SEE API)
+- Added `SerializeCompressed` and `DeserializeCompressed` (SEE API)
+- Added `SerializeAllCompressed` and `DeserializeAllCompressed` (SEE API) 
+- Added `OffsetChanged`, `InstanceOffsetChanged`, and `CapacityChanged` signals using the Zignal module (SEE API)
+
+----
+
+### Changes
+- `SerializeJSON` and `DeserializeJSON` have been removed
+- Documentation for both old and new functions has been improved for clarity
+
+---
+
+### Fixes
+- Fixed a bug in serialization with `String[Bits]` caused by the function rewrite
+
+----
+
 Version : 2.5
 - Added `copy` to the component SEE API.
 
