@@ -1,10 +1,5 @@
 # Getting Started
 
-!!! warning 
-
-    These modules can be really complex due to their low-level design specified for more 
-    performance and flexibility.
-
 ----
 
 ## API Presentation
@@ -48,12 +43,6 @@ everything for you, this is not for you.
 ## Additional Information
 People can modify and publish this library, BUT they must send me a Discord message so I can 
 give them permission to publish.
-
-----
-
-## Missing modules
-
-For missing modules like `SyncHandler` , `SyncSignal` and `ModuleLoader` will be back when it will be ready and not just a wrapper or a basic loader.
 
 ----
 
