@@ -67,6 +67,7 @@
 
 -- Roblox Services: 
 local HttpService = game:GetService("HttpService")
+local EncodingService = game:GetService("EncodingService")
 
 -- Constants: centralizes numeric limits and precision settings (e.g., MIN/MAX for each type)
 local Constants = require("@self/Constants")
@@ -79,6 +80,7 @@ local BufferEnum = require("@self/BufferType")
 
 -- Util: utility functions for bit manipulation, encoding, etc.
 local Utils = require("@self/Utils")
+local Zignal = require("@self/_index/Zignal/Zignal")
 
 -- EnumsMap
 local EnumsIds,IdsEnums = Utils.GenerateEnumMapping()
@@ -110,6 +112,9 @@ export type BufferComponentClass = typeof(setmetatable({} :: {
 	instance_offset : number,
 	buffer : buffer,
 	instance_buffer : { Instance },
+	CapacityChanged : Zignal.Signal<number,number>,
+	OffsetChanged : Zignal.Signal<number,number>,
+	InstanceOffsetChanged : Zignal.Signal<number,number>,
 },BufferComponent))
 
 --[[
@@ -146,6 +151,9 @@ function BufferConstructor.create(size : number) : BufferComponentClass
 		instance_offset = 1,
 		buffer = buffer.create(size),
 		instance_buffer = {},
+		CapacityChanged = Zignal.new(),
+		OffsetChanged = Zignal.new(),
+		InstanceOffsetChanged = Zignal.new(),
 	},BufferComponent)
 	return self
 end
@@ -169,6 +177,9 @@ function BufferConstructor.from(b : buffer) : BufferComponentClass
 		instance_offset = 0,
 		instance_buffer = {},
 		buffer = b,
+		CapacityChanged = Zignal.new(),
+		OffsetChanged = Zignal.new(),
+		InstanceOffsetChanged = Zignal.new(),
 	},BufferComponent)
 	return self
 end
@@ -201,7 +212,7 @@ end
 
 	@since v2.0
 ]]
-function BufferConstructor.Serialize<T>(Schema : BufferSchema,Values : {T}) : BufferComponentClass
+function BufferConstructor.Serialize<T>(Schema : BufferSchema,Values :  {[string] : T}) : BufferComponentClass
 	-- Defensive clones to avoid mutating the caller's tables
 	local copiedSchema = table.clone(Schema)
 	local copiedValues = table.clone(Values)
@@ -238,8 +249,8 @@ function BufferConstructor.Serialize<T>(Schema : BufferSchema,Values : {T}) : Bu
 					value = value .. string.rep(string.char(31),(tonumber(stringBits) :: number) - #value)
 				end
 			end
-			-- Write using dynamic dispatch (e.g., "String32" -> WriteString32)
-			component(fieldType,value)
+			-- Write using the normal way (e.g., "String32" -> WriteString32)
+			component["Write"..fieldType](component,value,#value)
 		else
 			-- Generic fallback for all non-string types: "U8", "I32", "F32", "CFrame", "vector", etc.
 			component(fieldType,copiedValues[field])
@@ -333,26 +344,6 @@ function BufferConstructor.Deserialize<T>(Schema : BufferSchema,SerializedBuffer
 end
 
 --[[
-	Same as Serialize, but accepts a JSON string.
-	
-	@since v2.2
-]]
-function BufferConstructor.SerializeJSON(Schema : BufferSchema,jsonValues : string) : BufferComponentClass
-	local values = HttpService:JSONDecode(jsonValues) :: BufferSchemaValue
-	return BufferConstructor.Serialize(Schema,values)
-end
-
---[[
-	Same as Deserialize, but returns a JSON string instead of a table.
-	
-	@since v2.2
-]]
-function BufferConstructor.DeserializeJSON(Schema : BufferSchema,SerializedBuffer : BufferComponentClass) : string
-	local values = BufferConstructor.Deserialize(Schema,SerializedBuffer)
-	return HttpService:JSONEncode(values)
-end
-
---[[
 	Same as Serialize but accepts a table of values and a table of schemas.
 	Each schema will be serialized with its corresponding value.
 
@@ -407,6 +398,164 @@ function BufferConstructor.DeserializeAll(Schemas : {BufferSchema},SerializedBuf
 end
 
 --[[
+	Return the decompressed buffer as an BufferComponentClass with the target Compression Algorithm
+	The buffer must be already compressed with the target Compression Algorithm
+	
+	Note:
+	- This function use <code>EncodingService:DecompressBuffer()</code>. Please see the Roblox API for more infos
+
+	@since v2.6
+]]
+function BufferConstructor.Decompress(b : buffer,algorithm : Enum.CompressionAlgorithm) : BufferComponentClass
+	return BufferConstructor.from(EncodingService:DecompressBuffer(b,algorithm))
+end
+
+--[[
+    Serializes a set of values according to the provided schema
+    and then compresses the resulting buffer.
+
+    Parameters:
+        Schema (BufferSchema)
+        Values (table<string, T>)
+        
+    Returns: buffer
+            A compressed buffer produced by first serializing the input
+            values and then applying Zstd compression.
+
+    Notes:
+        - This function is effectively a convenience wrapper for:
+              Serialize(...) → Compress(...)
+        - The returned buffer is not directly readable. Use
+              DeserializeCompressed(...)
+          to restore the original values.
+          
+    @since v2.6
+]]
+function BufferConstructor.SerializeCompressed<T>(Schema : BufferSchema,Values : {[string] : T}) : buffer
+	local serializedBuffer = BufferConstructor.Serialize(Schema,Values)
+	local compressed = serializedBuffer:Compress(Enum.CompressionAlgorithm.Zstd)
+	return compressed
+end
+
+--[[
+    Decompresses a previously compressed buffer and then deserializes its content
+    according to the provided schema.
+
+    Parameters:
+        Schema (BufferSchema)
+            The schema describing how data was originally structured and stored.
+
+        compressedBuffer (buffer)
+            A buffer that was produced using SerializeCompressed(...)
+            and compressed using Zstd.
+
+    Returns: table<string, T>
+            A table of deserialized values mapped by field name.
+
+    Notes:
+        - This function performs the reverse operation of SerializeCompressed(...):
+              Decompress(...) → Deserialize(...)
+        - The buffer must have been created with the same schema used here.
+        - If the schema does not match the original one, deserialization will fail
+          or produce invalid data.
+    
+    @since v2.6
+]]
+function BufferConstructor.DeserializeCompressed<T>(Schema : BufferSchema,compressedBuffer : buffer) : {[string] : T}
+	local component = BufferConstructor.From(EncodingService:DecompressBuffer(compressedBuffer,Enum.CompressionAlgorithm.Zstd))
+	local deserialized = BufferConstructor.Deserialize(Schema,component)
+	return deserialized
+end
+
+--[[
+   Serializes and compresses multiple value sets using corresponding schemas.
+
+    Parameters:
+        Schemas ({BufferSchema})
+            An array of schemas. Each schema describes how its corresponding
+            value set should be serialized.
+
+        Values ({ table<string, T> })
+            An array where each entry is a table of named values to be serialized.
+            The index of each value set must match the index of its schema.
+
+    Returns: { buffer }
+            An array of compressed buffers, one for each (Schema, Values) pair.
+
+    Behavior:
+        For each index i:
+            Serialize(Schemas[i], Values[i]) → Buffer
+            Compress(Buffer) → CompressedBuffer
+        The resulting compressed buffer is appended to the output array.
+
+    Notes:
+        - Schemas and Values must have the same length and aligned ordering.
+        - If any schema or value set is invalid, the function throws an error.
+        - This is the bulk equivalent of SerializeCompressed(...).
+        
+    @since v2.6
+]]
+function BufferConstructor.SerializeAllCompressed<T>(Schemas : {BufferSchema},Values : {{[string] : T}}) : {buffer}
+	local compressed = {}
+	local schemaCount = #Schemas
+	for i = 1,schemaCount,1 do
+		local schema = Schemas[i]
+		local values = Values[i]
+		if(typeof(schema) ~= "table" or typeof(values) ~= "table") then
+			error(Debug["must provide a valid Schema and Value"])
+		end
+		local serializeBuffer = BufferConstructor.SerializeCompressed(schema,values)
+		table.insert(compressed,serializeBuffer)		
+	end
+	return compressed
+end
+
+--[[
+    Decompresses and deserializes multiple compressed buffers using
+    their corresponding schemas.
+
+    Parameters:
+        Schemas ({BufferSchema})
+            An array of schemas. Each schema defines how its corresponding
+            decompressed buffer should be interpreted and reconstructed.
+
+        Buffers ({buffer})
+            An array of compressed buffers produced by SerializeAllCompressed(...)
+            or SerializeCompressed(...). The index of each buffer must match
+            the index of its schema.
+
+    Returns: { { [string] : T } }
+            An array of deserialized value tables. Each entry corresponds to
+            the decompressed and deserialized result of the matching schema
+            and buffer pair.
+
+    Behavior:
+        For each index i:
+            Decompress(Buffers[i]) → Buffer
+            Deserialize(Schemas[i], Buffer) → Values
+        The resulting values table is appended to the output array.
+
+    Notes:
+        - Schemas and Buffers must be the same length and aligned by index.
+        - This is the bulk equivalent of DeserializeCompressed(...).
+        - If any schema or buffer is invalid, an assertion error is thrown.
+        
+    @since v2.6
+]]
+function BufferConstructor.DeserializeAllCompressed<T>(Schemas : {BufferSchema},Buffers : {buffer}) : {{[string] : T}}
+	local decompressed = {}
+	local schemaCount = #Schemas
+	for i = 1,schemaCount,1 do
+		local schema = Schemas[i]
+		local compressedBuffer = Buffers[i]
+		assert(type(schema) == "table" and type(compressedBuffer) == "buffer","Schema or CompressedBuffer is not valid.")
+		local deserializedBuffer = BufferConstructor.DeserializeCompressed(schema,compressedBuffer)
+		table.insert(decompressed,deserializedBuffer)
+	end
+	return decompressed
+end
+
+--[[
     __tostring metamethod for debug/logging: shows current buffer size in bytes.
     
     @since v1.1
@@ -457,10 +606,12 @@ function BufferComponent.__mul(self : BufferComponentClass,value : number)
 	end
 	value = math.modf(value)
 	if(value <= 1) then error("You can't reduce the buffer size") end
+	local oldSize = buffer.len(self.buffer)
 	local newSize = (buffer.len(self.buffer) * value)
 	local newBuffer = buffer.create(newSize)
 	buffer.copy(newBuffer,0,self.buffer,0,buffer.len(self.buffer))
 	self.buffer = newBuffer
+	self.CapacityChanged:Fire(oldSize,newSize)
 	return self
 end
 
@@ -502,9 +653,12 @@ end
 	@since v1.0
 ]]
 function BufferComponent.allocate(self : BufferComponentClass,size : number) : ()
-	local new_buffer = buffer.create(buffer.len(self.buffer)+size)
+	local oldSize = buffer.len(self.buffer)
+	local newSize = buffer.len(self.buffer)+size
+	local new_buffer = buffer.create(newSize)
 	buffer.copy(new_buffer,0,self.buffer,0,buffer.len(self.buffer))
 	self.buffer = new_buffer
+	self.CapacityChanged:Fire(oldSize,newSize)
 end
 
 --[[
@@ -537,7 +691,9 @@ function BufferComponent.WriteI1(self : BufferComponentClass,number : number) : 
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 1
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -568,7 +724,9 @@ function BufferComponent.WriteI8(self : BufferComponentClass,number : number) : 
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 1
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -599,7 +757,9 @@ function BufferComponent.WriteI16(self : BufferComponentClass,number : number) :
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 2
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -636,7 +796,9 @@ function BufferComponent.WriteI24(self : BufferComponentClass,number : number)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 3
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -667,7 +829,9 @@ function BufferComponent.WriteI32(self : BufferComponentClass,number : number) :
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 4
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -710,7 +874,9 @@ function BufferComponent.WriteI40(self : BufferComponentClass,number : number) :
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 5
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -760,7 +926,9 @@ function BufferComponent.WriteI48(self : BufferComponentClass,number : number) :
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 6
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -812,7 +980,9 @@ function BufferComponent.WriteI54(self : BufferComponentClass,number : number) :
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 7
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -843,7 +1013,9 @@ function BufferComponent.WriteU8(self : BufferComponentClass,number : number) : 
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 1
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -874,7 +1046,9 @@ function BufferComponent.WriteU16(self : BufferComponentClass,number : number) :
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 2
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -911,7 +1085,9 @@ function BufferComponent.WriteU24(self : BufferComponentClass,number : number)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 3
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -942,7 +1118,9 @@ function BufferComponent.WriteU32(self : BufferComponentClass,number : number) :
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 4
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -983,7 +1161,9 @@ function BufferComponent.WriteU40(self : BufferComponentClass,number : number) :
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 5
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1028,7 +1208,9 @@ function BufferComponent.WriteU48(self : BufferComponentClass,number : number) :
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 6
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1075,7 +1257,9 @@ function BufferComponent.WriteU54(self : BufferComponentClass,number : number) :
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 7
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1105,7 +1289,9 @@ function BufferComponent.WriteString8(self : BufferComponentClass,value : string
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += len
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1133,7 +1319,9 @@ function BufferComponent.WriteString16(self : BufferComponentClass,value : strin
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += len
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1161,7 +1349,9 @@ function BufferComponent.WriteString32(self : BufferComponentClass,value : strin
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += len
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1189,7 +1379,9 @@ function BufferComponent.WriteString64(self : BufferComponentClass,value : strin
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += len
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1217,7 +1409,9 @@ function BufferComponent.WriteString(self : BufferComponentClass,value : string)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += #value
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1245,7 +1439,9 @@ function BufferComponent.WriteBool1(self : BufferComponentClass,value : any)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 1
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1277,7 +1473,9 @@ function BufferComponent.WriteBool8(self : BufferComponentClass,value : {any})
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 1
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1348,7 +1546,9 @@ function BufferComponent.WriteF16(self : BufferComponentClass,number : number)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 2
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1377,7 +1577,9 @@ function BufferComponent.WriteF32(self : BufferComponentClass,number : number)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 4
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1406,7 +1608,9 @@ function BufferComponent.WriteF64(self : BufferComponentClass,number : number)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += 8
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1436,7 +1640,9 @@ function BufferComponent.WriteU1(self : BufferComponentClass,number : number)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += bytes
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1449,7 +1655,9 @@ end
 function BufferComponent.WriteInstance(self : BufferComponentClass,Instance : Instance)
 	if(not Instance or not Instance:IsA("Instance")) then warn(`{Instance} is not a Instance.`) return end
 	table.insert(self.instance_buffer,Instance)
+	local oldOffset = self.instance_offset
 	self.instance_offset += 1
+	self.InstanceOffsetChanged:Fire(oldOffset,self.instance_offset)
 end
 
 --[[
@@ -1481,7 +1689,9 @@ function BufferComponent.WriteVector2(self : BufferComponentClass,vector2 : Vect
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += bytes
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1515,7 +1725,9 @@ function BufferComponent.WriteVector3(self : BufferComponentClass,vector3 : Vect
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += bytes
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1548,7 +1760,9 @@ function BufferComponent.WriteVector2Int16(self : BufferComponentClass,vector2in
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += bytes
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1583,7 +1797,9 @@ function BufferComponent.WriteVector3Int16(self : BufferComponentClass,vector3in
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += bytes
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1617,7 +1833,9 @@ function BufferComponent.WriteCFrame(self : BufferComponentClass,CF : CFrame)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += bytes
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1650,7 +1868,9 @@ function BufferComponent.WriteLossyCFrame(self : BufferComponentClass,CF : CFram
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += bytes
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1682,7 +1902,9 @@ function BufferComponent.WriteUDim(self : BufferComponentClass,udim : UDim)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += bytes
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1716,7 +1938,9 @@ function BufferComponent.WriteUDim2(self : BufferComponentClass,udim2 : UDim2)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += bytes
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -1751,7 +1975,9 @@ function BufferComponent.WriteColor3(self : BufferComponentClass,color : Color3)
 		end
 		return
 	end
+	local oldOffset = self.offset
 	self.offset += bytes
+	self.OffsetChanged:Fire(oldOffset,self.offset)
 end
 
 --[[
@@ -3496,7 +3722,56 @@ function BufferComponent.ReadNumberSequence(self : BufferComponentClass,offset :
 	return NumberSequence.new(sequence)
 end
 
--->-----------------------Cursor/Buffer-----------------------------<--
+-->-----------------------Cursor/Buffer/Signals-----------------------------<--
+
+--[[
+	Connects a callback to the OffsetChanged signal.
+	The callback is called when the offset is changed.
+	
+	@since v2.6
+]]
+function BufferComponent.OnOffsetChanged(self : BufferComponentClass,
+	callback : (oldOffset : number,newOffset : number) -> ()) : Zignal.Connection<number,number>
+	return self.OffsetChanged:Connect(callback)
+end
+
+--[[
+	Connects a callback to the InstanceOffsetChanged signal.
+	The callback is called when the instance offset is changed.
+	
+	@since v2.6
+]]
+function BufferComponent.OnInstanceOffsetChanged(self : BufferComponentClass,
+	callback : (oldOffset : number,newOffset : number) -> ()) : Zignal.Connection<number,number>
+	return self.InstanceOffsetChanged:Connect(callback)
+end
+
+--[[
+	Connects a callback to the CapacityChanged signal.
+	The callback is called when the capacity is changed.
+	
+	@Note
+	- __mult can fire CapacityChanged same for __add
+	- :allocate can fire CapacityChanged
+	
+	@since v2.6
+]]
+function BufferComponent.OnCapacityChanged(self : BufferComponentClass,
+	callback : (oldSize : number,newSize : number) -> ()) : Zignal.Connection<number,number>
+	return self.CapacityChanged:Connect(callback)
+end
+
+--[[
+	Return a compressed buffer with the target Compression Algorithm
+	
+	Note:
+	- This function use <code>EncodingService:CompressBuffer()</code>. Please see the Roblox API for more infos
+	
+	@since v2.6
+]]
+function BufferComponent.Compress(self : BufferComponentClass,algorithm : Enum.CompressionAlgorithm) : buffer
+	return EncodingService:CompressBuffer(self.buffer,algorithm)
+end
 
 --[[
 	return the actual remaining space of the current buffer
@@ -3610,6 +3885,17 @@ function BufferComponent.copy(self : BufferComponentClass) : BufferComponentClas
 end
 
 --[[
+	Disconnect all signals
+	
+	@since v2.6
+]]
+function BufferComponent.DisconnectAllSignals(self : BufferComponentClass) : ()
+	self.CapacityChanged:DisconnectAll()
+	self.OffsetChanged:DisconnectAll()
+	self.InstanceOffsetChanged:DisconnectAll()
+end
+
+--[[
 	Destroy the actual BufferComponent.
 	You can't use the BufferComponent after this.
 	
@@ -3635,8 +3921,11 @@ BufferConstructor.serialize = BufferConstructor.Serialize
 BufferConstructor.deserialize = BufferConstructor.Deserialize
 BufferConstructor.deserializeAll = BufferConstructor.DeserializeAll
 BufferConstructor.serializeAll = BufferConstructor.SerializeAll
-BufferConstructor.serializeJSON = BufferConstructor.SerializeJSON
-BufferConstructor.deserializeJSON = BufferConstructor.DeserializeJSON
+BufferConstructor.decompress = BufferConstructor.Decompress
+BufferConstructor.serializeCompressed = BufferConstructor.SerializeCompressed
+BufferConstructor.deserializeCompressed = BufferConstructor.DeserializeCompressed
+BufferConstructor.serializeAllCompressed = BufferConstructor.SerializeAllCompressed
+BufferConstructor.deserializeAllCompressed = BufferConstructor.DeserializeAllCompressed
 
 --Component alias
 BufferComponent.Allocate = BufferComponent.allocate
@@ -3835,6 +4124,12 @@ BufferComponent.readvector = BufferComponent.ReadVector
 BufferComponent.readEnum = BufferComponent.ReadEnum
 BufferComponent.readenum = BufferComponent.ReadEnum
 
+--[Signals] alias
+BufferComponent.onOffsetChanged = BufferComponent.OnOffsetChanged
+BufferComponent.onCapacityChanged = BufferComponent.OnCapacityChanged
+BufferComponent.onInstanceOffsetChanged = BufferComponent.OnInstanceOffsetChanged
+BufferComponent.disconnectAllSignals = BufferComponent.DisconnectAllSignals
+
 --[Cursor] alias
 BufferComponent.getOffset = BufferComponent.GetOffset
 BufferComponent.getoffset = BufferComponent.GetOffset
@@ -3843,6 +4138,7 @@ BufferComponent.getinstanceoffset = BufferComponent.GetInstanceOffset
 BufferComponent.getRemainingSpace = BufferComponent.GetRemainingSpace
 
 --[Buffer] alias
+BufferComponent.compress = BufferComponent.Compress
 BufferComponent.getBuffer = BufferComponent.GetBuffer
 BufferComponent.getbuffer = BufferComponent.GetBuffer
 BufferComponent.getInstanceBuffer = BufferComponent.GetInstanceBuffer
