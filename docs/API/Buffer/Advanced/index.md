@@ -64,7 +64,7 @@ Expands the underlying buffer by a numeric factor using the * operator.
 - Throws an error if the value is less than or equal to 1.
 
 ```luau
---will increase the buffer size by (current_size * 5)
+--will increase the buffer size by (current_size * 10)
 bufferComponent *= 10
 ```
 
