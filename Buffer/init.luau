@@ -1,5 +1,8 @@
 --!nonstrict
 
+
+local Component = require("../Roact/Component")
+
 --[[
     Author: evxry_ll
 
@@ -250,7 +253,7 @@ function BufferConstructor.Serialize<T>(Schema : BufferSchema,Values :  {[string
 				end
 			end
 			-- Write using the normal way (e.g., "String32" -> WriteString32)
-			component["Write"..fieldType](component,value,#value)
+			component(fieldType,value,#value)
 		else
 			-- Generic fallback for all non-string types: "U8", "I32", "F32", "CFrame", "vector", etc.
 			component(fieldType,copiedValues[field])
@@ -630,9 +633,10 @@ end
 	  
 	@since v1.9
 ]]
-function BufferComponent.__call<T>(self : BufferComponentClass,valueType : ValueType,value : T)
+function BufferComponent.__call<T>(self : BufferComponentClass,valueType : ValueType,value : T,__optionalParam : any?)
 	local boolBits = valueType:match("^Boolean(%d+)$")
 	local floatBits = valueType:match("^Float(%d+)$")
+	local stringBits = valueType:match("^String(%d+)$")
 	if(boolBits) then
 		valueType = "WriteBool" .. boolBits
 		self[valueType](self,value)
@@ -641,6 +645,8 @@ function BufferComponent.__call<T>(self : BufferComponentClass,valueType : Value
 		self[valueType](self,value)
 	elseif(valueType == "vector") then
 		self:WriteVector(value)
+	elseif(stringBits) then
+		self["Write"..valueType](self,value,__optionalParam)
 	else
 		self["Write"..valueType](self,value)
 	end
