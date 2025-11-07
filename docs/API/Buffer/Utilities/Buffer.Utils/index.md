@@ -57,7 +57,7 @@ local Values : Buffer.BufferSchemaValue = {
 	MyMessage = "Hello World"
 }
 
-print(Utils.getRequiredBytes(Schema,Values)) --> this will return 14
+print(Utils.GetRequiredBytes(Schema,Values)) --> this will return 14
 ```
 
 ----
