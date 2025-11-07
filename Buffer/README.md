@@ -4,6 +4,12 @@
 
 ## Logs
 
+Version : 2.7
+- Fixed a bug where using the `__call` with a `String[Bits]` causing issue.
+- Fixed some missing informations in the API.
+
+----
+
 ### Version : 2.6
 
 ----
