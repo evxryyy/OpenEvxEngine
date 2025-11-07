@@ -89,25 +89,6 @@ Deserializes a BufferComponentClass into a table of values according to Schema
 
 ----
 
-### SerializeJSON
-
-Same as Serialize, but accepts a JSON string.
-
-```luau linenums="1"
-local json = Buffer.SerializeJSON(Schema,HttpService:JSONEncode(Values))
-
-print(json)
-print(Buffer.DeserializeJSON(Schema,json)) --> json string
-```
-
-----
-
-### DeserializeJSON
-
-Same as Deserialize, but returns a JSON string instead of a table.
-
-----
-
 ### SerializeAll
 
 Same as Serialize but accepts a table of values and a table of schemas.
@@ -183,6 +164,183 @@ local buff = Buffer.SerializeAll({SchemaA,SchemaB},{A,B})
 
 print(Buffer.DeserializeAll({SchemaA,SchemaB},buff))
 ```
+
+----
+
+### SerializeCompress
+
+```luau linenums="1"
+local Schema : Buffer.BufferSchema = {
+	Id = "String64",
+	Name = {
+		Type = "String",
+		Length = 15,
+	},
+	Position = "Vector3",
+	Health = "U54",
+	SkinColor = "ColorSequence",
+}
+
+local Values = {
+	Id = HttpService:GenerateGUID(false):sub(1,64),
+	Name = "Name:"..(HttpService:GenerateGUID(false):sub(1,10)),
+	Position = Vector3.new(15,250.95,150),
+	Health = 1500,
+	SkinColor = ColorSequence.new({
+		ColorSequenceKeypoint.new(0,Color3.new(0,0,0)),
+		ColorSequenceKeypoint.new(1,Color3.new(1,1,1)),
+	})
+}
+
+local compressed_buffer = Buffer.SerializeCompress(Schema,Values)
+print(compressed_buffer) --> buffer IS NOT A BufferComponent
+```
+
+Serializes a set of values according to the provided schema
+and then compresses the resulting buffer.
+
+Parameters:
+
+- Schema `BufferSchema`
+- Values `table<string, T>`
+
+Returns: buffer
+
+- A compressed buffer produced by first serializing the input
+- values and then applying Zstd compression.
+
+!!! warning
+    - The returned buffer is not directly readable. Use
+        `DeserializeCompressed(...)`
+    - Do not use this for buffers smaller than 30 bytes or in the 30–50 bytes range.
+
+----
+
+### DeserializeCompress
+
+```luau linenums="1"
+local Schema : Buffer.BufferSchema = {
+	Id = "String64",
+	Name = {
+		Type = "String",
+		Length = 15,
+	},
+	Position = "Vector3",
+	Health = "U54",
+	SkinColor = "ColorSequence",
+}
+
+local Values = {
+	Id = HttpService:GenerateGUID(false):sub(1,64),
+	Name = "Name:"..(HttpService:GenerateGUID(false):sub(1,10)),
+	Position = Vector3.new(15,250.95,150),
+	Health = 1500,
+	SkinColor = ColorSequence.new({
+		ColorSequenceKeypoint.new(0,Color3.new(0,0,0)),
+		ColorSequenceKeypoint.new(1,Color3.new(1,1,1)),
+	})
+}
+
+local compressed_buffer = Buffer.SerializeCompress(Schema,Values)
+local decompressed_buffer = Buffer.DeserializeCompress(Schema,compressed_buffer)
+print(decompressed_buffer) --> correspond values
+```
+
+Decompresses a previously compressed buffer and then deserializes its content
+according to the provided schema.
+
+Parameters:
+
+- Schema `BufferSchema`
+
+The schema describing how data was originally structured and stored.
+
+- compressedBuffer `buffer`
+
+A buffer that was produced using SerializeCompressed(...)
+and compressed using Zstd.
+
+Returns: `table<string, T>`
+
+A table of deserialized values mapped by field name.
+
+!!! warning
+    - The buffer must have been created with the same schema used here.
+    - If the schema does not match the original one, deserialization will fail
+        or produce invalid data.
+    - You must use a compressed buffer using `:Compress` with the same Compression Algorithm.
+
+----
+
+### SerializeAllCompressed
+
+```luau linenums="1"
+local compressed_buffers = Buffer.SerializeAllCompressed({schema_a,schema_b},{value_a,value_b})
+print(compressed_buffers) -> {buffer}
+```
+
+Serializes and compresses multiple value sets using corresponding schemas.
+
+Parameters:
+
+- Schemas `{BufferSchema}`
+
+An array of schemas. Each schema describes how its corresponding
+value set should be serialized.
+
+- Values `{ table<string, T> }`
+
+An array where each entry is a table of named values to be serialized.
+The index of each value set must match the index of its schema.
+
+Returns: `{ buffer }`
+
+An array of compressed buffers, one for each (Schema, Values) pair.
+
+!!! info
+    - For each index i:
+        - Serialize(Schemas[i], Values[i]) → `Buffer`
+        - Compress(Buffer) → `CompressedBuffer`
+    - The resulting compressed buffer is appended to the output array.
+
+!!! note
+    - Schemas and Values must have the same length and aligned ordering.
+    - If any schema or value set is invalid, the function throws an error.
+    - This is the bulk equivalent of `SerializeCompressed(...).`
+
+----
+
+### DeserializeAllCompressed
+
+```luau linenums="1"
+local compressed_buffers = Buffer.SerializeAllCompressed({schema_a,schema_b},{value_a,value_b})
+local decompressed_buffers = Buffer.DeserializeAllCompressed({schema_a,schema_b},compressed_buffers)
+
+print(compressed_buffers) -> {buffer}
+print(decompressed_buffers) -> {value_a,value_b}
+```
+
+Decompresses and deserializes multiple compressed buffers using
+their corresponding schemas.
+
+Parameters:
+
+- Schemas `({BufferSchema})`
+
+An array of schemas. Each schema defines how its corresponding
+decompressed buffer should be interpreted and reconstructed.
+
+- Buffers `({buffer})`
+
+An array of compressed buffers produced by SerializeAllCompressed(...)
+or SerializeCompressed(...). The index of each buffer must match
+the index of its schema.
+
+Returns: `{ { [string] : T } }`
+
+An array of deserialized value tables. Each entry corresponds to
+the decompressed and deserialized result of the matching schema
+and buffer pair.
 
 ----
 
