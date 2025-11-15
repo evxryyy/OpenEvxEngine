@@ -1,5 +1,3 @@
-----
-
 ## Creating Component
 
 To create a buffer, you will need to use these methods listed below:
@@ -65,6 +63,18 @@ myBuffer:allocate(size : number)
 ## Others
 
 Other useful methods are available in the component.
+
+----
+
+### Empty Component
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local emptyBuffer = Buffer.Empty() -- or Buffer.empty()
+```
+
+This will create an empty Buffer
 
 ----
 
