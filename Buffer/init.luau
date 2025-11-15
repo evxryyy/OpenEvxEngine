@@ -138,6 +138,12 @@ export type BufferSchemaValue = {
 	[string] : any
 }
 
+--ReadAs optional param
+type optional_param = {
+	Offset : number?,
+	OptionalParam : any?,
+}
+
 --[[
     Create a new BufferComponent with a given initial size (in bytes).
     If size is nil or <= 0, defaults to 1 byte.
@@ -218,7 +224,7 @@ function BufferConstructor.Serialize<T>(Schema : BufferSchema,Values :  {[string
 	local copiedValues = table.clone(Values)
 	-- Compute exact required capacity and create the buffer
 	local size = Utils.GetRequiredBytes(copiedSchema,copiedValues)
-	local component = BufferConstructor.new(size)
+	local component = BufferConstructor.create(size)
 	for field, fieldType in copiedSchema do
 		-- Skip absent values (keeps buffer deterministic and avoids writing garbage)
 		if(copiedValues[field] == nil) then continue end
@@ -462,7 +468,7 @@ end
     @since v2.6
 ]]
 function BufferConstructor.DeserializeCompressed<T>(Schema : BufferSchema,compressedBuffer : buffer) : {[string] : T}
-	local component = BufferConstructor.From(EncodingService:DecompressBuffer(compressedBuffer,Enum.CompressionAlgorithm.Zstd))
+	local component = BufferConstructor.from(EncodingService:DecompressBuffer(compressedBuffer,Enum.CompressionAlgorithm.Zstd))
 	local deserialized = BufferConstructor.Deserialize(Schema,component)
 	return deserialized
 end
@@ -2331,6 +2337,21 @@ function BufferComponent.WriteNumberSequence(self : BufferComponentClass,numberS
 	end
 end
 
+
+--[[
+	-- Write any target type to the buffer
+	-- Use specific Write functions when possible for better performance
+	-- Uses __call internally - both methods are equivalent
+	-- @param valueType: ValueType - Type of value to write
+	-- @param value: T - Value to write
+	-- @param __optionalParam: any? - Optional parameter (e.g. string length)
+	
+	@since v2.8
+--]]
+function BufferComponent.WriteAs<T>(self : BufferComponentClass, valueType : ValueType, value : T, __optionalParam : any?)
+	self.__call(self, valueType, value, __optionalParam)
+end
+
 -->-----------------------READER-----------------------------<--
 
 --[[
@@ -3725,6 +3746,41 @@ function BufferComponent.ReadNumberSequence(self : BufferComponentClass,offset :
 	return NumberSequence.new(sequence)
 end
 
+--[[
+	-- Read any target type from the buffer
+	-- Dynamically routes to appropriate Read function based on valueType
+	-- @param valueType: ValueType - Type of value to read
+	-- @param param: optional_param - Optional parameters (Offset, OptionalParam for string length)
+	-- @return T - The read value
+
+	@since v2.8
+--]]
+function BufferComponent.ReadAs<T>(self : BufferComponentClass, valueType : ValueType, param : optional_param) : T
+	assert(type(valueType) == "string" or type(valueType) == "table", "1st argument is not valid")
+
+	if valueType == "vector" then
+		return self:ReadVector(param.Offset or self.offset)
+	end
+
+	local boolBits = valueType:match("^Boolean(%d+)$")
+	local floatBits = valueType:match("^Float(%d+)$")
+	local stringBits = valueType:match("^String(%d+)$")
+
+	if boolBits then
+		return self["ReadBool"..boolBits](self, param.Offset or self.offset)
+	elseif floatBits then
+		return self["ReadF"..floatBits](self, param.Offset or self.offset)
+	elseif stringBits or valueType == "String" then
+		local len = stringBits or param.OptionalParam
+		if not len then
+			error("Len must be define if you want to read a string.")
+		end
+		return self:ReadString(len, param.Offset or self.offset)
+	end
+
+	return self["Read"..valueType](self, param.Offset or self.offset)
+end
+
 -->-----------------------Cursor/Buffer/Signals-----------------------------<--
 
 --[[
@@ -3917,16 +3973,27 @@ end
 --Constructor alias
 BufferConstructor.new = BufferConstructor.create
 BufferConstructor.New = BufferConstructor.create
+
+BufferConstructor.Empty = function() : BufferComponentClass
+	return BufferConstructor.create(0)
+end
+BufferConstructor.empty = BufferConstructor.Empty
+
 BufferConstructor.From = BufferConstructor.from
 BufferConstructor.FromString = BufferConstructor.fromString
 BufferConstructor.Tostring = BufferConstructor.tostring
+
 BufferConstructor.serialize = BufferConstructor.Serialize
 BufferConstructor.deserialize = BufferConstructor.Deserialize
+
 BufferConstructor.deserializeAll = BufferConstructor.DeserializeAll
 BufferConstructor.serializeAll = BufferConstructor.SerializeAll
+
 BufferConstructor.decompress = BufferConstructor.Decompress
+
 BufferConstructor.serializeCompressed = BufferConstructor.SerializeCompressed
 BufferConstructor.deserializeCompressed = BufferConstructor.DeserializeCompressed
+
 BufferConstructor.serializeAllCompressed = BufferConstructor.SerializeAllCompressed
 BufferConstructor.deserializeAllCompressed = BufferConstructor.DeserializeAllCompressed
 
@@ -3936,62 +4003,83 @@ BufferComponent.Allocate = BufferComponent.allocate
 --[Writer] signed interger alias
 BufferComponent.writeI1 = BufferComponent.WriteI1
 BufferComponent.writei1 = BufferComponent.WriteI1
+
 BufferComponent.writeI8 = BufferComponent.WriteI8
 BufferComponent.writei8 = BufferComponent.WriteI8
+
 BufferComponent.writeI16 = BufferComponent.WriteI16
 BufferComponent.writei16 = BufferComponent.WriteI16
+
 BufferComponent.writeI24 = BufferComponent.WriteI24
 BufferComponent.writei24 = BufferComponent.WriteI24
+
 BufferComponent.writeI32 = BufferComponent.WriteI32
 BufferComponent.writei32 = BufferComponent.WriteI32
+
 BufferComponent.writeI40 = BufferComponent.WriteI40
 BufferComponent.writei40 = BufferComponent.WriteI40
+
 BufferComponent.writeI48 = BufferComponent.WriteI48
 BufferComponent.writei48 = BufferComponent.WriteI48
+
 BufferComponent.writeI54 = BufferComponent.WriteI54
 BufferComponent.writei54 = BufferComponent.WriteI54
 
 --[Writer] unsigned interger alias
 BufferComponent.writeU1 = BufferComponent.WriteU1
 BufferComponent.writeu1 = BufferComponent.WriteU1
+
 BufferComponent.writeU8 = BufferComponent.WriteU8
 BufferComponent.writeu8 = BufferComponent.WriteU8
+
 BufferComponent.writeU16 = BufferComponent.WriteU16
 BufferComponent.writeu16 = BufferComponent.WriteU16
+
 BufferComponent.writeU24 = BufferComponent.WriteU24
 BufferComponent.writeu24 = BufferComponent.WriteU24
+
 BufferComponent.writeU32 = BufferComponent.WriteU32
 BufferComponent.writeu32 = BufferComponent.WriteU32
+
 BufferComponent.writeU40 = BufferComponent.WriteU40
 BufferComponent.writeu40 = BufferComponent.WriteU40
+
 BufferComponent.writeU48 = BufferComponent.WriteU48
 BufferComponent.writeu48 = BufferComponent.WriteU48
+
 BufferComponent.writeU54 = BufferComponent.WriteU54
 BufferComponent.writeu54 = BufferComponent.WriteU54
 
 --[Writer] float interger alias
 BufferComponent.writeF16 = BufferComponent.WriteF16
 BufferComponent.writef16 = BufferComponent.WriteF16
+
 BufferComponent.writeF32 = BufferComponent.WriteF32
 BufferComponent.writef32 = BufferComponent.WriteF32
+
 BufferComponent.writeF64 = BufferComponent.WriteF64
 BufferComponent.writef64 = BufferComponent.WriteF64
 
 --[Writer] string alias
 BufferComponent.writeString8 = BufferComponent.WriteString8
 BufferComponent.writestring8 = BufferComponent.WriteString8
+
 BufferComponent.writeString16 = BufferComponent.WriteString16
 BufferComponent.writestring16 = BufferComponent.WriteString16
+
 BufferComponent.writeString32 = BufferComponent.WriteString32
 BufferComponent.writestring32 = BufferComponent.WriteString32
+
 BufferComponent.writeString64 = BufferComponent.WriteString64
 BufferComponent.writestring64 = BufferComponent.WriteString64
+
 BufferComponent.writeString = BufferComponent.WriteString
 BufferComponent.writestring = BufferComponent.WriteString
 
 --[Writer] boolean alias
 BufferComponent.writeBool1 = BufferComponent.WriteBool1
 BufferComponent.writebool1 = BufferComponent.WriteBool1
+
 BufferComponent.writeBool8 = BufferComponent.WriteBool8
 BufferComponent.writebool8 = BufferComponent.WriteBool8
 
@@ -4003,83 +4091,126 @@ BufferComponent.writeinstance = BufferComponent.WriteInstance
 --[Writer] roblox type alias
 BufferComponent.writeVector2 = BufferComponent.WriteVector2
 BufferComponent.writevector2 = BufferComponent.WriteVector2
+
 BufferComponent.writeVector2int16 = BufferComponent.WriteVector2Int16
 BufferComponent.writevector2int16 = BufferComponent.WriteVector2Int16
+
 BufferComponent.writeVector3 = BufferComponent.WriteVector3
 BufferComponent.writevector3 = BufferComponent.WriteVector3
+
 BufferComponent.writeVector3int16 = BufferComponent.WriteVector3Int16
 BufferComponent.writevector3int16 = BufferComponent.WriteVector3Int16
+
 BufferComponent.writeCFrame = BufferComponent.WriteCFrame
 BufferComponent.writecframe = BufferComponent.WriteCFrame
+
 BufferComponent.writeLossyCFrame = BufferComponent.WriteLossyCFrame
 BufferComponent.writelossyCFrame = BufferComponent.WriteLossyCFrame
+
 BufferComponent.writeUdim = BufferComponent.WriteUDim
 BufferComponent.writeudim = BufferComponent.WriteUDim
 BufferComponent.WriteUdim = BufferComponent.WriteUDim
+
 BufferComponent.writeUdim2 = BufferComponent.WriteUDim2
 BufferComponent.writeudim2 = BufferComponent.WriteUDim2
 BufferComponent.WriteUdim2 = BufferComponent.WriteUDim2
+
 BufferComponent.writeColor3 = BufferComponent.WriteColor3
 BufferComponent.writecolor3 = BufferComponent.WriteColor3
+
 BufferComponent.writeRect = BufferComponent.WriteRect
 BufferComponent.writerect = BufferComponent.WriteRect
+
 BufferComponent.writeRegion3 = BufferComponent.WriteRegion3
 BufferComponent.writeregion3 = BufferComponent.WriteRegion3
+
 BufferComponent.WriteRegion3Int16 = BufferComponent.WriteRegion3int16
 BufferComponent.writeRegion3int16 = BufferComponent.WriteRegion3int16
 BufferComponent.writeregion3int16 = BufferComponent.WriteRegion3int16
+
 BufferComponent.writeVector = BufferComponent.WriteVector
 BufferComponent.writevector = BufferComponent.WriteVector
+
 BufferComponent.writeEnum = BufferComponent.WriteEnum
 BufferComponent.writeenum = BufferComponent.WriteEnum
+
+BufferComponent.writeRotationCurveKey = BufferComponent.WriteRotationCurveKey
+
+BufferComponent.writeFloatCurveKey = BufferComponent.WriteFloatCurveKey
+
+BufferComponent.writeColorSequence = BufferComponent.WriteColorSequence
+
+BufferComponent.writeNumberRange = BufferComponent.WriteNumberRange
+
+BufferComponent.writeNumberSequence = BufferComponent.WriteNumberSequence
+
+--[Custom Writer] alias
+BufferComponent.writeAs = BufferComponent.WriteAs
 
 --[Reader] signed interger alias
 BufferComponent.readI1 = BufferComponent.ReadI1
 BufferComponent.readi1 = BufferComponent.ReadI1
+
 BufferComponent.readI8 = BufferComponent.ReadI8
 BufferComponent.readi8 = BufferComponent.ReadI8
+
 BufferComponent.readI16 = BufferComponent.ReadI16
 BufferComponent.readi16 = BufferComponent.ReadI16
+
 BufferComponent.readI24 = BufferComponent.ReadI24
 BufferComponent.readi24 = BufferComponent.ReadI24
+
 BufferComponent.readI32 = BufferComponent.ReadI32
 BufferComponent.readi32 = BufferComponent.ReadI32
+
 BufferComponent.readI40 = BufferComponent.ReadI40
 BufferComponent.readi40 = BufferComponent.ReadI40
+
 BufferComponent.readI48 = BufferComponent.ReadI48
 BufferComponent.readi48 = BufferComponent.ReadI48
+
 BufferComponent.readI54 = BufferComponent.ReadI54
 BufferComponent.readi54 = BufferComponent.ReadI54
 
 --[Reader] unsigned interger alias
 BufferComponent.readU1 = BufferComponent.ReadU1
 BufferComponent.readu1 = BufferComponent.ReadU1
+
 BufferComponent.readU8 = BufferComponent.ReadU8
 BufferComponent.readu8 = BufferComponent.ReadU8
+
 BufferComponent.readU16 = BufferComponent.ReadU16
 BufferComponent.readu16 = BufferComponent.ReadU16
+
 BufferComponent.readU24 = BufferComponent.ReadU24
 BufferComponent.readu24 = BufferComponent.ReadU24
+
 BufferComponent.readU32 = BufferComponent.ReadU32
 BufferComponent.readu32 = BufferComponent.ReadU32
+
 BufferComponent.readU40 = BufferComponent.ReadU40
 BufferComponent.readu40 = BufferComponent.ReadU40
+
 BufferComponent.readU48 = BufferComponent.ReadU48
 BufferComponent.readu48 = BufferComponent.ReadU48
+
 BufferComponent.readU54 = BufferComponent.ReadU54
 BufferComponent.readu54 = BufferComponent.ReadU54
 
 --[Reader] float interger alias
 BufferComponent.readF16 = BufferComponent.ReadF16
 BufferComponent.readf16 = BufferComponent.ReadF16
+
 BufferComponent.readF32 = BufferComponent.ReadF32
 BufferComponent.readf32 = BufferComponent.ReadF32
+
 BufferComponent.readF64 = BufferComponent.ReadF64
 BufferComponent.readf64 = BufferComponent.ReadF64
 
 --[Reader] boolean alias
 BufferComponent.readBool1 = BufferComponent.ReadBool1
 BufferComponent.readbool1 = BufferComponent.ReadBool1
+
 BufferComponent.readBool8 = BufferComponent.ReadBool8
 BufferComponent.readbool8 = BufferComponent.ReadBool8
 
@@ -4095,37 +4226,63 @@ BufferComponent.readinstance = BufferComponent.ReadInstance
 --[Reader] roblox type alias
 BufferComponent.readVector2 = BufferComponent.ReadVector2
 BufferComponent.readvector2 = BufferComponent.ReadVector2
+
 BufferComponent.ReadVector2Int16 = BufferComponent.ReadVector2int16
 BufferComponent.readVector2int16 = BufferComponent.ReadVector2int16
 BufferComponent.readvector2int16 = BufferComponent.ReadVector2int16
+
 BufferComponent.readVector3 = BufferComponent.ReadVector3
 BufferComponent.readvector3 = BufferComponent.ReadVector3
+
 BufferComponent.readVector3int16 = BufferComponent.ReadVector3int16
 BufferComponent.readvector3int16 = BufferComponent.ReadVector3int16
 BufferComponent.ReadVector3Int16 = BufferComponent.ReadVector3int16
+
 BufferComponent.readCFrame = BufferComponent.ReadCFrame
 BufferComponent.readcframe = BufferComponent.ReadCFrame
+
 BufferComponent.readLossyCFrame = BufferComponent.ReadLossyCFrame
 BufferComponent.readlossyCFrame = BufferComponent.ReadLossyCFrame
+
 BufferComponent.readUdim = BufferComponent.ReadUDim
 BufferComponent.readudim = BufferComponent.ReadUDim
 BufferComponent.ReadUdim = BufferComponent.ReadUDim
+
 BufferComponent.readUdim2 = BufferComponent.ReadUDim2
 BufferComponent.readudim2 = BufferComponent.ReadUDim2
 BufferComponent.ReadUdim2 = BufferComponent.ReadUDim2
+
 BufferComponent.readColor3 = BufferComponent.ReadColor3
 BufferComponent.readcolor3 = BufferComponent.ReadColor3
+
 BufferComponent.readRect = BufferComponent.ReadRect
 BufferComponent.readrect = BufferComponent.ReadRect
+
 BufferComponent.readRegion3 = BufferComponent.ReadRegion3
 BufferComponent.readregion3 = BufferComponent.ReadRegion3
+
 BufferComponent.ReadRegion3Int16 = BufferComponent.ReadRegion3int16
 BufferComponent.readRegion3int16 = BufferComponent.ReadRegion3int16
 BufferComponent.readregion3int16 = BufferComponent.ReadRegion3int16
+
 BufferComponent.readVector = BufferComponent.ReadVector
 BufferComponent.readvector = BufferComponent.ReadVector
+
 BufferComponent.readEnum = BufferComponent.ReadEnum
 BufferComponent.readenum = BufferComponent.ReadEnum
+
+BufferComponent.readRotationCurveKey = BufferComponent.ReadRotationCurveKey
+
+BufferComponent.readFloatCurveKey = BufferComponent.ReadFloatCurveKey
+
+BufferComponent.readColorSequence = BufferComponent.ReadColorSequence
+
+BufferComponent.readNumberRange = BufferComponent.ReadNumberRange
+
+BufferComponent.readNumberSequence = BufferComponent.ReadNumberSequence
+
+--[Custom Read] alias
+BufferComponent.readAs = BufferComponent.ReadAs
 
 --[Signals] alias
 BufferComponent.onOffsetChanged = BufferComponent.OnOffsetChanged
@@ -4136,24 +4293,33 @@ BufferComponent.disconnectAllSignals = BufferComponent.DisconnectAllSignals
 --[Cursor] alias
 BufferComponent.getOffset = BufferComponent.GetOffset
 BufferComponent.getoffset = BufferComponent.GetOffset
+
 BufferComponent.getInstanceOffset = BufferComponent.GetInstanceOffset
 BufferComponent.getinstanceoffset = BufferComponent.GetInstanceOffset
+
 BufferComponent.getRemainingSpace = BufferComponent.GetRemainingSpace
 
 --[Buffer] alias
 BufferComponent.compress = BufferComponent.Compress
+
 BufferComponent.getBuffer = BufferComponent.GetBuffer
 BufferComponent.getbuffer = BufferComponent.GetBuffer
+
 BufferComponent.getInstanceBuffer = BufferComponent.GetInstanceBuffer
 BufferComponent.getinstancebuffer = BufferComponent.GetInstanceBuffer
+
 BufferComponent.getBufferSize = BufferComponent.GetBufferSize
 BufferComponent.getbuffersize = BufferComponent.GetBufferSize
+
 BufferComponent.Copy = BufferComponent.copy
 
 --[Lifecycle] alias
 BufferComponent.Clear = BufferComponent.clear
+
 BufferComponent.ClearInstances = BufferComponent.clearInstances
+
 BufferComponent.ClearBuffer = BufferComponent.clearBuffer
+
 BufferComponent.Destroy = BufferComponent.Destroy
 
 return BufferConstructor
