@@ -733,3 +733,165 @@ The enum is stored as:
 
 - 2 bytes (U16): Enum type ID
 - 2 bytes (U16): Enum item value
+
+----
+
+#### Writing RotationCurveKey
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(218)
+
+local key = RotationCurveKey.new(1.5, CFrame.new(), Enum.KeyInterpolationMode.Linear)
+myBuffer:WriteRotationCurveKey(key) -- Writes 104 bytes
+	
+local cubicKey = RotationCurveKey.new(2.0, CFrame.Angles(0, math.pi, 0), Enum.KeyInterpolationMode.Cubic)
+myBuffer:WriteRotationCurveKey(cubicKey) -- Writes 112 bytes with tangents
+```
+
+Writes a RotationCurveKey to the buffer with variable size based on interpolation mode.
+
+Total size:
+
+- 104 bytes for Linear/Constant interpolation
+- 112 bytes for Cubic interpolation (includes tangent data)
+
+!!! info
+    - Cubic interpolation requires additional storage for smooth curve tangents
+    - The tangent values control the curve's shape between keyframes
+
+----
+
+#### Writing FloatCurveKey
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(40)
+
+local key = FloatCurveKey.new(0.5, 1.25, Enum.KeyInterpolationMode.Linear)
+myBuffer:WriteFloatCurveKey(key) -- Writes 16 bytes
+	
+local cubicKey = FloatCurveKey.new(1.0, 2.5, Enum.KeyInterpolationMode.Cubic)
+cubicKey.LeftTangent = 0.5
+cubicKey.RightTangent = 0.5
+myBuffer:WriteFloatCurveKey(cubicKey) -- Writes 24 bytes with tangents
+```
+
+Write a FloatCurveKey to the buffer with variable size based on interpolation mode.
+
+Total size:
+
+- 16 bytes for Linear/Constant interpolation
+- 24 bytes for Cubic interpolation (includes tangent data)
+
+!!! info
+    - Value is stored as F64 for maximum precision in animation curves
+    - Tangents control the curve's acceleration/deceleration for smooth transitions
+
+----
+
+#### Writing ColorSequence
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(49)
+
+local gradient = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.new(1, 0, 0)),    -- Red at start
+	ColorSequenceKeypoint.new(0.5, Color3.new(0, 1, 0)),  -- Green at middle
+	ColorSequenceKeypoint.new(1, Color3.new(0, 0, 1))     -- Blue at end
+})
+myBuffer:WriteColorSequence(gradient) -- Writes 49 bytes (1 + 3*16)
+```
+
+Writes a ColorSequence to the buffer with all its keypoints.
+
+Total size: 1 + (16 * keypoint_count) bytes
+
+!!! info
+    - Color values are converted from Roblox's 0-1 range to 0-255 for storage
+    - Keypoints are written in their original order
+
+!!! warning
+    - Maximum 255 keypoints due to U8 count storage.
+
+----
+
+#### Writing NumberRange
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(8)
+
+Buffer:WriteNumberRange(NumberRange.new(0, 10))
+```
+
+Writes a NumberRange to the buffer using a compact 8-byte layout.
+
+!!! info
+    - Values are written as provided; no clamping or reordering is performed
+    - Uses F32 for both fields to keep the footprint small and consistent
+
+----
+
+#### Writing NumberSequence
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(37)
+
+local seq = NumberSequence.new({
+	NumberSequenceKeypoint.new(0.0, 0.0),
+	NumberSequenceKeypoint.new(0.5, 1.0, 0.25),
+	NumberSequenceKeypoint.new(1.0, 0.0),
+})
+
+myBuffer:WriteNumberSequence(seq)
+```
+
+Writes a NumberSequence to the buffer with all its keypoints.
+
+Total size: 1 + (12 * keypoint_count) bytes
+
+!!! info
+    - Envelope is written for every keypoint (0 if not used)
+    - Keypoints are written in their original order
+
+!!! warning
+    - Maximum of 255 keypoints due to U8 count storage.
+
+----
+
+### Custom Writing
+
+----
+
+#### WriteAs
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(14)
+
+--[[
+    For all string type please define the length at the end
+    or this will not work
+]]
+myBuffer:WriteAs("String","Hello World !!",14)
+```
+
+Write any target type to the buffer
+
+!!! warning
+    - Use specific Write functions when possible for better performance
+
+Params :
+
+- @param valueType: ValueType - Type of value to write
+- @param value: T - Value to write
+- @param __optionalParam: any? - Optional parameter (e.g. string length)
