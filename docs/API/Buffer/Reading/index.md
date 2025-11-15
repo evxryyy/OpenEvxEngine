@@ -870,3 +870,130 @@ Returns:
 - nil
 
 The deserialized EnumItem, or nil if read fails
+
+----
+
+### Reading RotationCurveKey
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(1024) -- ~1kb
+
+local key = myBuffer:ReadRotationCurveKey() -- Read from current position
+local key2 = myBuffer:ReadRotationCurveKey(256) -- Read from specific offset
+	
+if key.Interpolation == Enum.KeyInterpolationMode.Cubic then
+	print(key.LeftTangent, key.RightTangent) -- Will have tangent values
+end
+```
+
+Reads a RotationCurveKey from the buffer that was previously written with `WriteRotationCurveKey`.
+
+!!! info
+    - Automatically handles variable size based on interpolation mode
+    - Cubic keys will have their tangent properties set after creation
+
+----
+
+### Reading FloatCurveKey
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(1024) -- ~1kb
+
+local key = myBuffer:ReadFloatCurveKey() -- Read from current position
+local key2 = myBuffer:ReadFloatCurveKey(128) -- Read from specific offset
+	
+print(key.Time, key.Value) -- Basic properties always present
+if key.Interpolation == Enum.KeyInterpolationMode.Cubic then
+	print(key.LeftTangent, key.RightTangent) -- Tangent values for Cubic
+end
+```
+
+Reads a FloatCurveKey from the buffer that was previously written with `WriteFloatCurveKey`.
+
+!!! info
+    - Value is read as F64 to preserve animation curve precision
+    - Automatically detects and handles Cubic interpolation tangents
+
+----
+
+### Reading ColorSequence
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(1024) -- ~1kb
+
+local seq = myBuffer:ReadColorSequence()         -- from current offset
+local seq2 = myBuffer:ReadColorSequence(256)    -- from a specific offset
+```
+
+Reads a ColorSequence from the buffer that was previously written with `WriteColorSequence`.
+
+!!! warning
+    - Maximum 255 keypoints due to U8 count storage.
+
+----
+
+### Reading NumberRange
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(1024) -- ~1kb
+
+local range = Buffer:ReadNumberRange()       -- from current offset
+local range2 = Buffer:ReadNumberRange(256)   -- from a specific offset
+```
+
+Reads a NumberRange from the buffer that was previously written with `WriteNumberRange`.
+
+----
+
+### Reading NumberSequence
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(1024) -- ~1kb
+
+local seq = Buffer:ReadNumberSequence()        -- from current offset
+local seq2 = Buffer:ReadNumberSequence(256)   -- from a specific offset
+```
+
+Reads a NumberSequence from the buffer that was previously written with `WriteNumberSequence`.
+
+!!! warning
+    - Maximum of 255 keypoints due to U8 count storage.
+
+----
+
+## Custom Reading
+
+----
+
+### ReadAs
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(1024) -- ~1kb
+
+--[[
+  For all string type the `OptionalParam` must be the length
+  otherwise it will use the a defined length for [String8 = 8 len, etc..] or it will thrown an error
+]]
+local name = myBuffer:ReadAs("String",{Offset = 0,OptionalParam = 15})
+```
+
+Read any target type from the buffer
+
+Dynamically routes to appropriate Read function based on valueType
+
+Params : 
+
+- @param valueType: ValueType - Type of value to read
+- @param param: optional_param - Optional parameters (Offset, OptionalParam for string length)
