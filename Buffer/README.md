@@ -4,6 +4,14 @@
 
 ## Logs
 
+Version : 2.8
+- Added `WriteAs` and `ReadAs` to read and write target types (See API).
+- Added alias for `RotationCurveKey`,`FloatCurveKey`,`ColorSequence`,`NumberRange`,`NumberSequence` for both reading and writng (See API).
+- Added `Buffer.Empty()` this will create an empty Buffer with size `0`. (See API).
+- Fixed missings for read and write functions in the api also reviewed some old informations that was no longer correct.
+
+----
+
 Version : 2.7
 - Fixed a bug where using the `__call` with a `String[Bits]` causing issue.
 - Fixed some missing informations in the API.
