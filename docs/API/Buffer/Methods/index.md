@@ -372,7 +372,6 @@ Alias for the constructor and the component
 
 ```luau linenums="1"
 --Constructor alias
---Constructor alias
 BufferConstructor.new = BufferConstructor.create
 BufferConstructor.New = BufferConstructor.create
 
@@ -724,3 +723,4 @@ BufferComponent.ClearBuffer = BufferComponent.clearBuffer
 
 BufferComponent.Destroy = BufferComponent.Destroy
 ```
+
