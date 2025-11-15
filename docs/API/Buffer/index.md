@@ -14,7 +14,7 @@ as well as some utilities like Buffer.Enum, Buffer.Constants, and Buffer.Utils.
 
 ## Version
 
-### [Buffer V2.7](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
+### [Buffer V2.8](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
 
 ----
 
@@ -157,6 +157,14 @@ Write Methods List :
     - [:octicons-arrow-right-24: Write Region3Int16](Writing/index.md#writing-region3int16)
     - [:octicons-arrow-right-24: Write vector (luau library)](Writing/index.md#writing-vector-luau-library)
     - [:octicons-arrow-right-24: Write Enum](Writing/index.md#writing-enum)
+    - [:octicons-arrow-right-24: Write RotationCurveKey](Writing/index.md#writing-rotationcurvekey)
+    - [:octicons-arrow-right-24: Write FloatCurveKey](Writing/index.md#writing-floatcurvekey)
+    - [:octicons-arrow-right-24: Write ColorSequence](Writing/index.md#writing-colorsequence)
+    - [:octicons-arrow-right-24: Write NumberRange](Writing/index.md#writing-numberrange)
+    - [:octicons-arrow-right-24: Write NumberSequence](Writing/index.md#writing-numbersequence)
+- [:octicons-arrow-right-24: Write Custom](Writing/index.md#custom-writing)
+    - [:octicons-arrow-right-24: WriteAs](Writing/index.md#writeas)
+  
 
 ----
 
@@ -212,5 +220,13 @@ Read Methods List :
     - [:octicons-arrow-right-24: Read Region3Int16](Reading/index.md#reading-region3int16)
     - [:octicons-arrow-right-24: Read vector (luau library)](Reading/index.md#reading-vector-luau-library)
     - [:octicons-arrow-right-24: Read Enum](Reading/index.md#reading-enum)
+    - [:octicons-arrow-right-24: Read RotationCurveKey](Reading/index.md#reading-rotationcurvekey)
+    - [:octicons-arrow-right-24: Read FloatCurveKey](Reading/index.md#reading-floatcurvekey)
+    - [:octicons-arrow-right-24: Read ColorSequence](Reading/index.md#reading-colorsequence)
+    - [:octicons-arrow-right-24: Read NumberRange](Reading/index.md#reading-numberrange)
+    - [:octicons-arrow-right-24: Read NumberSequence](Reading/index.md#reading-numbersequence)
+- [:octicons-arrow-right-24: Read Custom](Reading/index.md#custom-reading)
+    - [:octicons-arrow-right-24: ReadAs](Reading/index.md#readas)
+
 
 ----
