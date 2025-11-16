@@ -1,4 +1,4 @@
-﻿## Getting Started
+## Getting Started
 
 On this page you will learn how to properly handle a RemoteFunction from both the client and server side.
 
@@ -142,7 +142,7 @@ Destroys the RemoteFunction wrapper and cleans up all resources
 
 ## Alias
 
-```luau lineums="1"
+```luau linenums="1"
 -- Constructor method aliases
 Constructor.find = Constructor.new
 Constructor.get = Constructor.new
