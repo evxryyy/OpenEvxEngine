@@ -1,6 +1,6 @@
 ## Task
 
-### This module will no longer receive update i recommend to use [Collect]()
+### This module will no longer receive update i recommend to use [Collect](https://github.com/evxryyy/OpenEvxEngine/tree/main/Collect)
 
 ## What next
 
