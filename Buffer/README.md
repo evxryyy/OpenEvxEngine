@@ -4,6 +4,11 @@
 
 ## Logs
 
+Version : 2.8.1
+- Fix the spelling errors in the `Debug` module.
+
+----
+
 Version : 2.8
 - Added `WriteAs` and `ReadAs` to read and write target types (See API).
 - Added alias for `RotationCurveKey`,`FloatCurveKey`,`ColorSequence`,`NumberRange`,`NumberSequence` for both reading and writng (See API).
