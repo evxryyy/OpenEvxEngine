@@ -62,3 +62,25 @@ Care about predictable performance and robust event handling.
 Are building systems like networking layers, state machines, task managers, or custom pipelines.
 
 If you are looking for a ready-to-use framework where you just drop in code and everything works automatically, this library is not for you. If you want a solid foundation to build your own framework on top of, this library is for you.
+
+### Support me
+
+<a href="https://paypal.me/Dummypol?country.x=FR&locale.x=fr_FR" target="_blank" style="text-decoration: none;">
+  <div style="
+    background-color:#003087;
+    color:white;
+    padding:12px 20px;
+    border-radius:8px;
+    display:inline-flex;
+    align-items:center;
+    font-family:Arial, sans-serif;
+    font-weight:bold;
+    font-size:16px;
+    transition: background-color 0.3s;
+  " onmouseover="this.style.backgroundColor='#005ea6'" onmouseout="this.style.backgroundColor='#003087'">
+    <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_111x69.jpg" 
+         alt="PayPal" 
+         style="height:64px; margin-right:10px;">
+  </div>
+</a>
+
