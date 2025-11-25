@@ -1,4 +1,4 @@
-﻿## Getting Started
+## Getting Started
 
 All information for creating RemoteEvents with `Socket` will be here.
 
@@ -91,8 +91,21 @@ Creates a new RemoteEvent and wraps it in a SocketRemote component
 
 Fires data to a specific client through the RemoteEvent
 
-- @param Player: Target player to send data to
-- @param ValueSchema: Data to send (must match Schema structure)
+- @param Player : Target player to send data to
+- @param values : Data to send (must match Schema structure)
+
+!!! warning
+    Please see the examples for firing data to the server/client.
+
+----
+
+#### Remote.FireAll()
+
+`Remote.FireAll(...)`
+
+Fires data to all clients through the RemoteEvent
+
+@param values : Data to send to all clients (must match Schema structure)
 
 !!! warning
     Please see the examples for firing data to the server/client.
@@ -155,7 +168,7 @@ Finds an existing RemoteEvent created by the server and wraps it
 
 Fires data to the server through the RemoteEvent
 
-- @param ValueSchema: Data to send (must match Schema structure)
+- @param values : Data to send (must match Schema structure)
 
 !!! warning
     Please see the examples for firing data to the server/client.
@@ -207,6 +220,7 @@ SocketRemoteConstructor.new = SocketRemoteConstructor.Create
 SocketRemoteConstructor.New = SocketRemoteConstructor.Create
 
 SocketRemote.fireClient = SocketRemote.FireClient
+SocketRemote.fireAll = SocketRemote.FireAll
 SocketRemote.connect = SocketRemote.Connect
 SocketRemote.Disconnects = SocketRemote.ClearConnections
 SocketRemote.disconnects = SocketRemote.ClearConnections
