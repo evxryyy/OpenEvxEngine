@@ -3,7 +3,9 @@
 -- Note: UnreliableRemoteEvents may drop packets and don't guarantee delivery order
 
 local RunService = game:GetService("RunService")
+
 local Buffer = require('../Buffer')
+local Utilities = require("../Utilities")
 
 -- Parent folder where UnreliableRemoteEvents are stored by the server
 local UnreliableRemotes = script.Parent.Parent:WaitForChild("SocketServer"):WaitForChild("SocketUnreliableRemote")
@@ -36,12 +38,16 @@ export type SocketUnreliableRemoteComponent<T...> = typeof(setmetatable({} :: {
 
 -- Callback type for handling server events
 -- @param ValueSchema: Deserialized data from server
-type Callback = (ValueSchema : Buffer.BufferSchemaValue) -> ()
+type Callback = (values : Buffer.BufferSchemaValue) -> ()
 
--- Finds an existing UnreliableRemoteEvent created by the server and wraps it
--- @param SocketName: Name of the UnreliableRemoteEvent to find
--- @param Schema: Buffer schema for data validation/serialization
--- @return: SocketUnreliableRemote component wrapping the UnreliableRemoteEvent
+--[[
+ 	Finds an existing UnreliableRemoteEvent created by the server and wraps it
+ 	
+ 	<strong>@param SocketName</strong> : Name of the UnreliableRemoteEvent to find
+ 	<strong>@param Schema</strong> : Buffer schema for data validation/serialization
+ 	
+ 	<strong>@return</strong> : SocketUnreliableRemote component wrapping the UnreliableRemoteEvent
+]]
 function SocketUnreliableRemoteConstructor.Find<T...>(SocketName : string,Schema : Buffer.BufferSchema) : SocketUnreliableRemoteComponent<T...>
 	-- Validate input parameters
 	assert(
@@ -68,14 +74,23 @@ function SocketUnreliableRemoteConstructor.Find<T...>(SocketName : string,Schema
 	return self
 end
 
--- Fires data to the server through the UnreliableRemoteEvent
--- Note: Delivery is not guaranteed and packets may be dropped
--- @param ValueSchema: Data to send (must match Schema structure)
-function SocketUnreliableRemote.Fire<T...>(self : SocketUnreliableRemoteComponent<T...>,ValueSchema : Buffer.BufferSchemaValue)
+--[[
+ 	Fires data to the server through the UnreliableRemoteEvent
+
+ 	<strong>Note</strong> : Delivery is not guaranteed and packets may be dropped
+
+ 	<strong>@param ValueSchema</strong> : Data to send (must match Schema structure)
+]]
+function SocketUnreliableRemote.Fire<T...>(self : SocketUnreliableRemoteComponent<T...>,values : Buffer.BufferSchemaValue)
 	-- Default to empty table if no data provided
-	if(type(ValueSchema) ~= "table") then ValueSchema = {} end
+	if(type(values) ~= "table") then values = {} end
+	--If 0 zero data is intended then we fire nil instead of the serialized buffer
+	if(Utilities.GetTableCount(values) == 0 and Utilities.GetTableCount(self._Schema) == 0) then
+		self._Remote:FireServer()
+		return
+	end 
 	-- Serialize data into buffer format
-	local SerializedBuffer = Buffer.Serialize(self._Schema,ValueSchema)
+	local SerializedBuffer = Buffer.Serialize(self._Schema,values)
 	-- Send buffer to server (unreliable - may not arrive)
 	self._Remote:FireServer(SerializedBuffer.buffer)
 	-- Clean up buffer to free memory
@@ -83,14 +98,25 @@ function SocketUnreliableRemote.Fire<T...>(self : SocketUnreliableRemoteComponen
 	SerializedBuffer = nil	
 end
 
--- Connects a callback to handle events from the server
--- Note: Events may arrive out of order or be dropped entirely
--- @param callback: Function to process server events
+--[[
+ 	Connects a callback to handle events from the server
+ 
+ 	<strong>Note</strong> : Events may arrive out of order or be dropped entirely
+
+ 	<strong>@param callback</strong> : Function to process server events
+]]
 function SocketUnreliableRemote.Connect<T...>(self : SocketUnreliableRemoteComponent<T...>,callback : Callback)
 	-- Validate callback is a function
 	assert(type(callback) == "function","A function is required.")
 	-- Connect to OnClientEvent and store connection for cleanup
 	table.insert(self._Connections,	self._Remote.OnClientEvent:Connect(function(stack_buffer : buffer)
+		-- Check if the buffer is nil and if schema is empty then fire callback with nil values
+		if(not stack_buffer and Utilities.GetTableCount(self._Schema) == 0) then
+			local thread = coroutine.create(callback)
+			local success,err = coroutine.resume(thread)
+			if(not success and err) then error(err,2) end
+			return
+		end
 		-- Deserialize server's buffer data
 		local bufferComponent = Buffer.from(stack_buffer)
 		local values = Buffer.Deserialize(self._Schema,bufferComponent)
