@@ -2,7 +2,10 @@
 -- Creates and manages RemoteFunctions with type-safe buffer serialization
 
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
 local Buffer = require('../Buffer')
+local Utilities = require("../Utilities")
 
 -- Parent folder where RemoteFunctions are created and stored
 local Functions = script
@@ -30,7 +33,7 @@ SocketFunction.__index = SocketFunction
 -- Type definition for server-side SocketFunction component
 export type SocketFunctionComponent<T...> = typeof(setmetatable({} :: {
 	_remote : RemoteFunction,             -- The created RemoteFunction instance
-	_InvokeSchema : Buffer.BufferSchema,  -- Schema for validating client data
+	_Schema : Buffer.BufferSchema,  -- Schema for validating client data
 	_timeout : number,                    -- Timeout for InvokeClient operations
 },SocketFunction))
 
@@ -38,16 +41,21 @@ export type SocketFunctionComponent<T...> = typeof(setmetatable({} :: {
 -- @param Player: Player who invoked the function
 -- @param InvokeValueSchema: Deserialized data from client
 -- @return: Response schema and value to send back to client
-export type Callback = (Player : Player,InvokeValueSchema : Buffer.BufferSchemaValue) -> (Buffer.BufferSchema,Buffer.BufferSchemaValue)
+export type Callback = (Player : Player,values : Buffer.BufferSchemaValue)
+						-> (Buffer.BufferSchema,Buffer.BufferSchemaValue)
 
--- Creates a new RemoteFunction and wraps it in a SocketFunction component
--- @param SocketName: Unique name for the RemoteFunction
--- @param InvokeSchema: Buffer schema for validating/deserializing client data
--- @return: New SocketFunction component
-function SocketFunctionConstructor.Create<T...>(SocketName : string,InvokeSchema : Buffer.BufferSchema) : SocketFunctionComponent<T...>
+--[[
+ 	Creates a new RemoteFunction and wraps it in a SocketFunction component
+ 	
+ 	<strong>@param SocketName</strong> : Unique name for the RemoteFunction
+ 	<strong>@param InvokeSchema</strong> : Buffer schema for validating/deserializing client data
+ 	
+ 	<strong>@return</strong> : New SocketFunction component
+]]
+function SocketFunctionConstructor.Create<T...>(SocketName : string,Schema : Buffer.BufferSchema) : SocketFunctionComponent<T...>
 	assert(
 		typeof(SocketName) == "string" and
-			typeof(InvokeSchema) == "table"
+			typeof(Schema) == "table"
 		,"SocketName and Schema argument must be \"string\" , \"table\"")
 	assert(RunService:IsServer(),("%s is only for Server-Side"):format("SocketServer.SocketFunction"))
 	-- Return existing component if already created
@@ -57,7 +65,7 @@ function SocketFunctionConstructor.Create<T...>(SocketName : string,InvokeSchema
 	-- Create new component with RemoteFunction
 	local self = setmetatable({
 		_remote = CreateFunction(SocketName);
-		_InvokeSchema = InvokeSchema;
+		_Schema = Schema;
 		_timeout = 10;  -- Default 10 second timeout
 	},SocketFunction)
 	-- Cache the component
@@ -65,47 +73,64 @@ function SocketFunctionConstructor.Create<T...>(SocketName : string,InvokeSchema
 	return self
 end
 
--- Sets up handler for client invokes (OnServerInvoke)
--- @param callback: Function to process client requests
+--[[
+ 	Sets up handler for client invokes (OnServerInvoke)
+ 	
+ 	<strong>@param callback</strong> : Function to process client requests
+]]
 function SocketFunction.InsertHandle<T...>(self : SocketFunctionComponent<T...>,callback : Callback)
 	-- Validate callback is a function
 	assert(type(callback) == "function","A function is required.")
 	self._remote.OnServerInvoke = function(player : Player,stack_buffer : buffer)
+		-- Check if the buffer is nil and if schema is empty then fire callback with nil values
+		if(not stack_buffer and Utilities.GetTableCount(self._Schema) == 0) then
+			local schema,value = callback(player)
+			return nil,nil -- both nil values
+		end
+		-- Check is the buffer is nil
+		if(not stack_buffer) then return nil end
 		-- Deserialize client's buffer data using schema
 		local bufferComponent = Buffer.from(stack_buffer)
-		local values = Buffer.Deserialize(self._InvokeSchema,bufferComponent)
+		local values = Buffer.Deserialize(self._Schema,bufferComponent)
 		-- Call user's handler with deserialized data
 		local schema,value = callback(player,values)
 		-- Return nil if handler doesn't provide response
-		if(not schema or not value) then return nil end
+		if(schema == nil or value == nil) then return nil end
 		-- Serialize and return response to client
 		return Buffer.Serialize(schema,value).buffer
 	end
 end
 
+-- Removes the current handler (sets OnServerInvoke to nil)
 function SocketFunction.RemoveHandler<T...>(self : SocketFunctionComponent<T...>)
 	self._remote.OnServerInvoke = nil :: any
 end
 
--- Invokes a specific client with buffer-serialized data
--- @param Player: Target player to invoke
--- @param InvokeValueSchema: Data to send (must match InvokeSchema)
--- @param ReturnSchema: Schema for deserializing client's response
--- @return: Deserialized response from client, or nil on timeout/error
-function SocketFunction.FireClient<T...>(self : SocketFunctionComponent<T...>,Player : Player,InvokeValueSchema : Buffer.BufferSchemaValue,ReturnSchema : Buffer.BufferSchema) : Buffer.BufferSchemaValue?
+--[[
+ 	<strong>Yieldable</strong> Invokes a specific client with buffer-serialized data
+ 	
+ 	<strong>@param Player</strong> : Target player to invoke
+ 	<strong>@param InvokeValueSchema</strong> : Data to send (must match InvokeSchema)
+ 	<strong>@param ReturnSchema</strong> : Schema for deserializing client's response
+ 	
+ 	<strong>@return</strong> : Deserialized response from client, or nil on timeout/error/empty schema
+]]
+function SocketFunction.Invoke<T...>(self : SocketFunctionComponent<T...>,Player : Player,values : Buffer.BufferSchemaValue,
+	ReturnSchema : Buffer.BufferSchema) : Buffer.BufferSchemaValue?
 	-- Serialize data into buffer
 	if(not Player) then
 		warn("Player parameter is nil. Invoke operation will not be sent.")
 		return
 	end
-	local SerializedBuffer = Buffer.Serialize(self._InvokeSchema,InvokeValueSchema)
+	local SerializedBuffer = (Utilities.GetTableCount(self._Schema) > 0) 
+		and Buffer.Serialize(self._Schema,values) or nil
 	local result = nil
 	local success,finished = false,false
 	local currentTime = time()
 	-- Invoke client asynchronously to enable timeout
 	task.spawn(function()
 		success, result = pcall(function()
-			return self._remote:InvokeClient(Player,SerializedBuffer.buffer) :: buffer
+			return self._remote:InvokeClient(Player,(SerializedBuffer ~= nil) and SerializedBuffer.buffer or nil) :: buffer
 		end)
 		finished = true
 	end)
@@ -121,12 +146,35 @@ function SocketFunction.FireClient<T...>(self : SocketFunctionComponent<T...>,Pl
 	end
 	-- No result from client
 	if(not result) then return nil end
+	-- Handle error or empty response case
+	if(Utilities.GetTableCount(ReturnSchema) == 0) then return nil end
 	-- Deserialize client's buffer response
 	return Buffer.Deserialize(ReturnSchema,Buffer.from(result))
 end
 
--- Sets timeout duration for InvokeClient operations
--- @param value: Timeout in seconds (converted to positive)
+--[[
+ 	<strong>Yield</strong> Invokes all clients with buffer-serialized data
+ 	
+ 	<strong>@param</strong> InvokeValueSchema : Data to send to all clients
+ 	<strong>@param</strong> ReturnSchema : Schema for deserializing client responses
+ 	
+ 	<strong>@return</strong>: Table of deserialized responses from clients, or nil on timeout
+]]
+function SocketFunction.InvokeAll<T...>(self : SocketFunctionComponent<T...>,values : Buffer.BufferSchemaValue,
+	ReturnSchema : Buffer.BufferSchema) : {Buffer.BufferSchemaValue?}
+	local responses = {}
+	for _, player in pairs(Players:GetPlayers()) do
+		local res = self:Invoke(player,values,ReturnSchema)
+		if res then table.insert(responses,res) end
+	end
+	return responses
+end
+
+--[[
+ 	Sets timeout duration for InvokeClient operations
+ 	
+ 	<strong>@param value</strong> : Timeout in seconds (converted to positive)
+]]
 function SocketFunction.SetTimeout<T...>(self : SocketFunctionComponent<T...>,value : number)
 	assert(type(value) == "number","A number is required")
 	self._timeout = math.abs(value)
@@ -156,9 +204,10 @@ SocketFunctionConstructor.create = SocketFunctionConstructor.Create
 SocketFunctionConstructor.new = SocketFunctionConstructor.Create
 SocketFunctionConstructor.New = SocketFunctionConstructor.Create
 
-SocketFunction.fireClient = SocketFunction.FireClient
-SocketFunction.InvokeClient = SocketFunction.FireClient
-SocketFunction.invokeClient = SocketFunction.FireClient
+SocketFunction.fireClient = SocketFunction.Invoke
+SocketFunction.InvokeClient = SocketFunction.Invoke
+SocketFunction.invokeClient = SocketFunction.Invoke
+SocketFunction.invokeAll = SocketFunction.InvokeAll
 SocketFunction.insert = SocketFunction.InsertHandle
 SocketFunction.Insert = SocketFunction.InsertHandle
 SocketFunction.setTimeout = SocketFunction.SetTimeout
