@@ -1,4 +1,4 @@
-﻿## Getting Started
+## Getting Started
 
 To properly handle remote functions with `Socket`, everything will be explained here.
 
@@ -98,6 +98,7 @@ Creates a new RemoteFunction and wraps it in a SocketFunction component
 Sets up handler for client invokes (OnServerInvoke)
 
 - @param callback: Function to process client requests
+- @return: Response schema and value to send back to client
 
 ----
 
@@ -109,14 +110,14 @@ Remove the current listener of OnServerInvoke
 
 ----
 
-#### RemoteFunction.FireClient()
+#### RemoteFunction.Invoke()
 
-`RemoteFunction.FireClient`
+`RemoteFunction.Invoke(Player,...)`
 
 ```luau linenums="1"
 --@Server
 
-local age = Function:FireClient(game.Players:GetPlayers()[1],{
+local age = Function:Invoke(game.Players:GetPlayers()[1],{
 	Message = "Anything" -- 8 characters 'String8' , see the examples 
 },Schema)
 
@@ -136,12 +137,28 @@ Remote:InsertHandle(function(invokeValueSchema)
 end)
 ```
 
-Invokes a specific client with buffer-serialized data
+<b>Yield</b> Invokes a specific client with buffer-serialized data
 
 - @param Player: Target player to invoke
-- @param InvokeValueSchema: Data to send (must match InvokeSchema)
+- @param values: Data to send (must match InvokeSchema)
 - @param ReturnSchema: Schema for deserializing client's response
 - @return: Deserialized response from client, or nil on timeout/error
+
+----
+
+#### RemoteFunction.InvokeAll()
+
+`RemoteFunction.InvokeAll(...)`
+
+<b>Yield</b> Invokes all clients with buffer-serialized data
+
+@param values : Data to send to all clients
+@param ReturnSchema : Schema for deserializing client responses
+ 	
+@return : Table of deserialized responses from clients, or nil on timeout
+
+!!! info
+    See exemple above to invoke data with RemoteFunction
 
 ----
 
@@ -181,11 +198,10 @@ Finds an existing RemoteFunction created by the server and wraps it
 
 ----
 
-#### RemoteFunction.Fire()
+#### RemoteFunction.InvokeServer()
 
 !!! Warning
     See the [Examples](#examples) to see the code example or just go to [FireClient](#remotefunctionfireclient)
-
 
 Invokes the server's OnServerInvoke handler with buffer-serialized data
 
@@ -203,6 +219,7 @@ Sets up handler for when server invokes this client
 
 - Only used if server calls InvokeClient on this RemoteFunction
 - @param callback: Function to handle server invokes
+- @return: Response schema and value to send back to server
 
 ----
 
@@ -233,3 +250,46 @@ Configures timeout for InvokeServer operations
 Cleans up the component (does not destroy the RemoteFunction)
 
 ----
+
+## Server alias
+
+```luau linenums="1"
+-- Aliases for different naming preferences
+SocketFunctionConstructor.create = SocketFunctionConstructor.Create
+SocketFunctionConstructor.new = SocketFunctionConstructor.Create
+SocketFunctionConstructor.New = SocketFunctionConstructor.Create
+
+SocketFunction.fireClient = SocketFunction.Invoke
+SocketFunction.InvokeClient = SocketFunction.Invoke
+SocketFunction.invokeClient = SocketFunction.Invoke
+SocketFunction.invokeAll = SocketFunction.InvokeAll
+SocketFunction.insert = SocketFunction.InsertHandle
+SocketFunction.Insert = SocketFunction.InsertHandle
+SocketFunction.setTimeout = SocketFunction.SetTimeout
+SocketFunction.Clean = SocketFunction.Destroy
+SocketFunction.clean = SocketFunction.Destroy
+SocketFunction.destroy = SocketFunction.Destroy
+SocketFunction.removeHandler = SocketFunction.RemoveHandler
+```
+
+----
+
+## Client alias
+
+```luau linenums="1"
+-- Aliases for different naming preferences
+SocketFunctionConstructor.find = SocketFunctionConstructor.Find
+SocketFunctionConstructor.get = SocketFunctionConstructor.Find
+SocketFunctionConstructor.Get = SocketFunctionConstructor.Find
+
+SocketFunction.fire = SocketFunction.Fire
+SocketFunction.Invoke = SocketFunction.Fire
+SocketFunction.invoke = SocketFunction.Fire
+SocketFunction.insert = SocketFunction.InsertHandle
+SocketFunction.Insert = SocketFunction.InsertHandle
+SocketFunction.setTimeout = SocketFunction.SetTimeout
+SocketFunction.Clean = SocketFunction.Destroy
+SocketFunction.clean = SocketFunction.Destroy
+SocketFunction.destroy = SocketFunction.Destroy
+SocketFunction.removeHandler = SocketFunction.RemoveHandler
+```
