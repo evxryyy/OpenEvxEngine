@@ -3,6 +3,7 @@
 
 local RunService = game:GetService("RunService")
 local Buffer = require('../Buffer')
+local Utilities = require("../Utilities")
 
 -- Parent folder where RemoteEvents are created and stored
 local Remotes = script
@@ -39,12 +40,16 @@ export type SocketRemoteComponent<T...> = typeof(setmetatable({} :: {
 -- Callback type for handling client events
 -- @param Player: Player who fired the event
 -- @param ValueSchema: Deserialized data from client
-type Callback = (Player : Player,ValueSchema : Buffer.BufferSchemaValue) -> ()
+type Callback = (Player : Player,values : Buffer.BufferSchemaValue) -> ()
 
--- Creates a new RemoteEvent and wraps it in a SocketRemote component
--- @param SocketName: Unique name for the RemoteEvent
--- @param Schema: Buffer schema for data validation/serialization
--- @return: New SocketRemote component
+--[[
+ 	Creates a new RemoteEvent and wraps it in a SocketRemote component
+
+ 	<strong>@param SocketName</strong> : Unique name for the RemoteEvent
+ 	<strong>@param Schema</strong> : Buffer schema for data validation/serialization
+
+ 	@return: New SocketRemote component
+]]
 function SocketRemoteConstructor.Create<T...>(SocketName : string,Schema : Buffer.BufferSchema) : SocketRemoteComponent<T...>
 	-- Validate input parameters
 	assert(
@@ -67,19 +72,27 @@ function SocketRemoteConstructor.Create<T...>(SocketName : string,Schema : Buffe
 	return self
 end
 
--- Fires data to a specific client through the RemoteEvent
--- @param Player: Target player to send data to
--- @param ValueSchema: Data to send (must match Schema structure)
-function SocketRemote.FireClient<T...>(self : SocketRemoteComponent<T...>,Player : Player,ValueSchema : Buffer.BufferSchemaValue)
+--[[
+ 	Fires data to a specific client through the RemoteEvent
+
+ 	<strong>@param Player</strong> : Target player to send data to
+ 	<strong>@param ValueSchema</strong> : Data to send (must match Schema structure)
+]]
+function SocketRemote.FireClient<T...>(self : SocketRemoteComponent<T...>,Player : Player,values : Buffer.BufferSchemaValue)
 	-- Validate player is still connected
-	if(not Player or not Player.Parent) then
+	if(not Player) then
 		warn("Player parameter is nil. Fire operation will not be sent.")
 		return
 	end
 	-- Default to empty table if no data provided
-	if(type(ValueSchema) ~= "table") then ValueSchema = {} end
+	if(type(values) ~= "table") then values = {} end
+	--If 0 zero data is intended then we fire nil instead of the serialized buffer
+	if(Utilities.GetTableCount(values) == 0 and Utilities.GetTableCount(self._Schema) == 0) then
+		self._Remote:FireClient(Player)
+		return
+	end 
 	-- Serialize data into buffer format
-	local SerializedBuffer = Buffer.Serialize(self._Schema,ValueSchema)
+	local SerializedBuffer = Buffer.Serialize(self._Schema,values)
 	-- Send buffer to specific client
 	self._Remote:FireClient(Player,SerializedBuffer.buffer)
 	-- Clean up buffer to free memory
@@ -87,13 +100,46 @@ function SocketRemote.FireClient<T...>(self : SocketRemoteComponent<T...>,Player
 	SerializedBuffer = nil	
 end
 
--- Connects a callback to handle events from clients
--- @param callback: Function to process client events
+--[[
+ 	Fires data to all clients through the RemoteEvent
+ 	
+ 	<strong>@param ValueSchema</strong> : Data to send to all clients (must match Schema structure)
+]]
+function SocketRemote.FireAll<T...>(self : SocketRemote<T...>,values : Buffer.BufferSchemaValue)
+	-- Default to empty table if no data provided
+	if(type(values) ~= "table") then values = {} end
+	--If 0 zero data is intended then we fire nil instead of the serialized buffer
+	if(Utilities.GetTableCount(values) == 0 and Utilities.GetTableCount(self._Schema) == 0) then
+		self._Remote:FireAllClients()
+		return
+	end 
+	-- Serialize data into buffer format
+	local SerializedBuffer = Buffer.Serialize(self._Schema,values)
+	-- Send buffer to all client
+	self._Remote:FireAllClients(SerializedBuffer.buffer)
+	-- Clean up buffer to free memory
+	SerializedBuffer:Destroy()
+	SerializedBuffer = nil	
+end
+
+
+--[[
+ 	Connects a callback to handle events from clients
+
+ 	<strong>@param callback</strong> : Function to process client events
+]]
 function SocketRemote.Connect<T...>(self : SocketRemoteComponent<T...>,callback : Callback)
 	-- Validate callback is a function
 	assert(type(callback) == "function","A function is required.")
 	-- Connect to OnServerEvent and store connection for cleanup
 	table.insert(self._Connections,	self._Remote.OnServerEvent:Connect(function(player : Player,stack_buffer : buffer)
+		-- Check if the buffer is nil and if schema is empty then fire callback with nil values
+		if(not stack_buffer and Utilities.GetTableCount(self._Schema) == 0) then
+			local thread = coroutine.create(callback)
+			local success,err = coroutine.resume(thread,player)
+			if(not success and err) then error(err,2) end
+			return
+		end
 		-- Deserialize client's buffer data
 		local bufferComponent = Buffer.from(stack_buffer)
 		local values = Buffer.Deserialize(self._Schema,bufferComponent)
@@ -145,6 +191,7 @@ SocketRemoteConstructor.new = SocketRemoteConstructor.Create
 SocketRemoteConstructor.New = SocketRemoteConstructor.Create
 
 SocketRemote.fireClient = SocketRemote.FireClient
+SocketRemote.fireAll = SocketRemote.FireAll
 SocketRemote.connect = SocketRemote.Connect
 SocketRemote.Disconnects = SocketRemote.ClearConnections
 SocketRemote.disconnects = SocketRemote.ClearConnections
