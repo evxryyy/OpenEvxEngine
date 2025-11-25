@@ -4,6 +4,12 @@
 
 ## Logs
 
+Version : 1.4
+- Added `GetInputType` this will return the current input type of the user (SEE API).
+- Reviewed all comments and the api for better understanding.
+
+----
+
 Version : 1.3.3
 - You can now put string or directly Enum for keys.
   ```lua
