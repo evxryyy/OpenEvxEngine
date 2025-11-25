@@ -31,7 +31,7 @@ Instead, it is designed as a low-level toolkit, providing developers with the fu
 
 Whereas many Roblox libraries aim to be high-level (ready-to-use, quick setup, lots of abstraction), this engine takes the opposite approach:
 
-It provides core primitives such as Buffer, Enum, Task, Option, UserInput, SyncSignal, and more.
+It provides core primitives such as Buffer, Enum, Task, Option, UserInput, and more.
 
 Each module is designed to be minimal, explicit, and predictable, with a focus on safety and clarity rather than convenience.
 
