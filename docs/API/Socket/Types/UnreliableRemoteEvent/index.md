@@ -97,18 +97,32 @@ Fires data to a specific client through the UnreliableRemoteEvent
 
 - Note: Delivery is not guaranteed and packets may be dropped
 - @param Player: Target player to send data to
-- @param ValueSchema: Data to send (must match Schema structure)
+- @param values: Data to send (must match Schema structure)
 
 !!! warning
     Please see the examples for firing data to the server/client.
 
 ----
 
+#### UnreliableRemote.FireAll()
+
+`UnreliableRemote.FireAll(...)`
+
+Fires data to a specific client through the UnreliableRemoteEvent
+ 	
+- Note : Delivery is not guaranteed - use for non-critical updates
+ 
+- @param Player : Target player to send data to
+- @param values : Data to send (must match Schema structure)
+
+----
+
 #### UnreliableRemote.Connect()
 
-`UnreliableRemote.Connect((Player : Player,ValueSchema : Buffer.BufferSchemaValue) -> ())`
+`UnreliableRemote.Connect((Player : Player,values : Buffer.BufferSchemaValue) -> ())`
 
 Connects a callback to handle events from clients
+
 - Note: Events may arrive out of order or be dropped entirely
 - @param callback: Function to process client events
 
@@ -156,12 +170,12 @@ Finds an existing UnreliableRemoteEvent created by the server and wraps it
 
 #### UnreliableRemote.Fire()
 
-`UnreliableRemote.Fire(ValueSchema)`
+`UnreliableRemote.Fire(...)`
 
 Fires data to the server through the UnreliableRemoteEvent
 
 - Note: Delivery is not guaranteed and packets may be dropped
-- @param ValueSchema: Data to send (must match Schema structure)
+- @param values: Data to send (must match Schema structure)
 
 !!! warning
     Please see the examples for firing data to the server/client.
@@ -214,6 +228,7 @@ SocketUnreliableRemoteConstructor.new = SocketUnreliableRemoteConstructor.Create
 SocketUnreliableRemoteConstructor.New = SocketUnreliableRemoteConstructor.Create
 
 SocketUnreliableRemote.fireClient = SocketUnreliableRemote.FireClient
+SocketUnreliableRemote.fireAll = SocketUnreliableRemote.FireAll
 SocketUnreliableRemote.connect = SocketUnreliableRemote.Connect
 SocketUnreliableRemote.Disconnects = SocketUnreliableRemote.ClearConnections
 SocketUnreliableRemote.disconnects = SocketUnreliableRemote.ClearConnections
