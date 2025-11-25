@@ -1,4 +1,4 @@
-﻿## Getting Started
+## Getting Started
 
 This page shows all the functions of UserInput as well as functions specifically for the mouse.
 
@@ -52,6 +52,16 @@ Observe changes in the user's preferred input method
 
 - @param callback: Function called when input type changes (Gamepad, MouseKeyboard, or Touch)
 - @return: Cleanup function to stop observing
+
+----
+
+### UserInput:GetInputType
+
+`GetInputType() ->  "Gamepad" | "MouseKeyboard" | "Touch"`
+
+Returns the current input type
+
+- @return: "Gamepad" | "MouseKeyboard" | "Touch" - Current input type
 
 ----
 
@@ -209,6 +219,7 @@ Component.disconectmiddledownSignal = Component.DisconnectMiddleDownSignal
 Component.disconnectAll = Component.DisconnectAll
 Component.disconnectall = Component.DisconnectAll
 Component.observe = Component.Observe
+Component.getInputType = Component.GetInputType
 Component.destroy = Component.Destroy
 
 -- Additional aliases for complete coverage
