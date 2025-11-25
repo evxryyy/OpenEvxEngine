@@ -2,7 +2,9 @@
 -- Provides type-safe event communication with automatic buffer serialization
 
 local RunService = game:GetService("RunService")
+
 local Buffer = require('../Buffer')
+local Utilities = require("../Utilities")
 
 -- Parent folder where RemoteEvents are stored by the server
 local Remotes = script.Parent.Parent:WaitForChild("SocketServer"):WaitForChild("SocketRemote")
@@ -37,10 +39,14 @@ export type SocketRemoteComponent<T...> = typeof(setmetatable({} :: {
 -- @param ValueSchema: Deserialized data from server
 type Callback = (ValueSchema : Buffer.BufferSchemaValue) -> ()
 
--- Finds an existing RemoteEvent created by the server and wraps it
--- @param SocketName: Name of the RemoteEvent to find
--- @param Schema: Buffer schema for data validation/serialization
--- @return: SocketRemote component wrapping the RemoteEvent
+--[[
+ 	Finds an existing RemoteEvent created by the server and wraps it
+ 	
+ 	<strong>@param SocketName</strong> : Name of the RemoteEvent to find
+ 	<strong>@param Schema</strong> : Buffer schema for data validation/serialization
+ 	
+ 	<strong>@return</strong> : SocketRemote component wrapping the RemoteEvent
+]]
 function SocketRemoteConstructor.Find<T...>(SocketName : string,Schema : Buffer.BufferSchema) : SocketRemoteComponent<T...>
 	-- Validate input parameters
 	assert(
@@ -67,11 +73,19 @@ function SocketRemoteConstructor.Find<T...>(SocketName : string,Schema : Buffer.
 	return self
 end
 
--- Fires data to the server through the RemoteEvent
--- @param ValueSchema: Data to send (must match Schema structure)
+--[[
+ 	Fires data to the server through the RemoteEvent
+
+ 	<strong>@param ValueSchema</strong> : Data to send (must match Schema structure)
+]]
 function SocketRemote.Fire<T...>(self : SocketRemoteComponent<T...>,ValueSchema : Buffer.BufferSchemaValue)
 	-- Default to empty table if no data provided
 	if(type(ValueSchema) ~= "table") then ValueSchema = {} end
+	--If 0 zero data is intended then we fire nil instead of the serialized buffer
+	if(Utilities.GetTableCount(ValueSchema) == 0 and Utilities.GetTableCount(self._Schema) == 0) then
+		self._Remote:FireServer()
+		return
+	end 
 	-- Serialize data into buffer format
 	local SerializedBuffer = Buffer.Serialize(self._Schema,ValueSchema)
 	-- Send buffer to server
@@ -81,13 +95,23 @@ function SocketRemote.Fire<T...>(self : SocketRemoteComponent<T...>,ValueSchema 
 	SerializedBuffer = nil	
 end
 
--- Connects a callback to handle events from the server
--- @param callback: Function to process server events
+--[[
+ 	Connects a callback to handle events from the server
+ 	
+ 	<strong>@param callback</strong> : Function to process server events
+]]
 function SocketRemote.Connect<T...>(self : SocketRemoteComponent<T...>,callback : Callback)
 	-- Validate callback is a function
 	assert(type(callback) == "function","A function is required.")
 	-- Connect to OnClientEvent and store connection for cleanup
 	table.insert(self._Connections,	self._Remote.OnClientEvent:Connect(function(stack_buffer : buffer)
+		-- Check if the buffer is nil and if schema is empty then fire callback with nil values
+		if(not stack_buffer and Utilities.GetTableCount(self._Schema) == 0) then
+			local thread = coroutine.create(callback)
+			local success,err = coroutine.resume(thread)
+			if(not success and err) then error(err,2) end
+			return
+		end
 		-- Deserialize server's buffer data
 		local bufferComponent = Buffer.from(stack_buffer)
 		local values = Buffer.Deserialize(self._Schema,bufferComponent)
