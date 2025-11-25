@@ -46,6 +46,7 @@ type KeyboardStruct = Input.KeyboardType
 type MouseStruct = Input.MouseType
 type ArrayOfInput = {Enum.KeyCode | Enum.UserInputType | string}
 type InputType = Enum.KeyCode | Enum.UserInputType | string
+type StringInputType = "Gamepad" | "MouseKeyboard" | "Touch"
 
 --[[
 	Validates the configuration object structure
@@ -270,6 +271,14 @@ end
 function Component.Observe(self: UserInputComponent, callback: (InputType: "Gamepad" | "MouseKeyboard" | "Touch") -> ()): () -> ()
 	self.InputObserver = PreferredInput.Observe(callback)
 	return self.InputObserver :: () -> ()
+end
+
+--[[
+	Returns the current input type
+	@return: "Gamepad" | "MouseKeyboard" | "Touch" - Current input type
+]]
+function Component.GetInputType(self : UserInputComponent) : StringInputType
+	return PreferredInput.Current
 end
 
 --[[
@@ -551,6 +560,7 @@ Component.disconectmiddledownSignal = Component.DisconnectMiddleDownSignal
 Component.disconnectAll = Component.DisconnectAll
 Component.disconnectall = Component.DisconnectAll
 Component.observe = Component.Observe
+Component.getInputType = Component.GetInputType
 Component.destroy = Component.Destroy
 
 -- Additional aliases for complete coverage
