@@ -9,6 +9,15 @@ Version : 1.3
 - Added `Socket.Remote.FireAll` and `Socket.UnreliableRemote.FireAll` (See API).
 - Reviewed all comments and the api for better understanding.
 - Now if you put an empty Schema for all remote types it will no longer have the 2 extra bytes.
+```lua
+ex:
+
+--@Before
+MyRemoteEvent:FireClient(Player,{}) --> 16 bytes
+
+--@After
+MyRemoteEvent:FireClient(Player,{}) --> 14 bytes
+```
 
 ----
 
