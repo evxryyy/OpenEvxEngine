@@ -4,6 +4,14 @@
 
 ## Logs
 
+Version : 1.3
+- Added `Socket.Function.InvokeAll` (See API).
+- Added `Socket.Remote.FireAll` and `Socket.UnreliableRemote.FireAll` (See API).
+- Reviewed all comments and the api for better understanding.
+- Now if you put an empty Schema for all remote types it will no longer have the 2 extra bytes.
+
+----
+
 Version : 1.2
 - added extended method for all remote type
 ```lua
