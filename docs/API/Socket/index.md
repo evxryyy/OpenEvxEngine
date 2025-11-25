@@ -1,4 +1,4 @@
-﻿## Getting Started
+## Getting Started
 
 Socket, Provides a unified, type-safe API for client-server communication in Roblox
 
@@ -12,7 +12,7 @@ Features
 
 ## Version
 
-### [Socket V1.2](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer-network)
+### [Socket V1.3](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer-network)
 
 ----
 
