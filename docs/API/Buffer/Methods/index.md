@@ -1,936 +1,731 @@
-### Writing Signed-int
+## Creating Component
 
-----
+To create a buffer, you will need to use these methods listed below:
 
-To write signed numbers, you will need to use methods like
-`:WriteI1`, etc.
-
-#### Writing I1
-
-```luau linenums="1" linenums="1"
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
     
-local myBuffer = Buffer.create(1)
-local num = 1
-
-myBuffer:WriteI1(num)
+local myBuffer = Buffer.create(size : number?)
 ```
 
-Write a signed 1-bit integer (-1 to 1).
-The value is clamped to the allowed range and truncated to an integer.
+This will create a buffer of X bytes.
+
+!!! warning
+    If the size is not set, the default value will be 0. You can
+    always use `:allocate()` to increase the size.
 
 ----
 
-#### Writing I8
+### Advanced
 
-```luau linenums="1" linenums="1"
+There are other ways to create a buffer, for example:
+with a string or simply with an existing buffer.
+
+=== "from"
+
+    ```luau linenums="1"
+    local Buffer = require(somewhere.Buffer)
+        
+    local myBuffer = Buffer.from(b : buffer)
+    ```
+
+    !!! note
+        Note that the buffer data is not lost, the offset is directly set to the buffer size. Please use `from` only when you know what you are doing.
+
+=== "fromString"
+
+    ```luau linenums="1"
+    local Buffer = require(somewhere.Buffer)
+        
+    local myBuffer = Buffer.fromString(str : string)
+    ```
+
+    This will use the `.from` method once the buffer is converted to a buffer.
+
+    !!! warning
+        Please use this method only if you know what you are doing.
+
+----
+
+## Allocating space
+
+When creating a buffer, you can later increase its size regardless of the method used.
+Whether you use `from` or `fromString`, you can always expand the buffer size with `:allocate`.
+
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
     
-local myBuffer = Buffer.create(1)
-local num = 127
+local myBuffer = Buffer.create(0)
 
-myBuffer:WriteI8(num)
+myBuffer:allocate(size : number)
 ```
 
-Write a signed 8-bit integer (-128 to 127). Clamped and truncated to integer.
+## Others
+
+Other useful methods are available in the component.
 
 ----
 
-#### Writing I16
+### Empty Component
 
-```luau linenums="1" linenums="1"
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(2)
-local num = 32_767
 
-myBuffer:WriteI16(num)
+local emptyBuffer = Buffer.Empty() -- or Buffer.empty()
 ```
 
-Write a signed 16-bit integer (-32768 to 32767). Clamped and truncated.
+This will create an empty Buffer
 
 ----
 
-#### Writing I24
+### Compress
 
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(3)
-local num = 8_388_607
+```luau linenums="1"
+local my_buffer = Buffer.create(1000)
 
-myBuffer:WriteI24(num)
+local compressed_buffer = my_buffer:Compress(Enum.CompressionAlgorithm.Zstd)
+print(compressed_buffer) --> buffer
 ```
 
-Write a signed 24-bit integer (-8,388,608 to 8,388,607).
-Clamped and truncated.
+Return a compressed buffer with the target Compression Algorithm
+
+!!! info
+	- This function use `EncodingService:CompressBuffer()`. Please see the Roblox API for more infos
+
+!!! warning
+    - Do not use this for buffers smaller than 30 bytes or in the 30–50 bytes range.
 
 ----
 
-#### Writing I32
+### Decompress (Constructor)
 
-```luau linenums="1" linenums="1"
+```luau linenums="1"
+local my_buffer = Buffer.create(1000)
+
+local compressed_buffer = my_buffer:Compress(Enum.CompressionAlgorithm.Zstd)
+local decompressed_buffer = Buffer.Decompress(compressed_buffer,Enum.CompressionAlgorithm.Zstd)
+
+print(decompressed_buffer)
+```
+
+Return the decompressed buffer as an `BufferComponentClass` with the target Compression Algorithm.
+
+The buffer must be already compressed with the target Compression Algorithm.
+
+!!! info
+    - This function use <code>EncodingService:DecompressBuffer()</code>. Please see the Roblox API for more infos
+
+!!! warning
+    - Make sure you use the exact same Compression Algorithm as the compressed buffer.
+
+----
+
+### OnOffsetChanged
+
+```luau linenums="1"
+local my_buffer = Buffer.create(10)
+
+my_buffer:OnOffsetChanged(function(oldOffset, newOffset)
+	print(oldOffset,newOffset)
+end)
+
+my_buffer:writei8(127)
+```
+
+Connects a callback to the OffsetChanged signal.
+The callback is called when the offset is changed.
+
+Return : `SignalConnection`
+
+----
+
+### OnInstanceOffsetChanged
+
+```luau linenums="1"
+local my_buffer = Buffer.create(10)
+
+my_buffer:OnInstanceOffsetChanged(function(oldOffset, newOffset)
+	print(oldOffset,newOffset)
+end)
+
+my_buffer:WriteInstance(workspace.Baseplate)
+```
+
+Connects a callback to the InstanceOffsetChanged signal.
+The callback is called when the instance offset is changed.
+
+Return : `SignalConnection`
+
+----
+
+### OnCapacityChanged
+
+```luau linenums="1"
+local my_buffer = Buffer.create(10)
+
+local connection = my_buffer:OnCapacityChanged(function(oldSize, newSize)
+	print(oldSize,newSize)
+end)
+
+my_buffer += 5
+my_buffer:allocate(5)
+my_buffer *= 5
+
+--later
+
+connection:Disconnect()
+```
+
+Connects a callback to the CapacityChanged signal.
+The callback is called when the capacity is changed.
+	
+!!! info
+	- __mult can fire CapacityChanged same for __add
+	- :allocate can fire CapacityChanged
+
+Return : `SignalConnection`
+
+----
+
+### GetRemainingSpace
+
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
-    
+
 local myBuffer = Buffer.create(4)
-local num = 2_147_483_647
 
-myBuffer:WriteI32(num)
+print(myBuffer:GetRemainingSpace()) --> 4 cause we didn't write anything yet
 ```
 
-Write a signed 32-bit integer (-2,147,483,648 to 2,147,483,647).
-- Clamped and truncated.
+return the actual remaining space of the current buffer
 
 ----
 
-#### Writing I40
+### GetOffset
 
-```luau linenums="1" linenums="1"
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(5)
-local num = 549_755_813_887
 
-myBuffer:WriteI40(num)
+local myBuffer = Buffer.create(0)
+
+print(myBuffer:GetOffset())
 ```
 
-Write a signed 40-bit integer (-549,755,813,888 to 549,755,813,887).
-Clamped and truncated.
-
-If negative, add 2^40 to represent as unsigned (two's complement style) before writing.
+return the actual offset of the buffer
 
 ----
 
-#### Writing I48
+### GetInstanceOffset
 
-```luau linenums="1" linenums="1"
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(6)
-local num = 140_737_488_355_327
 
-myBuffer:WriteI48(num)
+local myBuffer = Buffer.create(0)
+
+print(myBuffer:GetInstanceOffset())
 ```
 
-Write a signed 48-bit integer (-140,737,488,355,328 to 140,737,488,355,327).
-Clamped and truncated.
-
-If negative, add 2^48 to represent as unsigned before writing.
+return the actual instance offset of the buffer
 
 ----
 
-#### Writing I54
+### GetBuffer
 
-```luau linenums="1" linenums="1"
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(7)
-local num = 9_007_199_254_740_991
 
-myBuffer:WriteI54(num)
+local myBuffer = Buffer.create(0)
+
+print(myBuffer:GetBuffer())
 ```
 
-Write a signed 54-bit integer (-9,007,199,254,740,992 to 9,007,199,254,740,991).
-Clamped and truncated.
-
-If negative, add 2^54 to represent as unsigned before writing.
+return the current buffer
 
 ----
 
-### Writing Unsigned-int
+### GetInstanceBuffer
 
-For unsigned numbers, you will need to use methods like `:WriteU`, etc.
-
-----
-
-#### Writing U1
-
-```luau linenums="1" linenums="1"
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(1)
-local num = 1
 
-myBuffer:WriteU1(num)
+local myBuffer = Buffer.create(0)
+
+print(myBuffer:GetInstanceBuffer())
 ```
 
-Write a single unsigned bit (0 or 1).
-Clamped and truncated.
+return the current instance buffer
+
+### GetBufferSize
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local myBuffer = Buffer.create(0)
+
+print(myBuffer:GetBufferSize())
+```
+
+return the actual buffer size (not the written data size)
 
 ----
 
-#### Writing U8
+### Copy
 
-```luau linenums="1" linenums="1"
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(1)
-local num = 255
 
-myBuffer:WriteU8(num)
+local myBuffer = Buffer.create(0)
+
+local copy_myBuffer = myBuffer:Copy()
+print(buff == copy_myBuffer) --> false
 ```
 
-Write an unsigned 8-bit integer (0 to 255).
-Clamped and truncated.
+Create and return a copy of the current BufferComponent
 
 ----
 
-#### Writing U16
+### Clear
 
-```luau linenums="1" linenums="1"
+```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(2)
-local num = 65_535
 
-myBuffer:WriteU16(num)
+local myBuffer = Buffer.create(0)
+
+myBuffer:Clear()
 ```
 
-Write an unsigned 16-bit integer (0 to 65,535).
-Clamped and truncated.
+clear the instance_buffer and the buffer itself
 
-----
-
-#### Writing U24
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(3)
-local num = 16_777_215
-
-myBuffer:WriteU24(num)
-```
-
-Write an unsigned 24-bit integer (0 to 16,777,215).
-Clamped and truncated.
-
-----
-
-#### Writing U32
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(4)
-local num = 4_294_967_295
-
-myBuffer:WriteU32(num)
-```
-
-Write an unsigned 32-bit integer (0 to 4,294,967,295).
-Clamped and truncated.
-
-----
-
-#### Writing U40
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(4)
-local num = 1_099_511_627_775
-
-myBuffer:WriteU40(num)
-```
-
-Write an unsigned 40-bit integer (0 to 1,099,511,627,775).
-Clamped.
-
-----
-
-#### Writing U48
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(4)
-local num = 281_474_976_710_655
-
-myBuffer:WriteU48(num)
-```
-
-Write an unsigned 48-bit integer (0 to 281,474,976,710,655).
-Clamped and truncated.
-
-----
-
-#### Writing U54
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(4)
-local num = 18_014_398_509_481_980
-
-myBuffer:WriteU54(num)
-```
-
-Write an unsigned 54-bit integer (0 to 18,014,398,509,481,980).
-Clamped and truncated.
+both offset will be set to 0.
 
 !!! note
-    The maximum value is 18,014,398,509,481,984 but i clamped it to 18,014,398,509,481,980 cause it was causing a bug.
+    this return self allow you to chain method
 
 ----
 
-### Writing Float
-
-For floating-point numbers, you will need to use methods like `:WriteF`, etc.
-
-----
-
-#### Writing F16
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(2)
-local num = 1.545
-
-myBuffer:WriteF16(num)
-```
-Write a 16-bit float (half-precision) to the buffer.
-Lower precision than F32/F64, expect rounding.
-
-NaN/Inf are handled, finite values are encoded with sign/exponent/mantissa.
-
-----
-
-#### Writing F32
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(4)
-local num = 100.999
-
-myBuffer:WriteF32(num)
-```
-
-Write a 32-bit float to the buffer.
-
-----
-
-#### Writing F64
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(8)
-local num = 100.9999999999
-
-myBuffer:WriteF64(num)
-```
-
-Write a 64-bit float to the buffer.
-
-----
-
-### Writing Strings
-
-For character strings, you must use methods like `:WriteString`, etc.
-
-----
-
-#### Writing String8
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(8)
-
-myBuffer:WriteString8("Hello",5)
-```
-
-Write a string clamped to max 8 characters.
-
-`len` is the intended fixed length to write.
-
-The input string is truncated to `len` (clamped to [1, 8]).
-
-----
-
-#### Writing String16
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(16)
-
-myBuffer:WriteString16("Hello World",11)
-```
-
-Write a string clamped to max 16 characters.
-
-`len` is the intended fixed length to write.
-
-The input string is truncated to `len` (clamped to [1, 16]).
-
-----
-
-#### Writing String32
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(32)
-
-myBuffer:WriteString32("Hello World",11)
-```
-
-Write a string clamped to max 32 characters.
-
-`len` is the intended fixed length to write.
-
-The input string is truncated to `len` (clamped to [1, 32]).
-
-----
-
-#### Writing String64
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(64)
-
-myBuffer:WriteString32("Hello World",11)
-```
-
-Write a string clamped to max 64 characters.
-
-`len` is the intended fixed length to write.
-
-The input string is truncated to `len` (clamped to [1, 64]).
-
-----
-
-#### Writing String
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(11)
-
-myBuffer:WriteString("Hello World")
-```
-
-Write a string without caring about length limits.
-
-Writes exactly #value bytes.
-
-Reader must know or infer the length (no prefix is written).
-
-----
-
-### Writing Roblox Types
-
-For other types like boolean, vector, etc. please use `:Write[TypeName]`, etc.
-
-----
-
-#### Writing Bool1
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(1)
-
-myBuffer:WriteBool1(true)
-```
-
-Write a single boolean using 1 bit.
-- nil/false -> 0, anything else -> 1
-
-----
-
-#### Writing Bool8
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(1)
-
-local arrayOfValues = {
-    true,
-    true,
-    false,
-    nil,
-    1,
-    true,
-    "hello world",
-    false
-}
-
-
-myBuffer:WriteBool8(arrayOfValues)
-```
-
-Write 8 booleans packed into 1 byte.
-
-Accepts an array-like table of up to 8 values.
-Each truthy value sets the corresponding bit to 1.
-
-----
-
-#### Writing Instance
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(0) --> byte are not required if you only write instance
-
-myBuffer:WriteInstance(workspace.Baseplate)
-```
-
-Store an Instance in the side `instance_buffer`.
-Does not write anything to the raw byte buffer.
-
-`instance_offset` is incremented to track count/index.
-
-----
-
-#### Writing Vector2
-
-```luau linenums="1" linenums="1"
-
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(16) 
-
-local pos = Vector2.new(10.5,5.945)
-
-myBuffer:WriteVector2(pos)
-```
-
-Write a Vector2 as two f64 (x, y).
-
-----
-
-#### Writing Vector3
-
-```luau linenums="1" linenums="1"
-
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(24) 
-
-local pos = workspace.Baseplate.Position
-
-myBuffer:WriteVector3(pos)
-```
-
-Write a Vector3 as three f64 (x, y, z).
-
-----
-
-#### Writing Vector2Int16
-
-```luau linenums="1" linenums="1"
-
-local Buffer = require(somewhere.Buffer)
-    
-local myBuffer = Buffer.create(4) 
-
-local pos = Vector2int16.new(10,5)
-
-myBuffer:WriteVector2Int16(pos)
-```
-
-Write a Vector2int16 as two i16 (x, y).
-Values clamped to int16 range.
-
-----
-
-#### Writing Vector3Int16
+### ClearInstances
 
 ```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
-local myBuffer = Buffer.create(4)
+local myBuffer = Buffer.create(0)
 
-local pos = Vector3int16.new(10,5,15)
-
-myBuffer:WriteVector3Int16(pos)
+myBuffer:ClearInstances()
 ```
 
-Write a Vector3int16 as three i16 (x, y, z).
-Values clamped to int16 range.
+Clear the instance_buffer.
+
+instance_offset will be set to 0.
+
+!!! note
+    this return self allow you to chain method
 
 ----
 
-#### Writing CFrame
+### ClearBuffer
 
 ```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
-local myBuffer = Buffer.create(96)
+local myBuffer = Buffer.create(0)
 
-local cf = workspace.Baseplate.CFrame
-
-myBuffer:WriteCFrame(cf)
+myBuffer:ClearBuffer()
 ```
 
-Write a full-precision CFrame as 12 f64 components (position + rotation matrix).
+Clear the buffer.
+
+The buffer offset will be set to 0.
+
+!!! note
+    this return self allow you to chain method
 
 ----
 
-#### Writing LossyCFrame
+### DisconnectAllSignals
+
+```luau linenums="1"
+my_buffer:DisconnectAllSignals()
+```
+
+Disconnect all signals `OnOffsetChanged`,`OnInstanceOffset`,`OnCapacityChanged`
+
+----
+
+### Destroy
 
 ```luau linenums="1"
 local Buffer = require(somewhere.Buffer)
 
-local myBuffer = Buffer.create(48)
+local myBuffer = Buffer.create(0)
 
-local cf = workspace.Baseplate.CFrame
-
-myBuffer:WriteLossyCFrame(cf)
+myBuffer:Destroy()
 ```
 
-Write a lossy (compressed) CFrame as 12 f32 components.
+Destroy the actual BufferComponent.
+You can't use the BufferComponent after this.
 
 ----
 
-#### Writing UDim
+## Alias
+
+Alias for the constructor and the component
 
 ```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
+--Constructor alias
+BufferConstructor.new = BufferConstructor.create
+BufferConstructor.New = BufferConstructor.create
 
-local myBuffer = Buffer.create(8)
+BufferConstructor.Empty = function() : BufferComponentClass
+	return BufferConstructor.create(0)
+end
+BufferConstructor.empty = BufferConstructor.Empty
 
-local CornerRadius = YourGui.UICorner.CornerRadius -- This is a UDim
+BufferConstructor.From = BufferConstructor.from
+BufferConstructor.FromString = BufferConstructor.fromString
+BufferConstructor.Tostring = BufferConstructor.tostring
 
-myBuffer:WriteUDim(CornerRadius)
+BufferConstructor.serialize = BufferConstructor.Serialize
+BufferConstructor.deserialize = BufferConstructor.Deserialize
+
+BufferConstructor.deserializeAll = BufferConstructor.DeserializeAll
+BufferConstructor.serializeAll = BufferConstructor.SerializeAll
+
+BufferConstructor.decompress = BufferConstructor.Decompress
+
+BufferConstructor.serializeCompressed = BufferConstructor.SerializeCompressed
+BufferConstructor.deserializeCompressed = BufferConstructor.DeserializeCompressed
+
+BufferConstructor.serializeAllCompressed = BufferConstructor.SerializeAllCompressed
+BufferConstructor.deserializeAllCompressed = BufferConstructor.DeserializeAllCompressed
+
+--Component alias
+BufferComponent.Allocate = BufferComponent.allocate
+
+--[Writer] signed interger alias
+BufferComponent.writeI1 = BufferComponent.WriteI1
+BufferComponent.writei1 = BufferComponent.WriteI1
+
+BufferComponent.writeI8 = BufferComponent.WriteI8
+BufferComponent.writei8 = BufferComponent.WriteI8
+
+BufferComponent.writeI16 = BufferComponent.WriteI16
+BufferComponent.writei16 = BufferComponent.WriteI16
+
+BufferComponent.writeI24 = BufferComponent.WriteI24
+BufferComponent.writei24 = BufferComponent.WriteI24
+
+BufferComponent.writeI32 = BufferComponent.WriteI32
+BufferComponent.writei32 = BufferComponent.WriteI32
+
+BufferComponent.writeI40 = BufferComponent.WriteI40
+BufferComponent.writei40 = BufferComponent.WriteI40
+
+BufferComponent.writeI48 = BufferComponent.WriteI48
+BufferComponent.writei48 = BufferComponent.WriteI48
+
+BufferComponent.writeI54 = BufferComponent.WriteI54
+BufferComponent.writei54 = BufferComponent.WriteI54
+
+--[Writer] unsigned interger alias
+BufferComponent.writeU1 = BufferComponent.WriteU1
+BufferComponent.writeu1 = BufferComponent.WriteU1
+
+BufferComponent.writeU8 = BufferComponent.WriteU8
+BufferComponent.writeu8 = BufferComponent.WriteU8
+
+BufferComponent.writeU16 = BufferComponent.WriteU16
+BufferComponent.writeu16 = BufferComponent.WriteU16
+
+BufferComponent.writeU24 = BufferComponent.WriteU24
+BufferComponent.writeu24 = BufferComponent.WriteU24
+
+BufferComponent.writeU32 = BufferComponent.WriteU32
+BufferComponent.writeu32 = BufferComponent.WriteU32
+
+BufferComponent.writeU40 = BufferComponent.WriteU40
+BufferComponent.writeu40 = BufferComponent.WriteU40
+
+BufferComponent.writeU48 = BufferComponent.WriteU48
+BufferComponent.writeu48 = BufferComponent.WriteU48
+
+BufferComponent.writeU54 = BufferComponent.WriteU54
+BufferComponent.writeu54 = BufferComponent.WriteU54
+
+--[Writer] float interger alias
+BufferComponent.writeF16 = BufferComponent.WriteF16
+BufferComponent.writef16 = BufferComponent.WriteF16
+
+BufferComponent.writeF32 = BufferComponent.WriteF32
+BufferComponent.writef32 = BufferComponent.WriteF32
+
+BufferComponent.writeF64 = BufferComponent.WriteF64
+BufferComponent.writef64 = BufferComponent.WriteF64
+
+--[Writer] string alias
+BufferComponent.writeString8 = BufferComponent.WriteString8
+BufferComponent.writestring8 = BufferComponent.WriteString8
+
+BufferComponent.writeString16 = BufferComponent.WriteString16
+BufferComponent.writestring16 = BufferComponent.WriteString16
+
+BufferComponent.writeString32 = BufferComponent.WriteString32
+BufferComponent.writestring32 = BufferComponent.WriteString32
+
+BufferComponent.writeString64 = BufferComponent.WriteString64
+BufferComponent.writestring64 = BufferComponent.WriteString64
+
+BufferComponent.writeString = BufferComponent.WriteString
+BufferComponent.writestring = BufferComponent.WriteString
+
+--[Writer] boolean alias
+BufferComponent.writeBool1 = BufferComponent.WriteBool1
+BufferComponent.writebool1 = BufferComponent.WriteBool1
+
+BufferComponent.writeBool8 = BufferComponent.WriteBool8
+BufferComponent.writebool8 = BufferComponent.WriteBool8
+
+
+--[Writer] instance alias
+BufferComponent.writeInstance = BufferComponent.WriteInstance
+BufferComponent.writeinstance = BufferComponent.WriteInstance
+
+--[Writer] roblox type alias
+BufferComponent.writeVector2 = BufferComponent.WriteVector2
+BufferComponent.writevector2 = BufferComponent.WriteVector2
+
+BufferComponent.writeVector2int16 = BufferComponent.WriteVector2Int16
+BufferComponent.writevector2int16 = BufferComponent.WriteVector2Int16
+
+BufferComponent.writeVector3 = BufferComponent.WriteVector3
+BufferComponent.writevector3 = BufferComponent.WriteVector3
+
+BufferComponent.writeVector3int16 = BufferComponent.WriteVector3Int16
+BufferComponent.writevector3int16 = BufferComponent.WriteVector3Int16
+
+BufferComponent.writeCFrame = BufferComponent.WriteCFrame
+BufferComponent.writecframe = BufferComponent.WriteCFrame
+
+BufferComponent.writeLossyCFrame = BufferComponent.WriteLossyCFrame
+BufferComponent.writelossyCFrame = BufferComponent.WriteLossyCFrame
+
+BufferComponent.writeUdim = BufferComponent.WriteUDim
+BufferComponent.writeudim = BufferComponent.WriteUDim
+BufferComponent.WriteUdim = BufferComponent.WriteUDim
+
+BufferComponent.writeUdim2 = BufferComponent.WriteUDim2
+BufferComponent.writeudim2 = BufferComponent.WriteUDim2
+BufferComponent.WriteUdim2 = BufferComponent.WriteUDim2
+
+BufferComponent.writeColor3 = BufferComponent.WriteColor3
+BufferComponent.writecolor3 = BufferComponent.WriteColor3
+
+BufferComponent.writeRect = BufferComponent.WriteRect
+BufferComponent.writerect = BufferComponent.WriteRect
+
+BufferComponent.writeRegion3 = BufferComponent.WriteRegion3
+BufferComponent.writeregion3 = BufferComponent.WriteRegion3
+
+BufferComponent.WriteRegion3Int16 = BufferComponent.WriteRegion3int16
+BufferComponent.writeRegion3int16 = BufferComponent.WriteRegion3int16
+BufferComponent.writeregion3int16 = BufferComponent.WriteRegion3int16
+
+BufferComponent.writeVector = BufferComponent.WriteVector
+BufferComponent.writevector = BufferComponent.WriteVector
+
+BufferComponent.writeEnum = BufferComponent.WriteEnum
+BufferComponent.writeenum = BufferComponent.WriteEnum
+
+BufferComponent.writeRotationCurveKey = BufferComponent.WriteRotationCurveKey
+
+BufferComponent.writeFloatCurveKey = BufferComponent.WriteFloatCurveKey
+
+BufferComponent.writeColorSequence = BufferComponent.WriteColorSequence
+
+BufferComponent.writeNumberRange = BufferComponent.WriteNumberRange
+
+BufferComponent.writeNumberSequence = BufferComponent.WriteNumberSequence
+
+--[Custom Writer] alias
+BufferComponent.writeAs = BufferComponent.WriteAs
+
+BufferComponent.writeArray = BufferComponent.WriteArray
+BufferComponent.writearray = BufferComponent.WriteArray
+
+--[Reader] signed interger alias
+BufferComponent.readI1 = BufferComponent.ReadI1
+BufferComponent.readi1 = BufferComponent.ReadI1
+
+BufferComponent.readI8 = BufferComponent.ReadI8
+BufferComponent.readi8 = BufferComponent.ReadI8
+
+BufferComponent.readI16 = BufferComponent.ReadI16
+BufferComponent.readi16 = BufferComponent.ReadI16
+
+BufferComponent.readI24 = BufferComponent.ReadI24
+BufferComponent.readi24 = BufferComponent.ReadI24
+
+BufferComponent.readI32 = BufferComponent.ReadI32
+BufferComponent.readi32 = BufferComponent.ReadI32
+
+BufferComponent.readI40 = BufferComponent.ReadI40
+BufferComponent.readi40 = BufferComponent.ReadI40
+
+BufferComponent.readI48 = BufferComponent.ReadI48
+BufferComponent.readi48 = BufferComponent.ReadI48
+
+BufferComponent.readI54 = BufferComponent.ReadI54
+BufferComponent.readi54 = BufferComponent.ReadI54
+
+--[Reader] unsigned interger alias
+BufferComponent.readU1 = BufferComponent.ReadU1
+BufferComponent.readu1 = BufferComponent.ReadU1
+
+BufferComponent.readU8 = BufferComponent.ReadU8
+BufferComponent.readu8 = BufferComponent.ReadU8
+
+BufferComponent.readU16 = BufferComponent.ReadU16
+BufferComponent.readu16 = BufferComponent.ReadU16
+
+BufferComponent.readU24 = BufferComponent.ReadU24
+BufferComponent.readu24 = BufferComponent.ReadU24
+
+BufferComponent.readU32 = BufferComponent.ReadU32
+BufferComponent.readu32 = BufferComponent.ReadU32
+
+BufferComponent.readU40 = BufferComponent.ReadU40
+BufferComponent.readu40 = BufferComponent.ReadU40
+
+BufferComponent.readU48 = BufferComponent.ReadU48
+BufferComponent.readu48 = BufferComponent.ReadU48
+
+BufferComponent.readU54 = BufferComponent.ReadU54
+BufferComponent.readu54 = BufferComponent.ReadU54
+
+--[Reader] float interger alias
+BufferComponent.readF16 = BufferComponent.ReadF16
+BufferComponent.readf16 = BufferComponent.ReadF16
+
+BufferComponent.readF32 = BufferComponent.ReadF32
+BufferComponent.readf32 = BufferComponent.ReadF32
+
+BufferComponent.readF64 = BufferComponent.ReadF64
+BufferComponent.readf64 = BufferComponent.ReadF64
+
+--[Reader] boolean alias
+BufferComponent.readBool1 = BufferComponent.ReadBool1
+BufferComponent.readbool1 = BufferComponent.ReadBool1
+
+BufferComponent.readBool8 = BufferComponent.ReadBool8
+BufferComponent.readbool8 = BufferComponent.ReadBool8
+
+
+--[Reader] string alias
+BufferComponent.readString = BufferComponent.ReadString
+BufferComponent.readstring = BufferComponent.ReadString
+
+--[Reader] instance alias
+BufferComponent.readInstance = BufferComponent.ReadInstance
+BufferComponent.readinstance = BufferComponent.ReadInstance
+
+--[Reader] roblox type alias
+BufferComponent.readVector2 = BufferComponent.ReadVector2
+BufferComponent.readvector2 = BufferComponent.ReadVector2
+
+BufferComponent.ReadVector2Int16 = BufferComponent.ReadVector2int16
+BufferComponent.readVector2int16 = BufferComponent.ReadVector2int16
+BufferComponent.readvector2int16 = BufferComponent.ReadVector2int16
+
+BufferComponent.readVector3 = BufferComponent.ReadVector3
+BufferComponent.readvector3 = BufferComponent.ReadVector3
+
+BufferComponent.readVector3int16 = BufferComponent.ReadVector3int16
+BufferComponent.readvector3int16 = BufferComponent.ReadVector3int16
+BufferComponent.ReadVector3Int16 = BufferComponent.ReadVector3int16
+
+BufferComponent.readCFrame = BufferComponent.ReadCFrame
+BufferComponent.readcframe = BufferComponent.ReadCFrame
+
+BufferComponent.readLossyCFrame = BufferComponent.ReadLossyCFrame
+BufferComponent.readlossyCFrame = BufferComponent.ReadLossyCFrame
+
+BufferComponent.readUdim = BufferComponent.ReadUDim
+BufferComponent.readudim = BufferComponent.ReadUDim
+BufferComponent.ReadUdim = BufferComponent.ReadUDim
+
+BufferComponent.readUdim2 = BufferComponent.ReadUDim2
+BufferComponent.readudim2 = BufferComponent.ReadUDim2
+BufferComponent.ReadUdim2 = BufferComponent.ReadUDim2
+
+BufferComponent.readColor3 = BufferComponent.ReadColor3
+BufferComponent.readcolor3 = BufferComponent.ReadColor3
+
+BufferComponent.readRect = BufferComponent.ReadRect
+BufferComponent.readrect = BufferComponent.ReadRect
+
+BufferComponent.readRegion3 = BufferComponent.ReadRegion3
+BufferComponent.readregion3 = BufferComponent.ReadRegion3
+
+BufferComponent.ReadRegion3Int16 = BufferComponent.ReadRegion3int16
+BufferComponent.readRegion3int16 = BufferComponent.ReadRegion3int16
+BufferComponent.readregion3int16 = BufferComponent.ReadRegion3int16
+
+BufferComponent.readVector = BufferComponent.ReadVector
+BufferComponent.readvector = BufferComponent.ReadVector
+
+BufferComponent.readEnum = BufferComponent.ReadEnum
+BufferComponent.readenum = BufferComponent.ReadEnum
+
+BufferComponent.readRotationCurveKey = BufferComponent.ReadRotationCurveKey
+
+BufferComponent.readFloatCurveKey = BufferComponent.ReadFloatCurveKey
+
+BufferComponent.readColorSequence = BufferComponent.ReadColorSequence
+
+BufferComponent.readNumberRange = BufferComponent.ReadNumberRange
+
+BufferComponent.readNumberSequence = BufferComponent.ReadNumberSequence
+
+--[Custom Read] alias
+BufferComponent.readAs = BufferComponent.ReadAs
+
+BufferComponent.readArray = BufferComponent.ReadArray
+BufferComponent.readarray = BufferComponent.ReadArray
+
+--[Signals] alias
+BufferComponent.onOffsetChanged = BufferComponent.OnOffsetChanged
+BufferComponent.onCapacityChanged = BufferComponent.OnCapacityChanged
+BufferComponent.onInstanceOffsetChanged = BufferComponent.OnInstanceOffsetChanged
+BufferComponent.disconnectAllSignals = BufferComponent.DisconnectAllSignals
+
+--[Cursor] alias
+BufferComponent.getOffset = BufferComponent.GetOffset
+BufferComponent.getoffset = BufferComponent.GetOffset
+
+BufferComponent.getInstanceOffset = BufferComponent.GetInstanceOffset
+BufferComponent.getinstanceoffset = BufferComponent.GetInstanceOffset
+
+BufferComponent.getRemainingSpace = BufferComponent.GetRemainingSpace
+
+--[Buffer] alias
+BufferComponent.compress = BufferComponent.Compress
+
+BufferComponent.getBuffer = BufferComponent.GetBuffer
+BufferComponent.getbuffer = BufferComponent.GetBuffer
+
+BufferComponent.getInstanceBuffer = BufferComponent.GetInstanceBuffer
+BufferComponent.getinstancebuffer = BufferComponent.GetInstanceBuffer
+
+BufferComponent.getBufferSize = BufferComponent.GetBufferSize
+BufferComponent.getbuffersize = BufferComponent.GetBufferSize
+
+BufferComponent.Copy = BufferComponent.copy
+
+--[Lifecycle] alias
+BufferComponent.Clear = BufferComponent.clear
+
+BufferComponent.ClearInstances = BufferComponent.clearInstances
+
+BufferComponent.ClearBuffer = BufferComponent.clearBuffer
+
+BufferComponent.Destroy = BufferComponent.Destroy
 ```
-
-Write a UDim as two f32 (Scale, Offset).
-
-----
-
-#### Writing UDim2
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(16)
-
-local pos = YourGui.Position -- This is a UDim2
-
-myBuffer:WriteUDim2(pos)
-```
-
-Write a UDim2 as four f32 (X.Scale, Y.Scale, X.Offset, Y.Offset).
-
-----
-
-#### Writing Color3
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(12)
-
-local color = Color3.new(1,1,1)
-
-myBuffer:WriteColor3(color)
-```
-
-Write a Color3 as three f32 (r, g, b).
-Values clamped to float32 range [0f,1f] typically already valid.
-
-----
-
-#### Writing Rect
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(32)
-
-local rect1 = Rect.new(Vector2.new(10, 10), Vector2.new(80, 80))
-
-myBuffer:WriteRect(rect1)
-```
-
-Write a Rect as two Vector2 (Min, Max) using f64.
-
-Relies on WriteVector2 to do the actual writing and offset increments.
-
-----
-
-#### Writing Region3
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(120)
-
-local region = Region3.new(
-    Vector3.new(0, 0, 0),
-    Vector3.new(20, 20, 20)
-)
-
-myBuffer:WriteRegion3(region)
-```
-
-Write a Region3 as CFrame + Size.
-
-Intended: CFrame (12 f64 = 96 bytes) + Vector3 (3 f64 = 24 bytes) = 120 bytes.
-
-----
-
-#### Writing Region3Int16
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(12)
-
-local region = Region3int16.new(
-    Vector3int16.new(0, 0, 0),
-    Vector3int16.new(50, 100, 50)
-)
-
-myBuffer:WriteRegion3int16(region)
-```
-
-Write a Region3int16 as two Vector3int16 (Max then Min).
-
-----
-
-#### Writing Vector (luau library)
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(24)
-
---the current vector library
-local vect = vector.create(10,1,1)
-
-myBuffer:WriteVector(vect) -- YOU CAN USE :WriteVector3() AS WELL
-```
-
-Write a vector with the 'vector' luau linenums="1" library 
-
-- 24 bytes total.
-
-----
-
-#### Writing Enum
-
-```luau linenums="1" linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(4)
-
-myBuffer:WriteEnum(Enum.KeyCode.A) -- or any enumItem you want
-```
-
-Writes an EnumItem to the buffer using a compact 4-byte format.
-	
-The enum is stored as:
-
-- 2 bytes (U16): Enum type ID
-- 2 bytes (U16): Enum item value
-
-----
-
-#### Writing RotationCurveKey
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(218)
-
-local key = RotationCurveKey.new(1.5, CFrame.new(), Enum.KeyInterpolationMode.Linear)
-myBuffer:WriteRotationCurveKey(key) -- Writes 104 bytes
-	
-local cubicKey = RotationCurveKey.new(2.0, CFrame.Angles(0, math.pi, 0), Enum.KeyInterpolationMode.Cubic)
-myBuffer:WriteRotationCurveKey(cubicKey) -- Writes 112 bytes with tangents
-```
-
-Writes a RotationCurveKey to the buffer with variable size based on interpolation mode.
-
-Total size:
-
-- 104 bytes for Linear/Constant interpolation
-- 112 bytes for Cubic interpolation (includes tangent data)
-
-!!! info
-    - Cubic interpolation requires additional storage for smooth curve tangents
-    - The tangent values control the curve's shape between keyframes
-
-----
-
-#### Writing FloatCurveKey
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(40)
-
-local key = FloatCurveKey.new(0.5, 1.25, Enum.KeyInterpolationMode.Linear)
-myBuffer:WriteFloatCurveKey(key) -- Writes 16 bytes
-	
-local cubicKey = FloatCurveKey.new(1.0, 2.5, Enum.KeyInterpolationMode.Cubic)
-cubicKey.LeftTangent = 0.5
-cubicKey.RightTangent = 0.5
-myBuffer:WriteFloatCurveKey(cubicKey) -- Writes 24 bytes with tangents
-```
-
-Write a FloatCurveKey to the buffer with variable size based on interpolation mode.
-
-Total size:
-
-- 16 bytes for Linear/Constant interpolation
-- 24 bytes for Cubic interpolation (includes tangent data)
-
-!!! info
-    - Value is stored as F64 for maximum precision in animation curves
-    - Tangents control the curve's acceleration/deceleration for smooth transitions
-
-----
-
-#### Writing ColorSequence
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(49)
-
-local gradient = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.new(1, 0, 0)),    -- Red at start
-	ColorSequenceKeypoint.new(0.5, Color3.new(0, 1, 0)),  -- Green at middle
-	ColorSequenceKeypoint.new(1, Color3.new(0, 0, 1))     -- Blue at end
-})
-myBuffer:WriteColorSequence(gradient) -- Writes 49 bytes (1 + 3*16)
-```
-
-Writes a ColorSequence to the buffer with all its keypoints.
-
-Total size: 1 + (16 * keypoint_count) bytes
-
-!!! info
-    - Color values are converted from Roblox's 0-1 range to 0-255 for storage
-    - Keypoints are written in their original order
-
-!!! warning
-    - Maximum 255 keypoints due to U8 count storage.
-
-----
-
-#### Writing NumberRange
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(8)
-
-Buffer:WriteNumberRange(NumberRange.new(0, 10))
-```
-
-Writes a NumberRange to the buffer using a compact 8-byte layout.
-
-!!! info
-    - Values are written as provided; no clamping or reordering is performed
-    - Uses F32 for both fields to keep the footprint small and consistent
-
-----
-
-#### Writing NumberSequence
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(37)
-
-local seq = NumberSequence.new({
-	NumberSequenceKeypoint.new(0.0, 0.0),
-	NumberSequenceKeypoint.new(0.5, 1.0, 0.25),
-	NumberSequenceKeypoint.new(1.0, 0.0),
-})
-
-myBuffer:WriteNumberSequence(seq)
-```
-
-Writes a NumberSequence to the buffer with all its keypoints.
-
-Total size: 1 + (12 * keypoint_count) bytes
-
-!!! info
-    - Envelope is written for every keypoint (0 if not used)
-    - Keypoints are written in their original order
-
-!!! warning
-    - Maximum of 255 keypoints due to U8 count storage.
-
-----
-
-### Custom Writing
-
-----
-
-#### WriteAs
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local myBuffer = Buffer.create(14)
-
---[[
-    For all string type please define the length at the end
-    or this will not work
-]]
-myBuffer:WriteAs("String","Hello World !!",14)
-```
-
-Write any target type to the buffer
-
-!!! warning
-    - Use specific Write functions when possible for better performance
-
-Params :
-
-- @param valueType: ValueType - Type of value to write
-- @param value: T - Value to write
-- @param __optionalParam: any? - Optional parameter (e.g. string length)
-
-----
-
-#### WriteArray
-
-```luau linenums="1"
-local Buffer = require(somewhere.Buffer)
-
-local my_buffer = Buffer.create(145)
-
-local schema = {
-	{Type =  "String",Length = 8},
-	"RotationCurveKey",
-	"ColorSequence"
-}
-
-local value = {
-	"Hello World !!", -- will be "Hello Wo" (limit to 8 characters)
-	RotationCurveKey.new(0,workspace.Baseplate.CFrame,Enum.KeyInterpolationMode.Linear),
-	ColorSequence.new({
-		ColorSequenceKeypoint.new(0,Color3.new(0,0,0)),
-		ColorSequenceKeypoint.new(1,Color3.new(1,1,1)),
-	})
-}
-
-my_buffer:WriteArray(schema,value)
-```
-
-Writes an array of typed values to the buffer.
-
-- @param array {ValueType} - Array of value types (e.g., "U8", "Float32", "String16")
-- @param value {T} - Array of corresponding values to write
-
-!!! info
-    For complex types (e.g String) please use the example above this function is different from `WriteAs`,
-
-    for String8 etc... you can use the normal way this only apply for `undefined-string length`.
-
-    Also note that the order is important.
