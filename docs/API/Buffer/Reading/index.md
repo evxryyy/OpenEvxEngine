@@ -997,3 +997,44 @@ Params :
 
 - @param valueType: ValueType - Type of value to read
 - @param param: optional_param - Optional parameters (Offset, OptionalParam for string length)
+
+----
+
+### ReadArray
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+
+local my_buffer = Buffer.create(145)
+
+local schema = {
+	{Type =  "String",Length = 8},
+	"RotationCurveKey",
+	"ColorSequence"
+}
+
+local value = {
+	"Hello World !!", -- will be "Hello Wo" (limit to 8 characters)
+	RotationCurveKey.new(0,workspace.Baseplate.CFrame,Enum.KeyInterpolationMode.Linear),
+	ColorSequence.new({
+		ColorSequenceKeypoint.new(0,Color3.new(0,0,0)),
+		ColorSequenceKeypoint.new(1,Color3.new(1,1,1)),
+	})
+}
+
+my_buffer:WriteArray(schema,value)
+
+print(my_buffer:ReadArray(schema,0))  --> return expected array
+```
+
+Reads an array of typed values from the buffer.
+
+Reads each value according to its specified type and returns them in order.
+
+- @param array {ValueType} - Array of value types to read (e.g., "UInt8", "String16")
+- @param offset number? - Optional starting offset (defaults to current offset)
+- @return {any} - Array of read values in the same order as input types
+
+!!! info
+    See WriteArray for more informations.
