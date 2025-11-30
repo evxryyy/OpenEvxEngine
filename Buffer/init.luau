@@ -1,5 +1,3 @@
---!nonstrict
-
 --[[
     Author: evxry_ll
 
@@ -234,6 +232,8 @@ function BufferConstructor.Serialize<T>(Schema : BufferSchema,Values :  {[string
 			-- Right-pad with char(31) to reach exact fixed length
 			if(#value < fieldType.Length) then
 				value = value .. string.rep(string.char(31),fieldType.Length - #copiedValues[field])
+			elseif(#value > fieldType.Length) then
+				value = string.sub(value :: string,1,fieldType.Length)
 			end
 			-- Dispatch to the correct writer via __call (e.g., "String")
 			component(fieldType.Type,value)
@@ -2352,6 +2352,86 @@ function BufferComponent.WriteAs<T>(self : BufferComponentClass, valueType : Val
 	self.__call(self, valueType, value, __optionalParam)
 end
 
+--[[
+	Writes an array of typed values to the buffer.
+	
+	@param array {ValueType} - Array of value types (e.g., "U8", "Float32", "String16")
+	@param value {T} - Array of corresponding values to write
+	
+	@example
+		local types = {"U8", "Float64", "String16"}
+		local values = {255, 3.14, "Hello"}
+		bufferComponent:WriteArray(types, values)
+		
+	@since v2.9
+]]
+function BufferComponent.WriteArray<T>(self : BufferComponentClass, array : {ValueType}, value : {T})
+	-- Validate input parameters
+	assert(typeof(array) == "table", "array must be a table")
+	assert(typeof(value) == "table", "value must be a table")
+	local copied_value = table.clone(value)
+	local length = #array
+	-- Calculate the total number of bytes required for the array
+	local bytes = Utils.GetRequiredBytes(array,value)
+	
+	-- First pass: Added or sub strings out of limit
+	for i, v : ValueType in array do
+		if(copied_value[i] == nil) then continue end -- Skip nil values
+		-- Check if the type is a complex type and handle it if its not in a table
+		if(type(v) ~= "table" and ValidComplexType[v]) then
+			local failed = Debug["not valid type for complex schema"]
+			failed = failed .. ("%s"):format(debug.info(1,"n"))
+			error(failed, 2)
+		end
+		-- Handle complex types (e.g. String)
+		if(type(v) == "table" and ValidComplexType[v.Type]) then
+			if(#value[i] < v.Length) then
+				copied_value[i] = copied_value[i] .. string.rep(string.char(31),(tonumber(v.Length) :: number) - #copied_value[i])
+			elseif(#value[i] > v.Length) then
+				copied_value[i] = string.sub(copied_value[i] :: string,1,v.Length)
+			end
+			continue
+		end 
+		-- Check for special types with custom bit sizes
+		local stringBits = (v :: string):match("^String(%d+)$")
+		if(stringBits) then
+			copied_value[i] = copied_value[i] .. string.rep(string.char(31),(tonumber(stringBits) :: number) - #copied_value[i])
+		end
+	end
+
+	-- Validate buffer has enough space
+	local remaining = buffer.len(self.buffer) - self.offset
+	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
+	if(not hasValidSpace) then
+		warn(Debug["not enough space"]:format(bytes, string.sub(debug.info(1, "n"), 6)))
+		return -- Abort if insufficient space
+	end
+
+	-- Second pass: Write all values to buffer
+	for i, v : ValueType in array do
+		if(copied_value[i] == nil) then continue end -- Skip nil values
+
+		-- Handle complex type
+		if(type(v) == "table" and ValidComplexType[v.Type]) then
+			v = (v.Type :: string)
+		end
+
+		-- Handle String types specially (requires length parameter)
+		local stringBits = (v :: string):match("^String(%d+)$")
+		if(stringBits) then
+			self:__call(v, copied_value[i], #copied_value[i]) -- Pass string length
+			continue
+		end
+
+		-- Write standard types
+		self:__call(v, copied_value[i])
+	end
+	
+	-- Garbage copied table for values
+	table.clear(copied_value)
+	copied_value = nil
+end
+
 -->-----------------------READER-----------------------------<--
 
 --[[
@@ -3762,9 +3842,9 @@ function BufferComponent.ReadAs<T>(self : BufferComponentClass, valueType : Valu
 		return self:ReadVector(param.Offset or self.offset)
 	end
 
-	local boolBits = valueType:match("^Boolean(%d+)$")
-	local floatBits = valueType:match("^Float(%d+)$")
-	local stringBits = valueType:match("^String(%d+)$")
+	local boolBits = (valueType :: string):match("^Boolean(%d+)$")
+	local floatBits = (valueType :: string):match("^Float(%d+)$")
+	local stringBits = (valueType :: string):match("^String(%d+)$")
 
 	if boolBits then
 		return self["ReadBool"..boolBits](self, param.Offset or self.offset)
@@ -3779,6 +3859,79 @@ function BufferComponent.ReadAs<T>(self : BufferComponentClass, valueType : Valu
 	end
 
 	return self["Read"..valueType](self, param.Offset or self.offset)
+end
+
+--[[
+	Reads an array of typed values from the buffer.
+	
+	Reads each value according to its specified type and returns them in order.
+	Supports complex types, strings with custom sizes, and standard types.
+	
+	@param array {ValueType} - Array of value types to read (e.g., "UInt8", "String16")
+	@param offset number? - Optional starting offset (defaults to current offset)
+	@return {any} - Array of read values in the same order as input types
+	
+	@example
+		local types = {"UInt8", "Float64", "String16"}
+		local values = bufferComponent:ReadArray(types)
+		-- values = {255, 3.14, "Hello"}
+		
+	@since v2.9
+]]
+function BufferComponent.ReadArray(self : BufferComponentClass, array : {ValueType}, offset : number?)
+	-- Validate input parameter
+	assert(type(array) == "table", "array must be a table")
+
+	-- Use provided offset or current buffer offset
+	local offset = offset or self.offset
+	local values = {}
+
+	-- Iterate through each type and read corresponding value
+	for i, v in array do
+		local value;
+
+		-- Handle complex types (e.g., custom structures)
+		if(type(v) == "table" and ValidComplexType[v.Type]) then
+			local length = v.Length :: number
+			value = self:ReadAs(v.Type, {
+				Offset = offset,
+				OptionalParam = length
+			})
+			-- Remove null terminators from complex type values
+			value = string.gsub(value, string.char(31), "")
+			table.insert(values, value)
+			offset += length
+			continue
+		end
+
+		-- Handle String types with custom bit sizes
+		local stringsBits = (v :: string):match("^String(%d+)$")
+		if(stringsBits) then
+			local len = tonumber(stringsBits)
+			value = self:ReadAs(v, {
+				Offset = offset,
+				OptionalParam = stringsBits
+			})
+			-- Remove null terminators from string
+			value = string.gsub(value, string.char(31), "")
+			table.insert(values, value)
+			offset += len
+			continue
+		end
+
+		-- Handle standard types (U8, I32, F64, etc.)
+		value = self:ReadAs(v, {
+			Offset = offset
+		})
+		table.insert(values, value)
+
+		-- Update offset based on type's required bytes (dynamic or static)
+		offset += (type(Constants.REQUIRED_BYTES[v]) == "function") 
+			and Constants.REQUIRED_BYTES[v](value) 
+			or Constants.REQUIRED_BYTES[v]
+	end
+
+	return values
 end
 
 -->-----------------------Cursor/Buffer/Signals-----------------------------<--
@@ -4147,6 +4300,9 @@ BufferComponent.writeNumberSequence = BufferComponent.WriteNumberSequence
 --[Custom Writer] alias
 BufferComponent.writeAs = BufferComponent.WriteAs
 
+BufferComponent.writeArray = BufferComponent.WriteArray
+BufferComponent.writearray = BufferComponent.WriteArray
+
 --[Reader] signed interger alias
 BufferComponent.readI1 = BufferComponent.ReadI1
 BufferComponent.readi1 = BufferComponent.ReadI1
@@ -4283,6 +4439,9 @@ BufferComponent.readNumberSequence = BufferComponent.ReadNumberSequence
 
 --[Custom Read] alias
 BufferComponent.readAs = BufferComponent.ReadAs
+
+BufferComponent.readArray = BufferComponent.ReadArray
+BufferComponent.readarray = BufferComponent.ReadArray
 
 --[Signals] alias
 BufferComponent.onOffsetChanged = BufferComponent.OnOffsetChanged
