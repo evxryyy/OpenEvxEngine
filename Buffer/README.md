@@ -4,6 +4,14 @@
 
 ## Logs
 
+Version : 2.9
+- Added `WriteArray` and `ReadArray` alias for them is also added (SEE API).
+- Fixed a bug where Serializing and Deserializing with a complex type was causing issues.
+- removed `--nonstrict` (i completly forgot about this one)
+- Fixed bugs with the new luau type solver.
+
+----
+
 Version : 2.8.1
 - Fix the spelling errors in the `Debug` module.
 
