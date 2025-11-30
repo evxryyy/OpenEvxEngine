@@ -4,6 +4,11 @@
 
 ## Logs
 
+Version : 1.3.1
+- Fixed a type-cast bug for `Socket.Server.Remote:FireAll`
+
+----
+
 Version : 1.3
 - Added `Socket.Function.InvokeAll` (See API).
 - Added `Socket.Remote.FireAll` and `Socket.UnreliableRemote.FireAll` (See API).
