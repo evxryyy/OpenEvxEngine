@@ -105,7 +105,7 @@ end
  	
  	<strong>@param ValueSchema</strong> : Data to send to all clients (must match Schema structure)
 ]]
-function SocketRemote.FireAll<T...>(self : SocketRemote<T...>,values : Buffer.BufferSchemaValue)
+function SocketRemote.FireAll<T...>(self : SocketRemoteComponent<T...>,values : Buffer.BufferSchemaValue)
 	-- Default to empty table if no data provided
 	if(type(values) ~= "table") then values = {} end
 	--If 0 zero data is intended then we fire nil instead of the serialized buffer
