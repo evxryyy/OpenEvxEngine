@@ -895,3 +895,42 @@ Params :
 - @param valueType: ValueType - Type of value to write
 - @param value: T - Value to write
 - @param __optionalParam: any? - Optional parameter (e.g. string length)
+
+----
+
+#### WriteArray
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local my_buffer = Buffer.create(145)
+
+local schema = {
+	{Type =  "String",Length = 8},
+	"RotationCurveKey",
+	"ColorSequence"
+}
+
+local value = {
+	"Hello World !!", -- will be "Hello Wo" (limit to 8 characters)
+	RotationCurveKey.new(0,workspace.Baseplate.CFrame,Enum.KeyInterpolationMode.Linear),
+	ColorSequence.new({
+		ColorSequenceKeypoint.new(0,Color3.new(0,0,0)),
+		ColorSequenceKeypoint.new(1,Color3.new(1,1,1)),
+	})
+}
+
+my_buffer:WriteArray(schema,value)
+```
+
+Writes an array of typed values to the buffer.
+
+- @param array {ValueType} - Array of value types (e.g., "U8", "Float32", "String16")
+- @param value {T} - Array of corresponding values to write
+
+!!! info
+    For complex types (e.g String) please use the example above this function is different from `WriteAs`,
+
+    for String8 etc... you can use the normal way this only apply for `undefined-string length`.
+
+    Also note that the order is important.
