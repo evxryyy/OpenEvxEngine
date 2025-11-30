@@ -12,7 +12,7 @@ Features
 
 ## Version
 
-### [Socket V1.3](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer-network)
+### [Socket V1.3.1](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer-network)
 
 ----
 
@@ -46,3 +46,4 @@ will be placed. Please note that these characters are automatically removed duri
 so your data will NOT be impacted unless you put this character in the string itself.
 
 ----
+
