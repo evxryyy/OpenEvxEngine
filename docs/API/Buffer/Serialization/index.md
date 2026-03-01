@@ -394,3 +394,4 @@ and buffer pair.
 | RotationCurveKey | 104 or 112 `(if you use KeyInterpoliationMode.Cubic)`      | 
 |  ColorSequence   | 1 + 16 * number of `ColorSequenceKeypoint`                 | 
 |  NumberSequence  | 1 + 12 * number of `NumberSequenceKeypoint`                | 
+|      Array       | Depends on Array size                                      |
