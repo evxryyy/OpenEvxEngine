@@ -7,7 +7,7 @@ gamepad, and mouse input with dynamic switching capabilities.
 
 ## Version
 
-### [UserInput V1.4](https://github.com/evxryyy/OpenEvxEngine/releases/tag/script)
+### [UserInput V1.5](https://github.com/evxryyy/OpenEvxEngine/releases/tag/script)
 
 ## InputType
 
