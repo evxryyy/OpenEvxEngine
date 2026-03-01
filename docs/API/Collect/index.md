@@ -1,4 +1,4 @@
-﻿## Getting Started
+## Getting Started
 
 Collect: A garbage collection/cleanup utility module
 
@@ -8,6 +8,6 @@ Manages and cleans up various types of resources (connections, instances, thread
 
 ## Version
 
-### [Collect V1.2](https://github.com/evxryyy/OpenEvxEngine/releases/tag/garbage)
+### [Collect V1.3](https://github.com/evxryyy/OpenEvxEngine/releases/tag/garbage)
 
 ----
