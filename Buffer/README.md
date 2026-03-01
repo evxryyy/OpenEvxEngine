@@ -4,6 +4,13 @@
 
 ## Logs
 
+Version : 3.0
+- Added `EnabledAutoAllocation` and `DisabledAutoAllocation`
+- Added Syntax Sugar added for all write function's (e.g return self on every `:Write(...)`)
+- `Array` can now be Serialized with `Serialized` function.
+
+----
+
 Version : 2.9
 - Added `WriteArray` and `ReadArray` alias for them is also added (SEE API).
 - Fixed a bug where Serializing and Deserializing with a complex type was causing issues.
