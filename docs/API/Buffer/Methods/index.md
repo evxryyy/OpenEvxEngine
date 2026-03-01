@@ -341,6 +341,26 @@ The buffer offset will be set to 0.
 
 ----
 
+### EnableAutoAllocate
+
+```luau linenums="1"
+my_buffer:EnableAutoAllocate()
+```
+
+Ignore All allocation errors and performs auto allocation when needed
+
+----
+
+### DisableAutoAllocate
+
+```luau linenums="1"
+my_buffer:DisableAutoAllocate()
+```
+
+Enabled back All allocation errors and does no longer performs auto allocation when needed
+
+----
+
 ### DisconnectAllSignals
 
 ```luau linenums="1"
