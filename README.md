@@ -20,7 +20,6 @@
   - Collect (Improved garbage collection/cleanup utility module)
   - Enum (System for creating and managing enums)
   - Option (Implements the Option type pattern)
-  - ConnectionStore (Store RBXScriptConnection or threads)
 
 ## Description
 
