@@ -95,6 +95,12 @@ export type UserInputComponent = typeof(setmetatable({} :: {
 	MovedSignal: SignalStruct?,      -- Fired when mouse position changes
 	-- Function reference for input type observer cleanup
 	InputObserver: (() -> ())?,
+	-- Boolean to detect if is enabled or not
+	Enabled: boolean,
+	-- GuiObject to detect if the input already have a binded gui
+	HasGui : GuiObject,
+	-- Connection to GuiObject:GetPropertyChangedSignal("Visible")
+	__StoreGuiVisibilityConnection : RBXScriptConnection?,
 }, Component))
 
 --[[
@@ -129,6 +135,9 @@ function UserInput.new(config: UserInputConfiguration?): UserInputComponent
 		KeyPressed = Signal.new(),
 		KeyReleased = Signal.new(),
 		InputObserver = false,
+		Enabled = true,
+		HasGui = "Undefined",
+		__StoreGuiVisibilityConnection = "Undefined",
 	}, Component)
 	-- Initialize mouse-specific signals if InputType is Mouse
 	if config and config.InputType == "Mouse" then
@@ -154,6 +163,7 @@ function Component.__setUpInputStructKeyPressed(self: UserInputComponent)
 		return self.inputStruct.KeyDown:Connect(function(key: Enum.KeyCode, wasProcessed: boolean)
 			if wasProcessed then return end  -- Ignore GUI-processed input
 			if not table.find(self.KeysRegistered, key) then return end
+			if(not self.Enabled) then return end
 			self.KeyPressed:Fire(key)
 		end)
 		-- Gamepad input handling
@@ -161,6 +171,7 @@ function Component.__setUpInputStructKeyPressed(self: UserInputComponent)
 		return self.inputStruct.ButtonDown:Connect(function(keycode: Enum.KeyCode, processed: boolean)
 			if processed then return end  -- Ignore processed input
 			if not table.find(self.KeysRegistered, keycode) then return end
+			if(not self.Enabled) then return end
 			self.KeyPressed:Fire(keycode)
 		end)
 		-- Mouse input handling
@@ -168,29 +179,34 @@ function Component.__setUpInputStructKeyPressed(self: UserInputComponent)
 		-- Left mouse button press
 		local lDown = self.inputStruct.LeftDown:Connect(function()
 			if not table.find(self.KeysRegistered, Enum.UserInputType.MouseButton1) then return end
+			if(not self.Enabled) then return end
 			self.KeyPressed:Fire(Enum.UserInputType.MouseButton1)
 		end)
 		-- Right mouse button press
 		local rDown = self.inputStruct.RightDown:Connect(function()
 			if not table.find(self.KeysRegistered, Enum.UserInputType.MouseButton2) then return end
+			if(not self.Enabled) then return end
 			self.KeyPressed:Fire(Enum.UserInputType.MouseButton2)
 		end)
 		-- Middle mouse button press
 		local mDown = self.inputStruct.MiddleDown:Connect(function()
 			if not table.find(self.KeysRegistered, Enum.UserInputType.MouseButton3) then return end
 			if self.MiddlePressed then
+				if(not self.Enabled) then return end
 				self.MiddlePressed:Fire(Enum.UserInputType.MouseButton3)
 			end
 		end)
 		-- Mouse wheel scroll
 		local scrolled = self.inputStruct.Scrolled:Connect(function(z: number)
 			if self.ScrolledSignal then
+				if(not self.Enabled) then return end
 				self.ScrolledSignal:Fire(z)
 			end
 		end)
 		-- Mouse movement
 		local moved = self.inputStruct.Moved:Connect(function(vector: Vector2)
 			if self.MovedSignal then
+				if(not self.Enabled) then return end
 				self.MovedSignal:Fire(vector)
 			end
 		end)
@@ -208,12 +224,14 @@ function Component.__setUpInputStructKeyReleased(self: UserInputComponent)
 	if self.inputStruct.KeyUp then
 		return self.inputStruct.KeyUp:Connect(function(key: Enum.KeyCode)
 			if not table.find(self.KeysRegistered, key) then return end
+			if(not self.Enabled) then return end
 			self.KeyReleased:Fire(key)
 		end)
 		-- Gamepad input handling
 	elseif self.inputStruct.ButtonUp then
 		return self.inputStruct.ButtonUp:Connect(function(keycode: Enum.KeyCode)
 			if not table.find(self.KeysRegistered, keycode) then return end
+			if(not self.Enabled) then return end
 			self.KeyReleased:Fire(keycode)
 		end)
 		-- Mouse input handling
@@ -221,17 +239,20 @@ function Component.__setUpInputStructKeyReleased(self: UserInputComponent)
 		-- Left mouse button release
 		local lUp = self.inputStruct.LeftUp:Connect(function()
 			if not table.find(self.KeysRegistered, Enum.UserInputType.MouseButton1) then return end
+			if(not self.Enabled) then return end
 			self.KeyReleased:Fire(Enum.UserInputType.MouseButton1)
 		end)
 		-- Right mouse button release
 		local rUp = self.inputStruct.RightUp:Connect(function()
 			if not table.find(self.KeysRegistered, Enum.UserInputType.MouseButton2) then return end
+			if(not self.Enabled) then return end
 			self.KeyReleased:Fire(Enum.UserInputType.MouseButton2)
 		end)
 		-- Middle mouse button release
 		local mUp = self.inputStruct.MiddleUp:Connect(function()
 			if not table.find(self.KeysRegistered, Enum.UserInputType.MouseButton3) then return end
 			if self.MiddleReleased then
+				if(not self.Enabled) then return end
 				self.MiddleReleased:Fire(Enum.UserInputType.MouseButton3)
 			end
 		end)
@@ -432,6 +453,55 @@ function Component.Moved(self: UserInputComponent, callback: (pos: Vector2) -> (
 end
 
 --[[
+	Allow you to disable InputsComponent from firing events when the gui visibility changes
+	
+	examples:
+		- false = input disabled
+		- true = input enabled
+		
+	this allow to bind only 1 gui if you try to change it the old one will be disconnected and removed and-
+	the InputComponent will no longer depend on the old one.
+		
+	@param Gui : GuiObject - Gui object to bind to
+]]
+function Component.BindToGuiVisiblity(self : UserInputComponent, Gui : GuiObject)
+	if not Gui then return end
+	if(type(self.HasGui) ~= "string") then
+		self.__StoreGuiVisibilityConnection:Disconnect()
+		self.HasGui = "Undefined"
+	end
+	self.HasGui = Gui
+	local function updateVisibility(...)
+		local guiState : boolean = Gui.Visible
+		if guiState then self:Enable() else self:Disable()end
+	end
+	self.__StoreGuiVisibilityConnection = Gui:GetPropertyChangedSignal("Visible"):Connect(updateVisibility)
+end
+
+--[[
+	Allow you to see if the InputComponent is binded to a gui
+	
+	@return boolean
+]]
+function Component.HasGui(self : UserInputComponent) : boolean
+	return type(self.HasGui) ~= "string"
+end
+
+--[[
+	Enables the UserInputComponent and all of its signals
+]]
+function Component.Enable(self: UserInputComponent)
+	self.Enabled = true
+end
+
+--[[
+	Disables the UserInputComponent and all of its signals (they are not disconnected !)
+]]
+function Component.Disable(self : UserInputComponent)
+	self.Enabled = false
+end
+
+--[[
 	MOUSE ONLY - Disconnects all middle mouse button release callbacks
 ]]
 function Component.DisconnectMiddleUpSignal(self: UserInputComponent)
@@ -562,6 +632,10 @@ Component.disconnectall = Component.DisconnectAll
 Component.observe = Component.Observe
 Component.getInputType = Component.GetInputType
 Component.destroy = Component.Destroy
+Component.bindToGuiVisibility = Component.BindToGuiVisibility
+Component.enable = Component.Enable
+Component.disable = Component.Disable
+Component.hasGui = Component.HasGui
 
 -- Additional aliases for complete coverage
 Component.Changekey = Component.ChangeKey
