@@ -4,6 +4,12 @@
 
 ## Logs
 
+Version : 1.3
+- Added `IsEmpty` to see if the task list is empty
+- Added `LinkToInstance` allow to change the logic of the life cycle
+- Removed all "RemoveAll..." function expect "RemoveAll"
+- Removed all "FindAll..." function
+
 Version : 1.2
 - Fixed a bug where RBXScriptConnection causing error on calling :RemoveAll and :Remove
 - Now on every :Remove function then `clean` argument is optional and is true by default. 
