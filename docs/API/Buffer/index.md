@@ -14,7 +14,7 @@ as well as some utilities like Buffer.Enum, Buffer.Constants, and Buffer.Utils.
 
 ## Version
 
-### [Buffer V2.9](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
+### [Buffer V3.0](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
 
 ----
 
