@@ -1,4 +1,4 @@
-﻿## Getting Started
+## Getting Started
 
 All information for each function will be explained here.
 
@@ -74,106 +74,6 @@ Finds an item in the tracked list
 
 ----
 
-### Collect:FindAllFunc()
-
-```luau linenums="1"
-local Collect = require(somewhere.Collect)
-
-local garbage = Collect.new()
-
-garbage:Add(function()
-	print("cleaning")
-end)
-
-print(garbage:FindAllFunc()) -> {function}
-```
-
-Returns all tracked functions
-
-- @return: Array of function items
-
-----
-
-### Collect:FindAllSignal()
-
-```luau linenums="1"
-local Collect = require(somewhere.Collect)
-
-local garbage = Collect.new()
-
-garbage:Add(workspace.Baseplate.Changed:Connect(callback))
-
-print(garbage:FindAllSignal()) -> {RBXScriptConnection}
-```
-
-Returns all tracked connections (RBXScriptConnections)
-
-- @return: Array of connection items
-
-----
-
-### Collect:FindAllConstructor()
-
-```luau linenums="1"
-local Collect = require(somewhere.Collect)
-
-local garbage = Collect.new()
-
-local class = {
-	Destroy = function()
-		print("cleaning...")
-	end
-}
-
-garbage:Add(class) --> for constructor with the .new method use :Construct(your_constructor)
-
-print(garbage:FindAllConstructor()) -> {ClassLike}
-```
-
-Returns all tracked objects with cleanup methods (custom classes)
-
-- @return: Array of objects with cleanup methods
-
-----
-
-### Collect:FindAllInstance()
-
-```luau linenums="1"
-local Collect = require(somewhere.Collect)
-
-local garbage = Collect.new()
-
-garbage:Add(workspace.Part)
-
-print(garbage:FindAllInstance()) -> {Instance}
-```
-
-Returns all tracked Roblox instances
-
-- @return: Array of Instance objects
-
-----
-
-### Collect:FindAllThread()
-
-```luau linenums="1"
-local Collect = require(somewhere.Collect)
-
-local garbage = Collect.new()
-
-garbage:Add(task.spawn(function() --> you can use coroutine but it must return a thread.
-	print("my thread")
-end))
-
-print(garbage:FindAllThread()) -> {Thread}
-```
-
-Returns all tracked threads
-
-- @return: Array of thread objects
-
-----
-
 ### Collect:RemoveAll()
 
 ```luau linenums="1"
@@ -199,103 +99,25 @@ Removes all tracked items
 
 ----
 
-### Collect:RemoveAllSignal()
+### Collect:IsEmpty()
 
 ```luau linenums="1"
-local Collect = require(somewhere.Collect)
-
-local garbage = Collect.new()
-
-garbage:Add(workspace.Baseplate.Change:Connect(callback))
-
-garbage:RemoveAllSignal()
+local isEmpty = Component:IsEmpty()
 ```
 
-Removes all connections from tracking
-
-- @param clean (optional default true) : If true, disconnects all connections
+Check if current list of tasks is empty
+@return: True if the component has no tasks, false otherwise
 
 ----
 
-### Collect:RemoveAllFunc()
+### Collect:LinkToInstance()
 
 ```luau linenums="1"
-local Collect = require(somewhere.Collect)
-
-local garbage = Collect.new()
-
-garbage:Add(function(...)
-	print(...)
-end)
-
-garbage:RemoveAllFunc()
+self = Component:LinkToInstance(Instance)
 ```
 
-Removes all functions from tracking
-
-- @param clean: If true, calls all function
-- @param ...: Arguments passed to functions
-
-----
-
-### Collect:RemoveAllConstructor()
-
-```luau linenums="1"
-local Collect = require(somewhere.Collect)
-
-local garbage = Collect.new()
-
-local class = {
-	Destroy = function()
-		print("cleaning")
-	end
-}
-
-garbage:Add(class)
-
-garbage:RemoveAllConstructor(true,...) --> if true it will call .Destroy
-```
-
-Removes all objects with cleanup methods from tracking
-
-- @param clean (optional default true) : If true, calls cleanup methods
-- @param ...: Arguments passed to cleanup methods
-
-----
-
-### Collect:RemoveAllInstance()
-
-```luau linenums="1"
-local Collect = require(somewhere.Collect)
-
-local garbage = Collect.new()
-
-garbage:Add(workspace.Part)
-
-garbage:RemoveAllInstance()
-```
-
-Removes all Roblox instances from tracking
-
-- @param clean (optional default true) : If true, destroys all instances
-
-----
-
-### Collect:RemoveAllThread()
-
-```luau linenums="1"
-local Collect = require(somewhere.Collect)
-
-local garbage = Collect.new()
-
-garbage:Add(your_thread)
-
-garbage:RemoveAllThread()
-```
-
-Removes all threads from tracking
-
-- @param clean (optional default true) : If true, cancels all threads
+Transfer the current life cycle of the component to the new object.
+for example if the object is destroyed the component will also be destroyed.
 
 ----
 
@@ -413,17 +235,7 @@ Constructor.New = Constructor.new
 Component.add = Component.Add
 Component.remove = Component.Remove
 Component.removeAll = Component.RemoveAll
-Component.removeAllFunc = Component.RemoveAllFunc
-Component.removeAllSignal = Component.RemoveAllSignal
-Component.removeAllThread = Component.RemoveAllThread
-Component.removeAllInstance = Component.RemoveAllInstance
-Component.removeAllConstructor = Component.RemoveAllConstructor
 Component.find = Component.Find
-Component.findAllFunc = Component.FindAllFunc
-Component.findAllSignal = Component.FindAllSignal
-Component.findAllThread = Component.FindAllThread
-Component.findAllInstance = Component.FindAllInstance
-Component.findAllConstructor = Component.FindAllConstructor
 Component.construct = Component.Construct
 Component.extend = Component.Extend
 Component.merge = Component.Merge
@@ -431,4 +243,6 @@ Component.clean = Component.Clean
 Component.destroy = Component.Clean
 Component.Destroy = Component.Clean
 Component.wrapClean = Component.WrapClean
+Component.isEmpty = Component.IsEmpty
+Component.link = Component.LinkToInstance
 ```
