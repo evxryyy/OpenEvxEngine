@@ -109,6 +109,48 @@ Remove specific keys from the registered set
 
 ----
 
+### UserInput:BindToGuiVisibility
+
+```luau linenums="1"
+InputComponent:BindToGuiVisibility(GuiObject)
+```
+
+Allow you to disable InputsComponent from firing events when the gui visibility changes
+	
+examples:
+
+- false = input disabled
+- true = input enabled
+		
+this allow to bind only 1 gui if you try to change it the old one will be disconnected and removed and-
+the InputComponent will no longer depend on the old one.
+		
+@param Gui : GuiObject - Gui object to bind to
+
+----
+
+### UserInput:HasGui
+
+```luau linenums="1"
+local bool = InputComponent:HasGui()
+```
+
+Allow you to see if the InputComponent is binded to a gui
+	
+@return boolean
+
+----
+
+### UserInput:Enable
+
+Enables the UserInputComponent and all of its signals
+
+### UserInput:Disable
+
+Disables the UserInputComponent and all of its signals (they are not disconnected !)
+
+----
+
 ### UserInput:Disconnect
 
 !!! Note
