@@ -14,7 +14,6 @@ export type ExecutableList = {
 -- Union type of all cleanable resource types
 type Executable = CallbackLike 
 | ConnectionLike 
-| PromiseLike 
 | MetatableLike 
 | Instance
 | thread
@@ -26,13 +25,6 @@ type CallbackLike = () -> ()
 type ConnectionLike = {
 	Disconnect : () -> (),
 	Connected : boolean,
-}
-
--- Promise-like object type (for future implementation)
-type PromiseLike = {
-	getStatus : (self: PromiseLike) -> "Started" | "Resolved" | "Rejected" | "Cancelled",
-	finally : (self: PromiseLike, callback: (...any) -> ...any) -> PromiseLike,
-	cancel : (self : PromiseLike) -> (),
 }
 
 -- Type for objects with metatables (custom classes)
@@ -210,169 +202,6 @@ function Component.RemoveAll<R,T...>(self : CollectComponent<T...>,clean : boole
 	table.clear(tasks)
 end
 
--- Returns all tracked functions
--- @return: Array of function items
-function Component.FindAllFunc<T...>(self : CollectComponent<T...>) : {() -> ()}
-	local tasks = self._task
-	local result = {}
-	for index,value in pairs(tasks) do
-		if(typeof(value.Item) == "function") then
-			table.insert(result,value.Item)
-		end
-	end
-	return result
-end
-
--- Returns all tracked connections (RBXScriptConnections)
--- @return: Array of connection items
-function Component.FindAllSignal<T...>(self : CollectComponent<T...>) : {ConnectionLike}
-	local tasks = self._task
-	local result = {}
-	for index,value in pairs(tasks) do
-		if(typeof(value.Item) == "RBXScriptConnection") then
-			table.insert(result,value.Item :: any)
-		end
-	end
-	return result
-end
-
--- Returns all tracked objects with cleanup methods (custom classes)
--- @return: Array of objects with cleanup methods
-function Component.FindAllConstructor<T...>(self : CollectComponent<T...>) : {MetatableLike}
-	local tasks = self._task
-	local result = {}
-	for index,value in pairs(tasks) do
-		if(typeof(value.Item) == "table" and value.CleanupMethod) then
-			table.insert(result,value.Item)
-		end
-	end
-	return result
-end
-
--- Returns all tracked Roblox instances
--- @return: Array of Instance objects
-function Component.FindAllInstance<T...>(self : CollectComponent<T...>) : {Instance}
-	local tasks = self._task
-	local result = {}
-	for index,value in pairs(tasks) do
-		if(typeof(value.Item) == "Instance") then
-			table.insert(result,value.Item)
-		end
-	end
-	return result
-end
-
--- Returns all tracked threads
--- @return: Array of thread objects
-function Component.FindAllThread<T...>(self : CollectComponent<T...>) : {thread}
-	local tasks = self._task
-	local result = {}
-	for index,value in pairs(tasks) do
-		if(typeof(value.Item) == "thread") then
-			table.insert(result,value.Item)
-		end
-	end
-	return result
-end
-
--- Removes all connections from tracking
--- @param clean: If true, disconnects all connections
-function Component.RemoveAllSignal<T...>(self : CollectComponent<T...>,clean : boolean?)
-	if(self._cleaning) then return end
-	local tasks = self._task
-	if #tasks == 0 then return end
-	-- Collect indices to remove
-	local removeIndices = {}
-	for i = 1, #tasks do
-		local value = tasks[i]
-		if typeof(value.Item) == "RBXScriptConnection" then
-			if clean then value.Item:Disconnect() end
-			table.insert(removeIndices, i)
-		end
-	end
-	-- Remove in reverse order to maintain indices
-	for i = #removeIndices, 1, -1 do
-		table.remove(tasks, removeIndices[i])
-	end
-end
-
--- Removes all functions from tracking
--- @param clean: If true, calls all functions
--- @param ...: Arguments passed to functions
-function Component.RemoveAllFunc<R,T...>(self : CollectComponent<T...>,clean : boolean?,... : R)
-	if(self._cleaning) then return end
-	local tasks = self._task
-	if #tasks == 0 then return end
-	local removeIndices = {}
-	for i = 1, #tasks do
-		local value = tasks[i]
-		if typeof(value.Item) == "function" then
-			if clean or type(clean) == "nil" then value.Item(...) end
-			table.insert(removeIndices, i)
-		end
-	end
-	for i = #removeIndices, 1, -1 do
-		table.remove(tasks, removeIndices[i])
-	end
-end
-
--- Removes all objects with cleanup methods from tracking
--- @param clean: If true, calls cleanup methods
--- @param ...: Arguments passed to cleanup methods
-function Component.RemoveAllConstructor<R,T...>(self : CollectComponent<T...>,clean : boolean?,... : R)
-	if(self._cleaning) then return end
-	local tasks = self._task
-	if #tasks == 0 then return end
-	local removeIndices = {}
-	for i = 1, #tasks do
-		local value = tasks[i]
-		if typeof(value.Item) == "table" and value.CleanupMethod then
-			if clean or type(clean) == "nil" then (value.Item :: any)[value.CleanupMethod](value.Item, ...) end
-			table.insert(removeIndices, i)
-		end
-	end
-	for i = #removeIndices, 1, -1 do
-		table.remove(tasks, removeIndices[i])
-	end
-end
-
--- Removes all Roblox instances from tracking
--- @param clean: If true, destroys all instances
-function Component.RemoveAllInstance<T...>(self : CollectComponent<T...>,clean : boolean?)
-	if(self._cleaning) then return end
-	local tasks = self._task
-	local removeIndices = {}
-	for i = 1, #tasks do
-		local value = tasks[i]
-		if typeof(value.Item) == "Instance" then
-			if clean or type(clean) == "nil" then value.Item:Destroy() end
-			table.insert(removeIndices, i)
-		end
-	end
-	for i = #removeIndices, 1, -1 do
-		table.remove(tasks, removeIndices[i])
-	end
-end
-
--- Removes all threads from tracking
--- @param clean: If true, cancels all threads
-function Component.RemoveAllThread<T...>(self : CollectComponent<T...>,clean : boolean?)
-	if(self._cleaning) then return end
-	local tasks = self._task
-	if #tasks == 0 then return end
-	local removeIndices = {}
-	for i = 1, #tasks do
-		local value = tasks[i]
-		if typeof(value.Item) == "thread" then
-			if clean or type(clean) == "nil" then task.cancel((value.Item :: thread)) end
-			table.insert(removeIndices, i)
-		end
-	end
-	for i = #removeIndices, 1, -1 do
-		table.remove(tasks, removeIndices[i])
-	end
-end
-
 -- Creates a new object and adds it to tracking
 -- @param class: Class constructor (table with .new or function)
 -- @param ...: Arguments for constructor
@@ -421,6 +250,27 @@ function Component.Merge<T...,K...>(self : CollectComponent<T...>, CollectCompon
 	setmetatable(CollectComponent :: any,nil)
 end
 
+--[[
+	Transfer the current life cycle of the component to the new object.
+	for example if the object is destroyed the component will also be destroyed.
+]]
+function Component.LinkToInstance<T...>(self : CollectComponent<T...>, object : Instance) : CollectComponent<T...>
+	assert(typeof(object) == "Instance","object must be a typeof Instance")
+	-- Create a new task to monitor the instance's ancestry
+	object.Destroying:Once(function()
+		self:Clean()  -- Clean up this component if the instance is destroyed
+	end)
+	return self
+end
+
+--[[
+	Check if current list of tasks is empty
+	@return: True if the component has no tasks, false otherwise
+]]
+function Component.IsEmpty<T...>(self : CollectComponent<T...>) : boolean
+	return next(self._task) == nil
+end
+
 -- Cleans up all tracked items and destroys the component
 -- This is the main cleanup method - call when done with the component
 function Component.Clean<T...>(self : CollectComponent<T...>)
@@ -448,17 +298,7 @@ Constructor.New = Constructor.new
 Component.add = Component.Add
 Component.remove = Component.Remove
 Component.removeAll = Component.RemoveAll
-Component.removeAllFunc = Component.RemoveAllFunc
-Component.removeAllSignal = Component.RemoveAllSignal
-Component.removeAllThread = Component.RemoveAllThread
-Component.removeAllInstance = Component.RemoveAllInstance
-Component.removeAllConstructor = Component.RemoveAllConstructor
 Component.find = Component.Find
-Component.findAllFunc = Component.FindAllFunc
-Component.findAllSignal = Component.FindAllSignal
-Component.findAllThread = Component.FindAllThread
-Component.findAllInstance = Component.FindAllInstance
-Component.findAllConstructor = Component.FindAllConstructor
 Component.construct = Component.Construct
 Component.extend = Component.Extend
 Component.merge = Component.Merge
@@ -466,5 +306,7 @@ Component.clean = Component.Clean
 Component.destroy = Component.Clean
 Component.Destroy = Component.Clean
 Component.wrapClean = Component.WrapClean
+Component.isEmpty = Component.IsEmpty
+Component.link = Component.LinkToInstance
 
 return Constructor
