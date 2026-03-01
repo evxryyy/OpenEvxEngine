@@ -4,6 +4,14 @@
 
 ## Logs
 
+Version : 1.5
+- Added `BindToGuiVisibility` to allow to enabled/disabled bindings automaticly.
+- Added `HasGui` to keep track if a GuiObject is attached
+- Added `Enable` (SEE API)
+- Added `Disable` (SEE API)
+
+----
+
 Version : 1.4
 - Added `GetInputType` this will return the current input type of the user (SEE API).
 - Reviewed all comments and the api for better understanding.
