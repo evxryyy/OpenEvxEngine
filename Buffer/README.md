@@ -6,7 +6,7 @@
 
 Version : 3.0
 - Added `EnabledAutoAllocation` and `DisabledAutoAllocation`
-- Added Syntax Sugar added for all write function's (e.g return self on every `:Write(...)`)
+- Added Syntax Sugar for all write function's (e.g return self on every `:Write(...)`)
 - `Array` can now be Serialized with `Serialized` function.
 
 ----
