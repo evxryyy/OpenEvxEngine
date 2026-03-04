@@ -28,7 +28,6 @@ Roblox developers more ease but also more performance gains when developing game
 |      `Collect`      | :material-check: Improved garbage collection/cleanup utility module                                 |
 |       `Enum`        | :material-check: System for creating and managing enums                                             |
 |      `Option`       | :material-check: Implements the Option type pattern                                                 |
-|  `ConnectionStore`  | :material-check: Store RBXScriptConnection,callback and thread                                      |
 
 ----
 
@@ -56,3 +55,4 @@ give them permission to publish.
 
 ----
 Discord User : <b>.d_0010<b>
+
