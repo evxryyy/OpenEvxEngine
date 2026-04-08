@@ -2,6 +2,8 @@
 
 ## What next
 
+### I'm making it compatible with roblox-ts this version of luau will still be maintain
+
 ## Logs
 
 Version : 3.0
