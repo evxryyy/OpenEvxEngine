@@ -6,6 +6,30 @@
 
 ## Logs
 
+Version 3.1
+- Added `WriteAny` SEE API.
+```luau
+local Buffer = require(somewhere.Buffer)
+
+local my_buffer = Buffer.empty()
+my_buffer:EnableAutoAllocate()
+
+my_buffer:WriteAny(-120)
+
+my_buffer:WriteAny({
+	"Hello world",
+	255,
+	255.123456789,
+	true,
+	false,
+	"Hello world",
+})
+```
+- Added `Buffer.Utils.GetEquivalentBytesInfoFromNumber` SEE API
+- @Private added `Buffer.Utils._isValidBool8Table` do not use this method if your not planning to custom your buffer.
+
+----
+
 Version : 3.0
 - Added `EnabledAutoAllocation` and `DisabledAutoAllocation`
 - Added Syntax Sugar for all write function's (e.g return self on every `:Write(...)`)
