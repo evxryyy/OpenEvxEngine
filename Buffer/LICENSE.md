@@ -1,6 +1,6 @@
 LICENSE
 
-© 2025 evxry
+© 2026 evxry
 This work is provided by evxry and is licensed under the following terms:
 
 Permission to Use and Modify
