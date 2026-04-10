@@ -2586,6 +2586,75 @@ function BufferComponent.WriteArray<T>(self : BufferComponentClass, array : {Val
 	return self
 end
 
+--[[
+	Writes any supported value into the buffer by dynamically selecting
+	the appropriate serialization method based on its runtime type.
+
+	@param value (T) - The value to write into the buffer. Supported types include:
+		- number:
+			Automatically determines the smallest suitable byte size and whether the number
+			is signed, unsigned, or floating point. Calls the corresponding WriteU*, WriteI*, or WriteF* method.
+		- string:
+			Written using WriteString.
+		- boolean:
+			Written using WriteBool1 (1-bit boolean).
+		- table:
+			If the table is a valid Bool8 structure (checked via Utils._isValidBool8Table),
+			it is written using WriteBool8. Otherwise, iterates through the table and writes
+			each value recursively using WriteAny.
+		- vector:
+			Written using WriteVector.
+		- any other type:
+			Attempts to call a method named "Write<Type>" dynamically.
+
+	@return BufferComponentClass - Returns self to allow method chaining.
+
+	@note
+		This function relies on Utils.GetEquivalentBytesInfoFromNumber to determine
+		the optimal byte size and signedness for numeric values.
+
+	@warning
+		Unsupported types must have a corresponding "Write<Type>" method implemented,
+		or this will result in a runtime error.
+		
+	@since v3.1
+]]
+function BufferComponent.WriteAny<T>(self : BufferComponentClass,value : T) : BufferComponentClass 
+	local valueType = typeof(value)
+	if(valueType == "number") then
+		--- Handle,Unsigned,Signed and floating point numbers
+		local _,hasFloatingPoints = math.modf(value :: number)
+		local bytesInfo = Utils.GetEquivalentBytesInfoFromNumber(value)
+		if(hasFloatingPoints <= 0) then
+			if(bytesInfo.isUnsigned) then
+				self["WriteU"..tostring(bytesInfo.bytes * 8)](self,value)
+			else
+				self["WriteI"..tostring(bytesInfo.bytes * 8)](self,value)
+			end
+		else
+			self["WriteF"..tostring(bytesInfo.bytes * 8)](self,value)
+		end
+	elseif(valueType == "string") then
+		self:WriteString(value)
+	elseif(valueType == "boolean") then
+		self:WriteBool1(value)
+	elseif(valueType == "table") then
+		-- Handle tables
+		if(Utils._isValidBool8Table(value)) then
+			self:WriteBool8(value)
+		else
+			for i,v in value do
+				self:WriteAny(v)
+			end
+		end
+	elseif(valueType == "vector") then
+		self:WriteVector(value)
+	else
+		self["Write"..valueType](self,value)
+	end
+	return self
+end
+
 -->-----------------------READER-----------------------------<--
 
 --[[
@@ -4477,6 +4546,9 @@ BufferComponent.writeAs = BufferComponent.WriteAs
 
 BufferComponent.writeArray = BufferComponent.WriteArray
 BufferComponent.writearray = BufferComponent.WriteArray
+
+BufferComponent.writeAny = BufferComponent.WriteAny
+BufferComponent.writeany = BufferComponent.WriteAny
 
 --[Reader] signed interger alias
 BufferComponent.readI1 = BufferComponent.ReadI1
