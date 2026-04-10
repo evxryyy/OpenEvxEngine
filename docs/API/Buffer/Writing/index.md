@@ -934,3 +934,34 @@ Writes an array of typed values to the buffer.
     for String8 etc... you can use the normal way this only apply for `undefined-string length`.
 
     Also note that the order is important.
+
+----
+
+#### WriteAny
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local my_buffer = Buffer.empty()
+my_buffer:EnableAutoAllocate()
+
+my_buffer:WriteAny(-120)
+
+my_buffer:WriteAny({
+	"Hello world",
+	255,
+	255.123456789,
+	true,
+	false,
+	"Hello world",
+})
+```
+
+Writes any supported value into the buffer by dynamically selecting
+the appropriate serialization method based on its runtime type.
+
+@param value (T) - The value to write into the buffer. Supported types include:
+
+!!! info
+    This function relies on Utils.GetEquivalentBytesInfoFromNumber to determine
+    the optimal byte size and signedness for numeric values.
