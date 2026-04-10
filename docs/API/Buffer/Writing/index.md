@@ -15,7 +15,7 @@ local num = 1
 
 myBuffer:WriteI1(num)
 ```
-
+ 
 Write a signed 1-bit integer (-1 to 1).
 The value is clamped to the allowed range and truncated to an integer.
 
