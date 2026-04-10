@@ -79,3 +79,19 @@ print(Utils.ConvertByte("Kilobytes",1024)) --> this will return 1
 --First argument is the convertion and second argument is the bytes
 -- Supported convertions: Kilobytes, Megabytes, Gigabytes
 ```
+
+----
+
+### GetEquivalentBytesInfoFromNumber
+
+Used in `Buffer.WriteAny`, this give the exact byte required depending on the number.
+
+```luau linenums="1"
+local b = Utils.GetEquivalentBytesInfoFromNumber(65535) -- this will return 2 cause it will required 2 bytes to write 65535
+```
+	
+@return : {bits : number, bytes : number, @isUnsigned : boolean }
+
+!!! info
+    isUnsigned purpose is only for `Buffer.WriteAny` to detect signed numbers,
+    you can still use it if you have to do some use case with u/i numbers
