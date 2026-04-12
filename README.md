@@ -3,7 +3,7 @@
 ## Latest News
 
 - I'm currently making this library compatible with `roblox-ts` the `luau` version will still be maintain. (This gonna take some time)
-- `Socket` will be soon replaced by a upcoming buffer-networking module called `BitFluent`.
+- `Socket` will be soon be replaced by a upcoming buffer-networking module called `BitFluent`.
 - `Buffer` will receive an update during the release of `BitFluent`.
 - About `Nexus` after the release of `BitFluent` this one will also get a huge rework.
 - Documentation website will be updated for upcoming changes too.
