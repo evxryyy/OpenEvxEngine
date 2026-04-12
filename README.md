@@ -1,5 +1,12 @@
 # OpenEvxEngine 
 
+## Latest News
+
+- I'm currently making this library compatible with `roblox-ts` the `luau` will still be maintain. (This gonna take some time)
+- `Socket` will be soon replaced by a upcoming buffer-networking module called `BitFluent`.
+- About `Nexus` after the release of `BitFluent` this one will also get a huge rework.
+- Documentation website will updated for upcoming changes too.
+
 ## Releases
 
 - [Latest release](https://github.com/evxryyy/OpenEvxEngine/releases/latest)
