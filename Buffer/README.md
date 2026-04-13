@@ -6,7 +6,13 @@
 
 ## Logs
 
-Version 3.1
+Version : 3.1.1
+- Fixed a bug where writing float number with `WriteAny` was not working correctly
+- Fixed a bug where `WriteU54` was not returning `self`.
+
+----
+
+Version : 3.1
 - Added `WriteAny` SEE API.
 ```luau
 local Buffer = require(somewhere.Buffer)
