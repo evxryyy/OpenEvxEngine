@@ -1328,6 +1328,7 @@ function BufferComponent.WriteU54(self : BufferComponentClass,number : number) :
 	local oldOffset = self.offset
 	self.offset += 7
 	self.OffsetChanged:Fire(oldOffset,self.offset)
+	return self
 end
 
 --[[
@@ -2624,6 +2625,7 @@ function BufferComponent.WriteAny<T>(self : BufferComponentClass,value : T) : Bu
 	if(valueType == "number") then
 		--- Handle,Unsigned,Signed and floating point numbers
 		local _,hasFloatingPoints = math.modf(value :: number)
+		hasFloatingPoints = math.ceil(hasFloatingPoints) -- 0.001 -> 1 , 0 -> 0 (Fix for hight precision)
 		local bytesInfo = Utils.GetEquivalentBytesInfoFromNumber(value)
 		if(hasFloatingPoints <= 0) then
 			if(bytesInfo.isUnsigned) then
@@ -2632,7 +2634,16 @@ function BufferComponent.WriteAny<T>(self : BufferComponentClass,value : T) : Bu
 				self["WriteI"..tostring(bytesInfo.bytes * 8)](self,value)
 			end
 		else
-			self["WriteF"..tostring(bytesInfo.bytes * 8)](self,value)
+			-- Floating point numbers (clamping bits correctly is a bit tricky)
+			local bits = (bytesInfo.bytes <= 1) and (0+2) * 8 or bytesInfo.bytes * 8
+			if (bits > 16 and bits < 32) then 
+				bits = 32 
+			elseif(bits > 32 and bits <= 64) then
+				bits = 64
+			elseif(bits > 64) then 
+				bits = 64
+			end
+			self["WriteF"..bits](self,value)
 		end
 	elseif(valueType == "string") then
 		self:WriteString(value)
