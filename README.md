@@ -2,9 +2,6 @@
 
 ## Latest News
 
-13/04/26 : 
-Update 3.1.1 for `Buffer` is now released
-
 12/04/26 : 
 
 - I'm currently making this library compatible with `roblox-ts` the `luau` version will still be maintain. (This gonna take some time)
