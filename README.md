@@ -2,6 +2,14 @@
 
 ## Latest News
 
+17/04/26 : 
+- Working on `Buffer v3.2` this update will include :
+  - Give you the access to write and read struct.
+  - Optimizing code and readability.
+  - Make error message more valuable.
+
+---
+
 12/04/26 : 
 
 - I'm currently making this library compatible with `roblox-ts` the `luau` version will still be maintain. (This gonna take some time)
