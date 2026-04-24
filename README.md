@@ -2,11 +2,10 @@
 
 ## Latest News
 
-17/04/26 : 
-- Working on `Buffer v3.2` this update will include :
-  - Give you the access to write and read struct.
-  - Optimizing code and readability.
-  - Make error message more valuable.
+24/04/26 : 
+- Buffer v3.2 is released.
+- Please be patient for `BitFluent` i need to make Buffer more robust and powerful.
+- Documentations website update will be soon released (next month)
 
 ---
 
