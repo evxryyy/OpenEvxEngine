@@ -5,7 +5,7 @@
 24/04/26 : 
 - Buffer v3.2 is released.
 - Please be patient for `BitFluent` i need to make Buffer more robust and powerful.
-- Documentations website update will be soon released (next month)
+- Documentation website update will be soon released (next month)
 
 ---
 
