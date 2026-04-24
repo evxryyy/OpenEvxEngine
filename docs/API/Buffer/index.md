@@ -14,7 +14,7 @@ as well as some utilities like Buffer.Enum, Buffer.Constants, and Buffer.Utils.
 
 ## Version
 
-### [Buffer V3.1.1](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
+### [Buffer V3.2](https://github.com/evxryyy/OpenEvxEngine/releases/tag/buffer)
 
 ----
 
@@ -166,6 +166,7 @@ Write Methods List :
     - [:octicons-arrow-right-24: WriteAs](Writing/index.md#writeas)
     - [:octicons-arrow-right-24: WriteArray](Writing/index.md#writearray)
     - [:octicons-arrow-right-24: WriteAny](Writing/index.md#writeany)
+    - [:octicons-arrow-right-24: WriteStruct](Writing/index.md#writestruct)
 
 ----
 
@@ -229,5 +230,6 @@ Read Methods List :
 - [:octicons-arrow-right-24: Read Custom](Reading/index.md#custom-reading)
     - [:octicons-arrow-right-24: ReadAs](Reading/index.md#readas)
     - [:octicons-arrow-right-24: ReadArray](Reading/index.md#readarray)
+    - [:octicons-arrow-right-24: ReadStruct](Reading/index.md#readstruct)
 
 ----
