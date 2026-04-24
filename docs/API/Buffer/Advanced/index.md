@@ -11,6 +11,14 @@ Here are the buffer properties:
 
 `.instance_buffer` -> table containing the instances
 
+`.CapacityChanged` -> Signal fired when the buffer capacity changes
+
+`.OffsetChanged` -> Signal fired when the offset changes
+
+`.InstanceOffsetChanged` -> Signal fired when the instance offset changes
+
+`.IsAutoAllocationEnabled` -> boolean flag for auto-allocation
+
 ----
 
 ## Metamethods
