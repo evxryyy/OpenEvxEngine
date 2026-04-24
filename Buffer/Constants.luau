@@ -97,7 +97,70 @@ return table.freeze({
 			return 1 + (12 * #sequence.Keypoints)
 		end,
 	},
+	
+	--Bytes code representation for each type available
+	BYTES_CODE = {
+		-- Signed Integers
+		I1  = 0x01,
+		I8  = 0x02,
+		I16 = 0x03,
+		I24 = 0x04,
+		I32 = 0x05,
+		I40 = 0x06,
+		I48 = 0x07,
+		I54 = 0x08,
+
+		-- Unsigned Integers
+		U1  = 0x09,
+		U8  = 0x0A,
+		U16 = 0x0B,
+		U24 = 0x0C,
+		U32 = 0x0D,
+		U40 = 0x0E,
+		U48 = 0x0F,
+		U54 = 0x10,
+
+		-- Floats
+		F16 = 0x11,
+		F32 = 0x12,
+		F64 = 0x13,
+
+		-- Strings
+		String   = 0x14,
+
+		-- Others string types might be unaccesary
+		String8  = 0x15,
+		String16 = 0x16,
+		String32 = 0x17,
+		String64 = 0x18,
+
+		-- Booleans
+		Bool1 = 0x19,
+		Bool8 = 0x1A,
+
+		-- Roblox DataTypes
+		Color3          = 0x1B,
+		Vector2         = 0x1C,
+		Vector2int16    = 0x1D,
+		Vector3         = 0x1E,
+		Vector3int16    = 0x1F,
+		CFrame          = 0x20,
+		LossyCFrame     = 0x21,
+		Rect            = 0x22,
+		Region3         = 0x23,
+		Region3int16    = 0x24,
+		Instance        = 0x25,
+		UDim            = 0x26,
+		UDim2           = 0x27,
+		vector          = 0x28,
+		Enum            = 0x29,
+		FloatCurveKey   = 0x2A,
+		RotationCurveKey = 0x2B,
+		ColorSequence   = 0x2C,
+		NumberRange     = 0x2D,
+		NumberSequence  = 0x2E,
+	},
 
 	--VERSION--
-	VERSION = "3.1.1",
+	VERSION = "3.2",
 })
