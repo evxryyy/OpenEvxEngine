@@ -1038,3 +1038,33 @@ Reads each value according to its specified type and returns them in order.
 
 !!! info
     See WriteArray for more informations.
+
+----
+
+### ReadStruct
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local test = Buffer.empty()
+test:EnableAutoAllocate()
+
+local res = test:WriteStruct({
+	Name = "Dummy",
+	Hp = 100,
+	Position = Vector3.new(10.25,5,150),
+	Object = workspace.Baseplate
+})
+
+print(test:ReadStruct(0))
+```
+
+Reads a structured table (dictionary) from the buffer.
+
+Deserializes a table previously written using WriteStruct.
+It reconstructs the keys from a comma-separated string, then reads
+each associated value using its encoded type information.
+
+@param offset number -- The starting position in the buffer
+
+@return {[string]: T} -- Reconstructed table with string keys and typed values
