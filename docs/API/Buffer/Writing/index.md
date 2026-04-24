@@ -15,7 +15,7 @@ local num = 1
 
 myBuffer:WriteI1(num)
 ```
- 
+
 Write a signed 1-bit integer (-1 to 1).
 The value is clamped to the allowed range and truncated to an integer.
 
@@ -965,3 +965,34 @@ the appropriate serialization method based on its runtime type.
 !!! info
     This function relies on Utils.GetEquivalentBytesInfoFromNumber to determine
     the optimal byte size and signedness for numeric values.
+
+----
+
+#### WriteStruct
+
+```luau linenums="1"
+local Buffer = require(somewhere.Buffer)
+
+local test = Buffer.empty()
+test:EnableAutoAllocate()
+
+local res = test:WriteStruct({
+	Name = "Dummy",
+	Hp = 100,
+	Position = Vector3.new(10.25,5,150),
+	Object = workspace.Baseplate
+})
+
+print(test:ReadStruct(0))
+```
+
+Writes a structured table (dictionary) into the buffer.
+
+Serializes a table where keys must be strings and values can be of any supported type.
+The function first encodes the list of keys as a single comma-separated string,
+then writes each value alongside a type identifier (byte code).
+
+!!! warning
+	- I Recommend to name every keys of your dictionary with a name 
+	- Total length of all keys combined must not exceed 255 characters. (For now)
+	- String values must not exceed 255 characters. (For now)
