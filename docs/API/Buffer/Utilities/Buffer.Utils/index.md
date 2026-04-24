@@ -95,3 +95,21 @@ local b = Utils.GetEquivalentBytesInfoFromNumber(65535) -- this will return 2 ca
 !!! info
     isUnsigned purpose is only for `Buffer.WriteAny` to detect signed numbers,
     you can still use it if you have to do some use case with u/i numbers
+
+----
+
+### GetByteCodeValueFromType
+
+Used in `Buffer.WriteStruct`. this resolves the byte code identifier associated with a given value.
+
+Determines the most efficient byte representation for a value based on its type
+and characteristics. This byte code is later used for serialization to encode
+the value in a compact binary format.
+
+```luau linenums="1"
+local byteCode = Utils.GetByteCodeValueFromType(-1)
+print(byteCode) -- will print 2 cause its the current byte code of the type (I8)
+```
+
+@param value any -- Value to analyze
+@return number -- Byte code representing the value type
