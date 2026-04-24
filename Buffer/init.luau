@@ -83,8 +83,45 @@ local Zignal = require("@self/_index/Zignal/Zignal")
 -- EnumsMap
 local EnumsIds,IdsEnums = Utils.GenerateEnumMapping()
 
+--BytesCodesMap
+local BYTESCODE_NAME = {}
+for name,code in Constants.BYTES_CODE do BYTESCODE_NAME[code] = name end
+
 --Valid complex type
 local ValidComplexType = Utils.ValidComplexType
+
+--Local functions
+
+--[[
+    print an error with the full required info and with a debug trace
+    
+	@param target_message : string
+]]
+local function onError(target_message : string)
+	if(not target_message or target_message == "") then return end
+	local trace = debug.traceback()
+	error(string.format("Buffer Error: %s\n%s", target_message, trace))
+	return
+end
+
+--[[
+	return a boolean if the current buffer has enough space for the required bytes
+	
+	@param _b : BufferComponentClass
+	@param requiredBytes : number
+	@return boolean
+]]
+local function hasRequiredSpaces(_b : BufferComponentClass,requiredBytes) : boolean
+	if(not _b) then return false end
+	local remaining = buffer.len(_b.buffer) - _b.offset
+	local bits = requiredBytes * 6
+	local hasValidSpace = remaining >= requiredBytes and requiredBytes <= buffer.len(_b.buffer)
+	-- We are not checking for the .IsAutoAllocationEnabled here ITS NOT A BUG !
+	if(not hasValidSpace) then
+		return false
+	end
+	return true
+end
 
 -- Constructor table: creates BufferComponent instances or wraps an existing buffer
 local BufferConstructor = {}
@@ -107,6 +144,7 @@ BufferComponent.__index = BufferComponent
     - CapacityChanged : Signal fired when the buffer capacity changes
     - OffsetChanged : Signal fired when the offset changes
     - InstanceOffsetChanged : Signal fired when the instance offset changes
+    - IsAutoAllocationEnabled : boolean flag for auto-allocation
 ]]
 export type BufferComponentClass = typeof(setmetatable({} :: {
 	offset : number,
@@ -699,13 +737,11 @@ function BufferComponent.WriteI1(self : BufferComponentClass,number : number) : 
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT1,Constants.MAX_INT1)
 	local bytes = 1
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	-- Using pcall to catch out-of-bounds; `outOfBounds` holds the error message if any.
 	local success,outOfBounds = pcall(buffer.writei8,self.buffer,self.offset,number)
@@ -736,13 +772,11 @@ function BufferComponent.WriteI8(self : BufferComponentClass,number : number) : 
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT8,Constants.MAX_INT8)
 	local bytes = 1
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writei8,self.buffer,self.offset,number)
 	if(outOfBounds) then
@@ -772,13 +806,11 @@ function BufferComponent.WriteI16(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT16,Constants.MAX_INT16)
 	local bytes = 2
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writei16,self.buffer,self.offset,number)
 	if(outOfBounds) then
@@ -809,13 +841,11 @@ function BufferComponent.WriteI24(self : BufferComponentClass,number : number) :
 	number = math.max(Constants.MIN_INT24,math.min(Constants.MAX_INT24,number))
 	number = math.modf(number)
 	local bytes = 3
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		-- Big-endian: high byte first
@@ -850,13 +880,11 @@ function BufferComponent.WriteI32(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_INT32,Constants.MAX_INT32)
 	local bytes = 4
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writei32,self.buffer,self.offset,number)
 	if(outOfBounds) then
@@ -891,13 +919,11 @@ function BufferComponent.WriteI40(self : BufferComponentClass,number : number) :
 		number += 0x10000000000
 	end
 	local bytes = 5
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local succes,outOfBounds = pcall(function()
 		-- Big-endian packing: 5 bytes from MSB to LSB
@@ -939,13 +965,11 @@ function BufferComponent.WriteI48(self : BufferComponentClass,number : number) :
 		number += 0x1000000000000 -- 2^48
 	end
 	local bytes = 6
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		-- Big-endian packing: 6 bytes MSB -> LSB
@@ -994,13 +1018,11 @@ function BufferComponent.WriteI54(self : BufferComponentClass,number : number) :
 		number += Constants.MAX_UINT54
 	end
 	local bytes = 7
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		-- Big-endian packing: 7 bytes MSB -> LSB
@@ -1046,13 +1068,11 @@ function BufferComponent.WriteU8(self : BufferComponentClass,number : number) : 
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT8)
 	local bytes = 1
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writeu8,self.buffer,self.offset,number)
 	if(outOfBounds) then
@@ -1082,13 +1102,11 @@ function BufferComponent.WriteU16(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT16)
 	local bytes = 2
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writeu16,self.buffer,self.offset,number)
 	if(outOfBounds) then
@@ -1119,13 +1137,11 @@ function BufferComponent.WriteU24(self : BufferComponentClass,number : number) :
 	number = math.max(Constants.MIN_UINT,math.min(Constants.MAX_UINT24,number))
 	number = math.modf(number)
 	local bytes = 3
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		-- Big-endian manual packing
@@ -1160,13 +1176,11 @@ function BufferComponent.WriteU32(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT32)
 	local bytes = 4
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writeu32,self.buffer,self.offset,number)
 	if(outOfBounds) then
@@ -1199,13 +1213,11 @@ function BufferComponent.WriteU40(self : BufferComponentClass,number : number) :
 	local byte5 = math.floor(number / 0x100000000) % 0x100 
 	local remainder = number % 0x100000000
 	local bytes = 5
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		-- Big-endian packing
@@ -1242,13 +1254,11 @@ function BufferComponent.WriteU48(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT48)
 	local bytes = 6
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		-- Big-endian packing: 6 bytes MSB -> LSB
@@ -1292,13 +1302,11 @@ function BufferComponent.WriteU54(self : BufferComponentClass,number : number) :
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT54)
 	local bytes = 7
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		-- Big-endian packing: 7 bytes MSB -> LSB
@@ -1343,13 +1351,11 @@ function BufferComponent.WriteString8(self : BufferComponentClass,value : string
 	assert(type(value) == "string" and type(len) == "number",`{type(value)} and {type(len)} is not valid please include a string and a number`)
 	value = string.sub(value,1,math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING8))
 	len = math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING8);
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= len and len <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(len)
+	local hasValidSpace = hasRequiredSpaces(self,len)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(len)
+	else
+		onError(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writestring,self.buffer,self.offset,value,len)
 	if(outOfBounds) then
@@ -1376,13 +1382,11 @@ function BufferComponent.WriteString16(self : BufferComponentClass,value : strin
 	assert(type(value) == "string" and type(len) == "number",`{type(value)} and {type(len)} is not valid please include a string and a number`)
 	value = string.sub(value,1,math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING16))
 	len = math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING16);
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= len and len <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(len)
+	local hasValidSpace = hasRequiredSpaces(self,len)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(len)
+	else
+		onError(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writestring,self.buffer,self.offset,value,len)
 	if(outOfBounds) then
@@ -1409,13 +1413,11 @@ function BufferComponent.WriteString32(self : BufferComponentClass,value : strin
 	assert(type(value) == "string" and type(len) == "number",`{type(value)} and {type(len)} is not valid please include a string and a number`)
 	value = string.sub(value,1,math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING32))
 	len = math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING32);
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= len and len <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(len)
+	local hasValidSpace = hasRequiredSpaces(self,len)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(len)
+	else
+		onError(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writestring,self.buffer,self.offset,value,len)
 	if(outOfBounds) then
@@ -1442,13 +1444,11 @@ function BufferComponent.WriteString64(self : BufferComponentClass,value : strin
 	assert(type(value) == "string" and type(len) == "number",`{type(value)} and {type(len)} is not valid please include a string and a number`)
 	value = string.sub(value,1,math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING64))
 	len = math.clamp(len,Constants.MIN_STRING,Constants.MAX_STRING64);
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= len and len <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(len)
+	local hasValidSpace = hasRequiredSpaces(self,len)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(len)
+	else
+		onError(Debug["not enough space"]:format(len,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writestring,self.buffer,self.offset,value,len)
 	if(outOfBounds) then
@@ -1475,13 +1475,11 @@ end
 function BufferComponent.WriteString(self : BufferComponentClass,value : string) : BufferComponentClass
 	assert(type(value) == "string","please insert a string to write")
 	local bytes = #value
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writestring,self.buffer,self.offset,value,#value)
 	if(outOfBounds) then
@@ -1506,13 +1504,11 @@ end
 ]]
 function BufferComponent.WriteBool1(self : BufferComponentClass,value : any) : BufferComponentClass
 	local bytes = 1
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local bitsToWrite = 1
 	local bitOffset =  (self.offset and (self.offset * 8)) or 0
@@ -1541,13 +1537,11 @@ end
 function BufferComponent.WriteBool8(self : BufferComponentClass,value : {any}) : BufferComponentClass
 	assert(type(value) == "table","please insert an array")
 	local bytes = 1
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		for i = 1,8 do
@@ -1580,13 +1574,11 @@ function BufferComponent.WriteF16(self : BufferComponentClass,number : number) :
 		error(Debug["not a valid type"]:format(type(number),type(10)))
 	end
 	local bytes = 2
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		local uint16
@@ -1655,13 +1647,11 @@ function BufferComponent.WriteF32(self : BufferComponentClass,number : number) :
 		error(Debug["not a valid type"]:format(type(number),type(10)))
 	end
 	local bytes = 4
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writef32,self.buffer,self.offset,number)
 	if(outOfBounds) then
@@ -1689,13 +1679,11 @@ function BufferComponent.WriteF64(self : BufferComponentClass,number : number) :
 		error(Debug["not a valid type"]:format(type(number),type(10)))
 	end
 	local bytes = 8
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writef64,self.buffer,self.offset,number)
 	if(outOfBounds) then
@@ -1724,13 +1712,11 @@ function BufferComponent.WriteU1(self : BufferComponentClass,number : number) : 
 	end
 	number = math.clamp(math.modf(number),Constants.MIN_UINT,Constants.MAX_UINT1)
 	local bytes = 1
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(buffer.writebits,self.buffer,self.offset * 8,1,number)
 	if(outOfBounds) then
@@ -1774,13 +1760,11 @@ function BufferComponent.WriteVector2(self : BufferComponentClass,vector2 : Vect
 	local x = vector2.X
 	local y = vector2.Y
 	local bytes = 16
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		buffer.writef64(self.buffer,self.offset,x)
@@ -1812,13 +1796,11 @@ function BufferComponent.WriteVector3(self : BufferComponentClass,vector3 : Vect
 	local y = vector3.Y
 	local z = vector3.Z
 	local bytes = 24
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		buffer.writef64(self.buffer,self.offset,x)
@@ -1851,13 +1833,11 @@ function BufferComponent.WriteVector2Int16(self : BufferComponentClass,vector2in
 	local x = math.clamp(vector2int16.X,Constants.MIN_INT16,Constants.MAX_INT16)
 	local y = math.clamp(vector2int16.Y,Constants.MIN_INT16,Constants.MAX_INT16)
 	local bytes = 4
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		buffer.writei16(self.buffer,self.offset,x)
@@ -1890,13 +1870,11 @@ function BufferComponent.WriteVector3Int16(self : BufferComponentClass,vector3in
 	local y = math.clamp(vector3int16.Y,Constants.MIN_INT16,Constants.MAX_INT16)
 	local z = math.clamp(vector3int16.Z,Constants.MIN_INT16,Constants.MAX_INT16)
 	local bytes = 6
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		buffer.writei16(self.buffer,self.offset,x)
@@ -1928,13 +1906,11 @@ end
 function BufferComponent.WriteCFrame(self : BufferComponentClass,CF : CFrame) : BufferComponentClass
 	assert(typeof(CF) == "CFrame","CF must be a CFrame")
 	local bytes = 96 
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		local components = {CF:GetComponents()}
@@ -1966,13 +1942,11 @@ end
 function BufferComponent.WriteLossyCFrame(self : BufferComponentClass,CF : CFrame) : BufferComponentClass
 	assert(typeof(CF) == "CFrame","CF must be a CFrame")
 	local bytes = 48
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		local components = {CF:GetComponents()}
@@ -2005,13 +1979,11 @@ function BufferComponent.WriteUDim(self : BufferComponentClass,udim : UDim) : Bu
 	local Scale = udim.Scale
 	local Offset = udim.Offset
 	local bytes = 8
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		buffer.writef32(self.buffer,self.offset,Scale)
@@ -2042,13 +2014,11 @@ function BufferComponent.WriteUDim2(self : BufferComponentClass,udim2 : UDim2) :
 	local ScaleX,ScaleY = udim2.X.Scale,udim2.Y.Scale
 	local OffsetX,OffsetY = udim2.X.Offset,udim2.Y.Offset
 	local bytes = 16
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		buffer.writef32(self.buffer,self.offset,ScaleX)
@@ -2083,13 +2053,11 @@ function BufferComponent.WriteColor3(self : BufferComponentClass,color : Color3)
 	local r = color.R
 	local g = color.G
 	local b = color.B
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local success,outOfBounds = pcall(function()
 		buffer.writef32(self.buffer,self.offset,r)
@@ -2120,13 +2088,11 @@ end
 function BufferComponent.WriteRect(self : BufferComponentClass,rect : Rect) : BufferComponentClass
 	assert(typeof(rect) == "Rect","rect must be a Rect")
 	local bytes = 32
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	self:WriteVector2(rect.Min)
 	self:WriteVector2(rect.Max)
@@ -2142,13 +2108,11 @@ end
 function BufferComponent.WriteRegion3(self : BufferComponentClass,region3 : Region3) : BufferComponentClass
 	assert(typeof(region3) == "Region3","region3 must be a Region3")
 	local bytes = 120
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local cframe = region3.CFrame
 	local size = region3.Size
@@ -2166,13 +2130,11 @@ end
 function BufferComponent.WriteRegion3int16(self : BufferComponentClass,region3int16 : Region3int16) : BufferComponentClass
 	assert(typeof(region3int16) == "Region3int16","region3int16 must be a Region3int16")
 	local bytes = 12
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	local max = region3int16.Max
 	local min = region3int16.Min
@@ -2191,13 +2153,11 @@ end
 function BufferComponent.WriteVector(self : BufferComponentClass,_vector : vector) : BufferComponentClass
 	assert(typeof(_vector) == "Vector3","vector must be a Vector3")
 	local bytes = 24
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	self:WriteVector3(_vector)
 	return self
@@ -2223,13 +2183,11 @@ function BufferComponent.WriteEnum(self : BufferComponentClass,enumItem : EnumIt
 	local enumType = enumItem.EnumType
 	local typeId = IdsEnums[enumType] :: number
 	local bytes = 4
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	self:WriteU16(typeId)
 	self:WriteU16(enumItem.Value)
@@ -2269,13 +2227,11 @@ function BufferComponent.WriteRotationCurveKey(self : BufferComponentClass,rotat
 	assert(typeof(rotationCurveKey) == "RotationCurveKey","rotationCurveKey must be a RotationCurveKey")
 	local bytes = 104
 	bytes += (rotationCurveKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 8 or 0
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	self:WriteF32(rotationCurveKey.Time)
 	self:WriteCFrame(rotationCurveKey.Value)
@@ -2321,13 +2277,11 @@ end
 function BufferComponent.WriteFloatCurveKey(self : BufferComponentClass,floatCurveKey : FloatCurveKey) : BufferComponentClass
 	assert(typeof(floatCurveKey) == "FloatCurveKey","floatCurveKey must be a FloatCurveKey")
 	local bytes = (floatCurveKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 24 or 16
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	self:WriteF32(floatCurveKey.Time)
 	self:WriteF64(floatCurveKey.Value)
@@ -2379,13 +2333,11 @@ function BufferComponent.WriteColorSequence(self : BufferComponentClass,colorSeq
 		error("No keypoints in the current ColorSequence.")
 	end
 	local bytes = (16 * #colorSeq.Keypoints) + 1
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	self:WriteU8(#colorSeq.Keypoints)
 	for i = 1,#colorSeq.Keypoints do
@@ -2419,13 +2371,11 @@ end
 function BufferComponent.WriteNumberRange(self : BufferComponentClass,numberRange : NumberRange) : BufferComponentClass
 	assert(typeof(numberRange) == "NumberRange","numberRange must be a NumberRange")
 	local bytes = 8
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	self:WriteF32(numberRange.Min)
 	self:WriteF32(numberRange.Max)
@@ -2470,13 +2420,11 @@ function BufferComponent.WriteNumberSequence(self : BufferComponentClass,numberS
 		error("No keypoints in the current NumberSequence.")
 	end
 	local bytes = (12 * #numberSeq.Keypoints) + 1
-	local remaining = buffer.len(self.buffer) - self.offset
-	local hasValidSpace = remaining >= bytes and bytes <= buffer.len(self.buffer)
-	if(not hasValidSpace and self.IsAutoAllocationEnabled == false) then
-		warn(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
-		return self
-	elseif(not hasValidSpace and self.IsAutoAllocationEnabled) then
-		self:allocate(bytes)
+	local hasValidSpace = hasRequiredSpaces(self,bytes)
+	if(not hasValidSpace and self.IsAutoAllocationEnabled) then
+		self:Allocate(bytes)
+	else
+		onError(Debug["not enough space"]:format(bytes,string.sub(debug.info(1,"n"),6)))
 	end
 	self:WriteU8(#numberSeq.Keypoints)
 	for i = 1,#numberSeq.Keypoints do
@@ -2662,6 +2610,59 @@ function BufferComponent.WriteAny<T>(self : BufferComponentClass,value : T) : Bu
 		self:WriteVector(value)
 	else
 		self["Write"..valueType](self,value)
+	end
+	return self
+end
+
+--[[
+	Writes a structured table (dictionary) into the buffer.
+
+	Description:
+	Serializes a table where keys must be strings and values can be of any supported type.
+	The function first encodes the list of keys as a single comma-separated string,
+	then writes each value alongside a type identifier (byte code).
+
+	Constraints:
+	- Keys must be strings. Numeric indices are not supported (use WriteArray instead).
+	- Total length of all keys combined must not exceed 255 characters.
+	- String values must not exceed 255 characters.
+
+	@param struct {[string]: T} -- Table representing the structure to serialize
+	@return BufferComponentClass -- Returns self for chaining
+
+	@since v3.2
+]]
+function BufferComponent.WriteStruct<T>(self : BufferComponentClass,struct : {[string] : T}) : BufferComponentClass
+	assert(typeof(struct) == "table","A struct must be a table")
+	local joinedKeys = ""
+	for key,_ in struct do 
+		joinedKeys = joinedKeys .. "," .. key
+	end
+	local keysLength = #joinedKeys
+	if(keysLength > 255) then
+		--[[
+			A string can't be longer than 255 characters.
+			This limitation will be removed in the future
+		]]
+		warn("Total struct keys length is more than 255 characters, this is not allowed")
+		return self
+	end
+	self:WriteAny(keysLength)
+	self:WriteString(joinedKeys)
+	for key,value in struct do
+		local code = Utils.GetByteCodeValueFromType(value)
+		self:WriteU8(code)
+		if(typeof(value) == "string") then
+			if(#value > 255) then
+				--[[
+					A string can't be longer than 255 characters.
+					This limitation will be removed in the future
+				]]
+				warn("String is too long for a struct value")
+			end
+			self:WriteU8(#value)
+		end
+		self:WriteAny(value)
 	end
 	return self
 end
@@ -4168,6 +4169,43 @@ function BufferComponent.ReadArray(self : BufferComponentClass, array : {ValueTy
 	return values
 end
 
+--[[
+	Reads a structured table (dictionary) from the buffer.
+
+	Description:
+	Deserializes a table previously written using WriteStruct.
+	It reconstructs the keys from a comma-separated string, then reads
+	each associated value using its encoded type information.
+
+	@param offset number -- The starting position in the buffer
+	@return {[string]: T} -- Reconstructed table with string keys and typed values
+	
+	@since v3.2
+]]
+function BufferComponent.ReadStruct<T>(self : BufferComponentClass,offset) : {[string] : T}
+	-- Read the length (in bytes) of the concatenated keys string
+	local keyLength = self:readu8(offset)
+	-- Move offset past the length byte
+	offset += 1
+	-- Read the comma-separated keys string using the retrieved length
+	local keys = self:readstring(keyLength,offset)
+	-- Initialize the resulting table
+	local t = {}
+	-- Move offset past the keys string
+	offset += keyLength
+	-- Iterate over each key by splitting the string on commas
+	for key in keys:gmatch("[^,]+") do
+		-- Read the next value from the buffer and get the updated offset
+		local newOffset,value = Utils._ReadValue(self,offset)
+		-- Update offset to continue reading correctly
+		offset = newOffset
+		-- Assign the value to the corresponding key in the table
+		t[key] = value
+	end
+	-- Return the reconstructed table
+	return t
+end
+
 -->-----------------------Cursor/Buffer/Signals-----------------------------<--
 
 --[[
@@ -4561,6 +4599,9 @@ BufferComponent.writearray = BufferComponent.WriteArray
 BufferComponent.writeAny = BufferComponent.WriteAny
 BufferComponent.writeany = BufferComponent.WriteAny
 
+BufferComponent.writeStruct = BufferComponent.WriteStruct
+BufferComponent.writestruct = BufferComponent.WriteStruct
+
 --[Reader] signed interger alias
 BufferComponent.readI1 = BufferComponent.ReadI1
 BufferComponent.readi1 = BufferComponent.ReadI1
@@ -4697,9 +4738,13 @@ BufferComponent.readNumberSequence = BufferComponent.ReadNumberSequence
 
 --[Custom Read] alias
 BufferComponent.readAs = BufferComponent.ReadAs
+BufferComponent.readas = BufferComponent.ReadAs
 
 BufferComponent.readArray = BufferComponent.ReadArray
 BufferComponent.readarray = BufferComponent.ReadArray
+
+BufferComponent.readStruct = BufferComponent.ReadStruct
+BufferComponent.readstruct = BufferComponent.ReadStruct
 
 --[Signals] alias
 BufferComponent.onOffsetChanged = BufferComponent.OnOffsetChanged
