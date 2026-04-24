@@ -571,6 +571,12 @@ BufferComponent.writeAs = BufferComponent.WriteAs
 BufferComponent.writeArray = BufferComponent.WriteArray
 BufferComponent.writearray = BufferComponent.WriteArray
 
+BufferComponent.writeAny = BufferComponent.WriteAny
+BufferComponent.writeany = BufferComponent.WriteAny
+
+BufferComponent.writeStruct = BufferComponent.WriteStruct
+BufferComponent.writestruct = BufferComponent.WriteStruct
+
 --[Reader] signed interger alias
 BufferComponent.readI1 = BufferComponent.ReadI1
 BufferComponent.readi1 = BufferComponent.ReadI1
@@ -707,9 +713,13 @@ BufferComponent.readNumberSequence = BufferComponent.ReadNumberSequence
 
 --[Custom Read] alias
 BufferComponent.readAs = BufferComponent.ReadAs
+BufferComponent.readas = BufferComponent.ReadAs
 
 BufferComponent.readArray = BufferComponent.ReadArray
 BufferComponent.readarray = BufferComponent.ReadArray
+
+BufferComponent.readStruct = BufferComponent.ReadStruct
+BufferComponent.readstruct = BufferComponent.ReadStruct
 
 --[Signals] alias
 BufferComponent.onOffsetChanged = BufferComponent.OnOffsetChanged
