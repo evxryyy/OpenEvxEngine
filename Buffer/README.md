@@ -6,6 +6,17 @@
 
 ## Logs
 
+Version : 3.2
+- Added `WriteStruct` and `ReadStruct` SEE API.
+- Fixed a bug where using `Utils.GetEquivalentBytesInfoFromNumber` with the value of `0` was not returning the correct information
+- Fixed others irrelevant bugs
+- Code optimisation for errors : now if your getting you're gonna get the trace and the targeted message depending on the error
+- Added `Utils.GetByteCodeValueFromType` SEE API
+- Added a `BYTES_CODE` list for each types (can be extended, used in `WriteStruct` (See API Buffer/Utilities/Constants)
+- Fixed missingg informations in the API from older versions mostly for `v3.0+` 
+
+----
+
 Version : 3.1.1
 - Fixed a bug where writing float number with `WriteAny` was not working correctly
 - Fixed a bug where `WriteU54` was not returning `self`.
