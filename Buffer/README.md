@@ -13,7 +13,7 @@ Version : 3.2
 - Code optimisation for errors : now if your getting you're gonna get the trace and the targeted message depending on the error
 - Added `Utils.GetByteCodeValueFromType` SEE API
 - Added a `BYTES_CODE` list for each types (can be extended, used in `WriteStruct` (See API Buffer/Utilities/Constants)
-- Fixed missingg informations in the API from older versions mostly for `v3.0+` 
+- Fixed missigg informations in the API from older versions mostly for `v3.0+` 
 
 ----
 
