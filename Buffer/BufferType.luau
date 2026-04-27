@@ -116,6 +116,13 @@ export type BufferTypeEnum<EnumName = string> = {
 	NumberSequence : EnumType.EnumIndex<EnumName>,
 }
 
+-- Hold complex type : String,Array
+type StringComplex = { Type : "String", Length : number? }
+type ArrayComplex = { Type : "Array", Types : {BufferTypeName | StringComplex} }
+
+-- Allow more flexible complex type definition
+export type BufferComplexType = StringComplex | ArrayComplex
+
 -- Actual creation of the "BufferType" enumeration using EnumModule
 -- Each value is a buffer type name, typed as BufferTypeName
 -- The cast :: BufferTypeEnum<"BufferType"> ensures the result matches the defined type
