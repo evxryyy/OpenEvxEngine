@@ -6,6 +6,11 @@
 
 ## Logs
 
+Version 3.2.1
+- Fixed a bug where it was not possible to write if you dont have enabled `EnabledAutoAllocation` (i forgot to replace old lines with these new lines of codes sorry).
+
+----
+
 Version : 3.2
 - Added `WriteStruct` and `ReadStruct` SEE API.
 - Fixed a bug where using `Utils.GetEquivalentBytesInfoFromNumber` with the value of `0` was not returning the correct information
