@@ -2,10 +2,9 @@
 
 ## Latest News
 
-24/04/26 : 
-- Buffer v3.2 is released.
-- Please be patient for `BitFluent` i need to make Buffer more robust and powerful.
-- Documentation website update will be soon released (next month)
+30/04/26 : 
+- Buffer v3.2.1 is released (hotfix).
+- `Roblox-ts` version will be released soon (next month)
 
 ---
 
