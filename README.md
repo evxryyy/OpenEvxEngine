@@ -2,6 +2,18 @@
 
 ## Latest News
 
+05/05/26 :
+- Working on `Buffer v3.3` here the following details on the upcoming features/changes : 
+  - Serializing `Struct` will be possible.
+  - `Array` will no longer be only flat array you will be able to use recursive array's.
+  - Removing char limit for `WriteStruct` on keys and for string values.
+  - CFrame will be more compressed (same method name exepct the original one will be called `WriteDefaultCFrame`) and CFrame will be a complex-type now.
+  - I'm rewriting readers correctly i need to avoid `DRY` too much.
+  - `Roblox-ts` version will contain an `enum` called `BufferEnum`.
+  - Two utils function will be public : `Utils.ReadValue` (i.e. ReadAny) this function is not on Buffer itself cause it read the byte-code of the given value and `Buffer.WriteAny` does not write the byte-code.
+      i will try still to implement `Buffer.ReadAny` but `Buffer.WriteAny` will write 1 more byte so i will see about that..
+      The other function that will be public is `Utils.isValidBool8Table` for people who want to control anything as they want.
+
 30/04/26 : 
 - Buffer v3.2.1 is released (hotfix).
 - `Roblox-ts` version will be released soon (next month)
