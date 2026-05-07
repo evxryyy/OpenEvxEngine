@@ -2,6 +2,9 @@
 
 ## Latest News
 
+07/05/26 :
+- After the release of the `roblox-ts` version, this repository will be renamed to `RbxEvx`.
+
 05/05/26 :
 - Working on `Buffer v3.3` here the following details on the upcoming features/changes : 
   - Serializing `Struct` will be possible.
