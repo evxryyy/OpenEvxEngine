@@ -2,6 +2,21 @@
 
 ## Latest News
 
+08/05/26 : 
+- More features/changes will be added for the `Buffer` Update:
+    - `__call` will let you decide an `Action` to perform for example : 
+      --- 
+      ```luau
+  	  buffer({
+        Action = "Read", -- List of available option : "Serialize" , "Deserialize", "Write", "Clear"
+        ActionParams, -- Will depend on what option you will use "wait for the update to see full details"
+      })
+      ```
+      To continue if you dont want to use it that way a function named `BuildAction` will be here doing the same thing.
+  - Fixings type-checking bugs & more
+  - Current `Signals` will no longer fire olders values (i.e. first argument on the actual callback for each signals)
+  - `ClearBuffer` and `ClearInstance` will fire `OnOffsetChanged` signal.
+
 07/05/26 :
 - After the release of the `roblox-ts` version, this repository will be renamed to `RbxEvx`.
 
