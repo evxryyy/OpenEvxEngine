@@ -25,7 +25,7 @@
 
 05/05/26 :
 - Working on `Buffer v3.3` here the following details on the upcoming features/changes : 
-  - Serializing `Struct` will be possible. [Almost done]
+  - Serializing `Struct` will be possible. [Done]
   - Removing char limit for `WriteStruct` on keys and for string values.
   - CFrame will be more compressed (same method name exepct the original one will be called `WriteDefaultCFrame`) and CFrame will be a complex-type now.
   - I'm rewriting readers correctly i need to avoid `DRY` too much. [Done]
