@@ -2,6 +2,9 @@
 
 ## Latest News
 
+12/05/26
+- The project overhaul should be release within 2 to 3 weeks and `Buffer v4.0` and `roblox-ts` version will also be released at the same time
+
 08/05/26 : 
 - More features/changes will be added for the `Buffer` Update:
     - `__call` will let you decide an `Action` to perform for example : 
