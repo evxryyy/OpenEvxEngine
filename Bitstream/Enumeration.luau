@@ -101,6 +101,7 @@ export type BitstreamTypesName =
 	| "NumberSequenceF16"
 	| "NumberSequenceF64"
 	| "Array"
+	| "Struct"
 
 --[[
 	Type = BitstreamTypes
@@ -161,10 +162,24 @@ export type BitstreamTypes =
 	| "NumberRangeF16"
 	| "NumberRangeF64"
 	| {["Type"] : "NumberSequence", Option : Types.NumberSequenceOption}
-	| {["Type"] : "Array", Types : {BitstreamTypes} }
+	| ArraySchema
+	| StructSchema
+	
 
 -- Serialization types
 export type SerializationSchema = {[string] : BitstreamTypes}
+
+
+-- Array and struct types
+export type ArraySchema = {
+	["Type"] : "Array",
+	["Types"] : {[number]: BitstreamTypes}
+}
+
+export type StructSchema = {
+	["Type"] : "Struct",
+	["Fields"] : {[string] : BitstreamTypes},
+}
 
 --[[
 	Runtime enumeration instance.
@@ -249,6 +264,7 @@ local BitstreamTypes = EnumModule.new("BitstreamTypes", {
 	NumberSequence = 0x35,
 	
 	Array = 0x36,
-}) :: {[BitstreamTypesName] : EnumType.EnumIndex<BitstreamTypesName>} & EnumModule.EnumClass
+	Struct = 0x37,
+}) :: EnumModule.EnumClass<BitstreamTypesName,number>
 
 return BitstreamTypes
