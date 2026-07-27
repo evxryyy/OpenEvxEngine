@@ -28,6 +28,7 @@ const Constants = require("./Constants")
 const Signal = require(Shared.Zignal)
 const Extensions = require("./Extensions")
 const Debugger = require("./Debugger")
+const Resolver = require("./Resolver")
 
 -- Version control (only once)
 local versionIsVerified = false
@@ -70,6 +71,10 @@ const round = math.round const abs = math.abs
 -- string lib
 const strlen = string.len const strgmatch = string.gmatch const strchar = string.char const strbyte = string.byte
 const strsub = string.sub const strmatch = string.match
+
+-- table lib
+const tblinsert = table.insert const tblclone = table.clone const tblclear = table.clear
+const tblconcat = table.concat
 
 -- Fixed (Unsigned) numbers (used for big-endian manual packing etc..)
 const fbit8 = 0x100 -- 256
@@ -156,12 +161,6 @@ const function ensureReadable(self : BitstreamComponent,offset : number,bytes : 
 	return true
 end
 
--- Only increase the offset (using a function directly for more readability)
-const function increaseOffset(offset : number,amount : number) : number
-	offset += amount
-	return offset
-end
-
 --[[
 	Execute a function on the buffer at the current offset.
 	Will throw an error if there is not enough space or out of bounds.
@@ -209,96 +208,6 @@ const function executeRead<A,R>(self : BitstreamComponent,readFunc : (...A) -> R
 	-- Execute the function and return the result
 	return readFunc(...) :: R
 end
-
---[[
-	Iterates over an array schema and executes a callback for each resolved value.
-
-	Supports repeated types using the `:<count>` syntax (e.g. `"U8:3"`),
-	as well as nested arrays.
-
-	Multi-dimensional arrays are currently not supported.
-
-	@Parameters:
-		- types : {Enumeration.BitstreamTypes}
-		- values : {any}
-		- func : (string, any) -> ()
-
-	@Returns: ()
-]]
-const function iterateArray(
-	types : {Enumeration.BitstreamTypes},
-	values : {any},
-	func : (...any) -> unknown)
-	local valueArrayIndex = 1
-	for i = 1,#types do
-		if(typeof(types[i]) == "table" and types[i].Type == "Array") then
-			local childTypes = (types[i].Types :: {Enumeration.BitstreamTypes})
-			for k = 1,#childTypes do
-				if(typeof(childTypes) == "table" and childTypes[k].Type == "Array") then
-					error("Multi-dimensional array is not supported")
-				end
-				local descendantType = childTypes[k]
-				iterateArray({descendantType},values[valueArrayIndex],func)
-				valueArrayIndex += 1
-			end
-			continue
-		end
-		local targetedType = (typeof(types[i]) == "table" and types[i].Type ~= "Array") and types[i].Type or types[i] :: string
-		local typeOf = strmatch(targetedType,"([^:]+)")
-		local typeCount = strmatch(targetedType,":(%d+)") or 1
-		for j = 1,typeCount do
-			local v = values[valueArrayIndex]
-			func(typeOf,v)
-			valueArrayIndex += 1
-		end	
-	end
-end
-
---[[
-	Iterates over a struct schema and executes a callback for each resolved value.
-
-	Supports nested structs and arrays.
-
-	Multi-dimensional arrays and structs are currently not supported.
-
-	@Parameters:
-		- struct : {[string] : Enumeration.BitstreamTypes}
-		- values : {any}
-		- func : (...any) -> unknown
-
-	@Returns: ()
-]]
-const function iterateStruct(
-	struct : {[string] : Enumeration.BitstreamTypes},
-	values : {any},
-	func : (...any) -> unknown)
-	for key,value : Enumeration.BitstreamTypes in pairs(struct.Fields) do
-		if(not values[key]) then continue end
-		local v = values[key]
-		if(typeof(value) == "table" and value.Type == "Array") then
-			iterateArray(value.Types,v,func)
-			continue
-		elseif(typeof(value) == "table" and value.Type == "Struct") then
-			local childFields = value.Fields
-			for childKey,childValue in pairs(childFields) do
-				if(not v[childKey]) then continue end
-				local childV = v[childKey]
-				if(typeof(childKey) == "table" and (childKey[childValue].Type == "Array" or "Struct")) then
-					error("Multi-dimensional array/struct is not supported")
-				end
-				local descendantType = typeof(childValue) == "table" and childValue.Type or childValue
-				local descendantStruct = {
-					Fields = {[childKey] = childValue}
-				}
-				local descendantValues = {[childKey] = childV}
-				iterateStruct(descendantStruct,descendantValues,func)
-			end
-			continue
-		end
-		func(value,v)
-	end
-end
-
 
 --[[
 	Construct a new Bitstream-Component with the actual configuration.
@@ -392,42 +301,11 @@ end
 	
 	@lastest modification : v4.0
 	@since v2.0
+	
+	TODO: Start the refactorized Serialize
 ]]
 function BitstreamConstructor.Serialize(schema : Enumeration.SerializationSchema,value : {[string] : any})
-	assert(typeof(schema) == "table" and typeof(value) == "table","Schema and Value must be a table<string,any>")
-	local component = BitstreamConstructor.new({
-		Size = Extensions.getSchemaSize(schema,value),
-		UseAutoAllocation = false,
-	})
-	for key,field in schema do
-		local v = value[key]
-		if(v == nil) then continue end
-		local isFieldTable = typeof(field) == "table"
-		if(isFieldTable and field.Type == "Array") then
-			iterateArray(field.Types,v,function(targetType : string,_value : any)
-				component:writeAs(targetType,_value)
-			end)
-		elseif(isFieldTable and field.Type == "Struct") then
-			for struct_key,struct_value in v do
-				if(typeof(field.Fields[struct_key]) == "table" and field.Fields[struct_key].Type == "Array") then
-					iterateArray(field.Fields[struct_key].Types,struct_value,function(targetType : string,_value : any)
-						component:writeAs(targetType,_value)
-					end)
-				elseif(typeof(field.Fields[struct_key]) == "table" and field.Fields[struct_key].Type == "Struct") then
-					iterateStruct(field.Fields[struct_key],struct_value,function(targetType : string,_value : any)
-						component:writeAs(targetType,_value)
-					end)
-				else
-					component:writeAs(field.Fields[struct_key],struct_value)
-				end
-			end
-		else
-			component:writeAs(field,v)
-		end
-	end
-	local storedBuffer = component.__buffer
-	component:Destroy()
-	return storedBuffer
+	
 end
 
 -- /// Bitstream methods /// --
@@ -2401,15 +2279,16 @@ function Bitstream.writeAs(self: BitstreamComponent,writeType : Enumeration.Bits
 	if(typeof(writeType) == "table") then
 		local typeName = writeType.Type
 		if(typeName == "Array") then
-			iterateArray(writeType.Types,value,function(targetType,_value)
+			Resolver.iterateArray(writeType.Types,value,function(targetType,_value)
 				self:writeAs(targetType,_value)
 			end)
 		elseif(typeName == "Struct") then
-			iterateStruct(writeType,value,function(targetType,_value)
+			Resolver.iterateStruct(writeType.Fields,value,function(targetType,_value)
 				self:writeAs(targetType,_value)
 			end)
 		else
 			local extra = writeType.Length or writeType.Option
+			print(extra,writeType)
 			if(typeof(extra) ~= "number") then
 				writeType = writeType .. extra
 			end
@@ -2443,15 +2322,9 @@ end
 function Bitstream.writeArray<T>(self : BitstreamComponent,Types : {Enumeration.BitstreamTypes},Values : {T})
 	assert(typeof(Types) == "table", "array must be a table")
 	assert(typeof(Values) == "table", "value must be a table")
-	const tblLen = #Types
-	if(tblLen <= 0) then
-		error("Types array must have at least one element")
-	end
-	for i = 1,tblLen do
-		const Type = Types[i]
-		const value = Values[i]
-		self:writeAs(Type,value)
-	end
+	Resolver.iterateArray(Types,Values,function(typeOf,v)
+		self:writeAs(typeOf,v)
+	end)
 	return self
 end
 
@@ -2459,145 +2332,44 @@ end
 	Writes any supported value into the buffer by dynamically selecting
 	the appropriate serialization method based on its runtime type.
 	
-	@Note This function is slower than using the write*() methods directly.
-	You should only use this function when writing dynamic types.
-
-	Some types may not be supported by default. You can check
-	Extensions.literalValueToBitstreamTypes() and modify or add mappings
-	depending on the type you need.
-
-	For example, CFrame can be serialized as CFrameF32 by default.
-	You may replace it with CFrameF64 or another supported type.
-	
 	@Parameter(s): any
 	
 	@latest modification : v4.0
 	@since v3.1
 ]]
-function Bitstream.writeAny(self : BitstreamComponent,Value : any)
-	assert(Value ~= nil,"Value must not be nil")
-	const bitstreamType = Extensions.literalValueToBitstreamTypes(Value)
-	-- Write type identifier and handle allocation
-	const bytes = Extensions.getBytesFromValueType(Value)
-	const result,component = ensureWritable(self,bytes)
-	if(component) then self = (component :: BitstreamComponent) end
-
-	const typeIdentifier = Enumeration.__enum[bitstreamType].Value :: number
-	self:writeU8(typeIdentifier)
-	
-	-- Handle array
-	if(bitstreamType == "Array") then
-		const arrayLength = (#Value :: {any})
-		const arrayLengthCode = Utilities.GetEquivalentBytesInfoFromNumber(arrayLength).bytes * 8
-		self:writeU8(arrayLengthCode)
-		self[`writeU{arrayLengthCode}`](self,arrayLength)
-		for i = 1,#(Value :: {any}) do
-			const value = Value[i]
-			const valueType = Extensions.literalValueToBitstreamTypes(value)
-			const valueTypeIdentifier = Enumeration.__enum[valueType].Value :: number
-			self:writeU8(valueTypeIdentifier)
-			self:writeAs(valueType,value)
-		end
+function Bitstream.writeAny(self : BitstreamComponent,value : any)
+	local valueType = Resolver.resolveValueType(value)
+	if(valueType) == "Array" then
+		local schema = Resolver.resolveArraySchema(value)
+		self:writeAs(schema,value)
+		return self
+	elseif(valueType == "Struct") then
 		return self
 	end
-	
-	-- Write value
-	self[`write{bitstreamType}`](self,Value)
+	if(self["write"..valueType]) then
+		self["write"..valueType](self,value)
+	else
+		self:writeAs(valueType,value)
+	end
 	return self
 end
 
 --[=[
 	Writes a structured table (dictionary) into the buffer.
-	
-	Serializes a table where keys must be strings and values can be of any supported type.
-	The function first encodes the list of keys as a single comma-separated string,
-	then writes each value alongside a type identifier (byte code).
-	
-	@Example(s) :
-	
-	```luau
-		--[[
-			schema :
-			- 7 bytes for the key (1 for the byte required + U[n] depending on the length + string length)
-			- 1 byte for the type identifier in the struct (the value)
-			- since the value is a array each element have a 1 byte overhead for the type identifier and-
-				the number of bytes required to write the value
-				
-			so the total of bytes will be 15 bytes.
-		]]
-		streamer:writeStruct({
-			Range = {10,50,255} --> 5 bytes
-		})
-	```
-	
-	```luau
-		--[[
-			schema
-			- 5 bytes for the key (1 for the byte required + U[n] depending on the length + string length)
-			- 1 byte for the type identifier in the struct (the value)
-			since the value is a CFrame is already directed to a CFrameF32 so it will take 24 bytes.
-			
-			so the total of bytes will be 30 bytes.
-		]]
-		streamer:writeStruct({
-			Pos = CFrame.new(0,0,0)
-		})
-	```
-	
-	@Parameter(s): {[key : string] : any}
-	
+		
 	@latest modification : v4.0
 	@since v3.2
 ]=]
-function Bitstream.writeStruct(self : BitstreamComponent,struct : {[string] : any})
-	assert(struct ~= nil,"Value must not be nil")
-	-- Get keys
-	local keys = {}
-	for key in next,struct do
-		table.insert(keys,key)	
-	end
-	keys = table.concat(keys,",")
-	const keysLength = strlen(keys)
-	
-	const keysLengthBits = Utilities.GetEquivalentBytesInfoFromNumber(keysLength).bytes * 8 
-		
-	-- Get struct size in bytes
-	const bytes = Extensions.getStructSize(struct)
-	const result,component = ensureWritable(self,bytes)
-	if(component) then self = (component :: BitstreamComponent) end
-		
-	-- Write struct keys
-	self:writePrefixedString(keys)
-	
-	-- Write struct values
-	for _,value in pairs(struct) do
-		const bitstreamTypes = Extensions.literalValueToBitstreamTypes(value)
-		const typeIdentifier = Enumeration.__enum[bitstreamTypes].Value :: number
-		self:writeU8(typeIdentifier)
-		-- Handle strings
-		if(typeof(value) == "string") then
-			self:writePrefixedString(value)
-			continue	
-		end
-		-- Handle array
-		if(bitstreamTypes == "Array") then
-			const arrayLength = (#value :: {any})
-			const arrayLengthBits = Utilities.GetEquivalentBytesInfoFromNumber(arrayLength).bytes * 8
-			self:writeU8(arrayLengthBits)
-			self[`writeU{arrayLengthBits}`](self,arrayLength)
-			for i = 1,arrayLength do
-				const v = value[i]
-				const valueType = Extensions.literalValueToBitstreamTypes(v)
-				const valueTypeIdentifier = Enumeration.__enum[valueType].Value :: number
-				self:writeU8(valueTypeIdentifier)
-				self:writeAs(valueType,v)
-			end
-			continue
-		end
-		self[`write{bitstreamTypes}`](self,value)
-	end
-	
-	return self
+function Bitstream.writeStruct(
+	self : BitstreamComponent,
+	schema : Enumeration.StructSchema,
+	struct : {[string] : any}
+)
+	assert(typeof(schema) == "table", "schema must be a table")
+	assert(typeof(struct) == "table", "struct must be a table")
+	Resolver.iterateStruct(schema.Fields,struct,function(targetType,_value)
+		self:writeAs(targetType,_value)
+	end)
 end
 
 --[[
@@ -3885,41 +3657,50 @@ end
 function Bitstream.readAs<T>(
 	self : BitstreamComponent,
 	offset : number?,
-	as : Enumeration.BitstreamTypesName | {Enumeration.BitstreamTypesName},
-	data : any)
+	readType : Enumeration.BitstreamTypes,
+	extraData : any
+) : T & number
 	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
-	if(typeof(as) == "table") then
-		local data : {T} = {}
-		for i = 1,#as do
-			local t = as[i]
-			-- Handle arrays
-			if(t == "Array") then
-				local array = {} :: {any}
-				ensureReadable(self,offset,1)
-				const arrayBitsIdentifier = readu8(self.__buffer,offset)
-				ensureReadable(self,offset + 1,arrayBitsIdentifier / 8)
-				const arrayLength = self[`readU{arrayBitsIdentifier}`](self,offset + 1)
-				offset = increaseOffset(offset,1 + arrayBitsIdentifier / 8)
-				for j = 1,arrayLength do
-					ensureReadable(self,offset,1)
-					const valueTypeIdentifier = readu8(self.__buffer,offset)
-					offset = increaseOffset(offset,1)
-					const valueType = Extensions.getEnumTypeFromIdentifier(valueTypeIdentifier)
-					local value = self:readAs(offset,valueType,data)
-					local offsetToAdvance = Extensions.getOffsetFromValueType(valueType,value)
-					offset += offsetToAdvance
-					table.insert(array,value)
+	local value = nil
+	if(typeof(readType) == "table") then
+		local typeName = readType.Type
+		if(typeName == "Array") then
+			value = {}
+			local nestedArray = {}
+			Resolver.resolveArray(readType.Types,function(targetType,typeCount,hasNestedFlag)
+				for i = 1,typeCount do
+					local element,elementOffset = self:readAs(offset,targetType)
+					offset = elementOffset
+					if(hasNestedFlag) then
+						tblinsert(nestedArray,element)
+					else
+						tblinsert(value,element)
+					end
 				end
-				data[i] = array
-				continue
+				if(hasNestedFlag) then
+					tblinsert(value,tblclone(nestedArray))
+				end
+				tblclear(nestedArray)	
+			end)
+			return value :: T,offset
+		elseif(typeName == "Struct") then
+			value = Resolver.resolveStruct(readType.Fields,function(targetType)
+				local element,elementOffset = self:readAs(offset,targetType)
+				offset = elementOffset
+				return element
+			end)
+			return value :: T,offset
+		else
+			local extra = readType.Length or readType.Option
+			if(typeof(extra) ~= "number") then
+				readType = readType .. extra
 			end
-			local value = self["read"..t](self,offset,data)
-			offset += Extensions.getOffsetFromValueType(t)
-			data[i] = value
+			local element = self["read"..readType](self,offset) :: T
+			return element,offset + Resolver.resolveBytesNeeded(readType,element)
 		end
-		return data
 	else
-		return self[`read{as}`](self,offset,data) :: T
+		local element = self["read"..readType](self,offset) :: T
+		return element,offset + Resolver.resolveBytesNeeded(readType,element)
 	end
 end
 
@@ -3937,19 +3718,27 @@ end
 		The read array.
 	
 	@latest modification : v4.0
-	@since v2.9
+	@since v2.9	
 ]]
 function Bitstream.readArray<T>(self : BitstreamComponent,offset : number?,types : {Enumeration.BitstreamTypes})
 	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
 	local array : {T} = {}
-	for i = 1, #types do
-		local t = types[i]
-		local option = t.Length or t.Option or t.Types
-		local step = (Constants.REQUIRED_BYTES[t] ~= "nil" and typeof(Constants.REQUIRED_BYTES[t]) ~= "number") and
-			Constants.REQUIRED_BYTES[t](option) or Constants.REQUIRED_BYTES[t]
-		array[i] = self[`read{t}`](self,offset,option)
-		offset += step
-	end
+	local nestedArray = {}
+	Resolver.resolveArray(types,function(targetType,typeCount,hasNestedFlag)
+		for i = 1,typeCount do
+			local element,elementOffset = self:readAs(offset,targetType)
+			offset = elementOffset
+			if(hasNestedFlag) then
+				tblinsert(nestedArray,element)
+			else
+				tblinsert(array,element)
+			end
+		end
+		if(hasNestedFlag) then
+			tblinsert(array,tblclone(nestedArray))
+		end
+		tblclear(nestedArray)	
+	end)
 	return array
 end
 
@@ -3963,69 +3752,18 @@ end
 		The read struct.
 	
 	@latest modification : v4.0
-	@since v3.2
+	@since v3.2	
 ]]
-function Bitstream.readStruct(self : BitstreamComponent,offset : number?)
-	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
-	
-	-- Ensure and read all needed informations to find the struct keys
-	ensureReadable(self,offset,1)
-	local keyLengthCode = Constants.REQUIRED_BYTES[Enumeration:fromValue(readu8(self.__buffer,offset)).Name] * 8
-	offset = increaseOffset(offset,1)
-	local keyLength = self["readU"..keyLengthCode](self,offset)
-	ensureReadable(self,offset,keyLengthCode / 8)
-	offset = increaseOffset(offset,keyLengthCode / 8)
-	ensureReadable(self,offset,keyLength)
-	local key = readstring(self.__buffer,offset,keyLength)
-	offset = increaseOffset(offset,keyLength)
-
-	-- Table to store the key-value pairs
-	local t = {}
-
-	-- Read all keys and reform the struct
-	for k in key:gmatch("[^,]+") do
-		ensureReadable(self,offset,1)
-		const typeIdentifier = readu8(self.__buffer,offset)
-		offset = increaseOffset(offset,1)
-		local keyType = Extensions.getEnumTypeFromIdentifier(typeIdentifier)
-		-- Array
-		if(keyType == "Array") then
-			ensureReadable(self,offset,1)
-			const arrayBitsIdentifier = readu8(self.__buffer,offset)
-			ensureReadable(self,offset + 1,arrayBitsIdentifier / 8)
-			const arrayLength = self[`readU{arrayBitsIdentifier}`](self,offset + 1)
-			offset = increaseOffset(offset,1 + arrayBitsIdentifier / 8)
-			for i = 1,arrayLength do
-				ensureReadable(self,offset,1)
-				const valueTypeIdentifier = readu8(self.__buffer,offset)
-				offset = increaseOffset(offset,1)
-				const valueType = Extensions.getEnumTypeFromIdentifier(valueTypeIdentifier)
-				local value = self:readAs(offset,valueType)
-				local offsetToAdvance = Extensions.getOffsetFromValueType(valueType,value)
-				offset += offsetToAdvance
-				if(not t[k]) then
-					t[k] = {}
-				end
-				table.insert(t[k],value)
-			end
-			-- Strings
-		elseif(keyType == "String") then
-			ensureReadable(self,offset,1)
-			const valueLengthCode = Constants.REQUIRED_BYTES[Enumeration:fromValue(readu8(self.__buffer,offset)).Name] * 8
-			ensureReadable(self,offset + 1,valueLengthCode / 8)
-			const valueLength = self[`readU{valueLengthCode}`](self,offset + 1)
-			offset = increaseOffset(offset,1 + valueLengthCode / 8)
-			ensureReadable(self,offset,valueLength)
-			t[k] = readstring(self.__buffer,offset,valueLength)
-			offset = increaseOffset(offset,valueLength)
-			-- All others types	
-		else
-			t[k] = self:readAs(offset,keyType)
-			offset = increaseOffset(offset,Extensions.getOffsetFromValueType(keyType,t[k]))
-		end
-	end
-
-	return t
+function Bitstream.readStruct(
+	self : BitstreamComponent,
+	offset : number?,
+	schema : Enumeration.StructSchema
+)
+	return Resolver.resolveStruct(schema.Fields,function(targetType)
+		local element,elementOffset = self:readAs(offset,targetType)
+		offset = elementOffset
+		return element
+	end)
 end
 
 
@@ -4040,34 +3778,11 @@ end
 		
 	@latest modification : v4.0
 	@since v4.0
+	
+	TODO: Start the refactorized readAny
 ]]
 function Bitstream.readAny(self : BitstreamComponent,offset : number?)
-	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
-	ensureReadable(self,offset,1)
-	const typeIdentifier = Extensions.getEnumTypeFromIdentifier(readu8(self.__buffer,offset))
-	offset = increaseOffset(offset,1)
-	-- Handle Array
-	if(typeIdentifier == "Array") then
-		ensureReadable(self,offset,1)
-		const arrayLengthCode = readu8(self.__buffer,offset)
-		ensureReadable(self,offset + 1,arrayLengthCode / 8)
-		const arrayLength = self[`readU{arrayLengthCode}`](self,offset + 1)
-		offset = increaseOffset(offset,1 + arrayLengthCode / 8)
-		local array = {}
-		for i = 1,arrayLength do
-			ensureReadable(self,offset,1)
-			const valueTypeIdentifier = readu8(self.__buffer,offset)
-			offset = increaseOffset(offset,1)
-			const valueType = Extensions.getEnumTypeFromIdentifier(valueTypeIdentifier)
-			local value = self:readAs(offset,valueType)
-			local offsetToAdvance = Extensions.getOffsetFromValueType(valueType,value)
-			offset += offsetToAdvance
-			table.insert(array,value)
-		end
-		return array
-	else
-		return 	self[`read{typeIdentifier}`](self,offset) :: any
-	end
+
 end
 
 --[[
@@ -4159,7 +3874,7 @@ end
 	@since v2.4
 ]]
 function Bitstream.clear(self : BitstreamComponent)
-	table.clear(self.__instanceBuffer)
+	tblclear(self.__instanceBuffer)
 	self.__offsetChanged:DisconnectAll()
 	self.__capacityChanged:DisconnectAll()
 	return self
