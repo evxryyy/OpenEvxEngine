@@ -8,11 +8,12 @@ Features:
 - Supports auto allocation
 - Supports custom types
 
-Todo : 
-- Start Deserialization.
-- Start working on `Bitstream.ts` the `roblox-ts` version of `Bitstream`
+Todo :
+- Begin implementing the deserialization system.
+- Complete `writeAny` and `readAny` with proper flag support.
+- Add `f8` and `f24` types directly from the C implementation.
+- Begin development of `Bitstream.ts`, the `roblox-ts` implementation of Bitstream.
 
 Idea : 
-1. Add a way to really write instance in a buffer and not inside a table. (I dont know about this one)
-2. Add a way to write Dynamic Array/Struct.
-3. Add `writeInt` similar to `writeUInt`.
+1. Add a way to really write instance in a buffer and not inside a table. (using `SerializationService`)
+2. Add `writeInt` similar to `writeUInt`.
