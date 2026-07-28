@@ -98,6 +98,9 @@ const bm6 = 0x3F -- 63 (Mask used to keep only the lowest 6 bits of a value.)
 const POSITION_SCALE = 1000 -- ~0.05°, Range: ±π radians
 const ROTATION_SCALE = 10430.38 -- 1mm, Range: ±32km
 
+-- Buffer constants
+const BUFFER_MAX_SIZE = 1_073_741_824 -- 1GB
+
 -- API Constructor & Component --
 local BitstreamConstructor = {}
 local Bitstream = {}
@@ -111,8 +114,7 @@ export type BitstreamComponent = typeof(setmetatable({} :: {
 	__buffer : buffer,
 	__offset : number,
 	__useAutoAllocation : boolean,
-	__maximumAllowedSize : number,
-
+	
 	-- Instances (not in raw buffer directly)
 	__instanceBuffer : {Instance},
 	__instanceOffset : number,
@@ -185,7 +187,7 @@ const function executeRead<A,R>(self : BitstreamComponent,readFunc : (...A) -> R
 	local useBitoffset = false
 
 	local functionName = Debugger.getFunctionName(3)
-	local functionType = strsub(functionName,5,#functionName) -- U8
+	local functionType = strsub(functionName,5,#functionName)
 	
 	if(functionType == "U1" or "Bool1" or "Bool8") then
 		useBitoffset = true
@@ -224,7 +226,6 @@ function BitstreamConstructor.new(ctorConfiguration : Types.ConstructorConfigura
 		__buffer = create(ctorConfiguration.Size or 0),
 		__offset = 0,
 		__useAutoAllocation = ctorConfiguration.UseAutoAllocation or false,
-		__maximumAllowedSize = ctorConfiguration.MaximumAllowedSize or huge,
 		-- Instances data
 		__instanceBuffer = {},
 		__instanceOffset = 0,
@@ -259,10 +260,6 @@ function BitstreamConstructor.from(ctorConfiguration : Types.ConstructorConfigur
 		__buffer = ctorConfiguration.SourceBuffer :: buffer,
 		__offset = bufflen(ctorConfiguration.SourceBuffer :: buffer),
 		__useAutoAllocation = ctorConfiguration.UseAutoAllocation or false,
-		__maximumAllowedSize = 
-			(((ctorConfiguration.MaximumAllowedSize :: number) < bufflen(ctorConfiguration.SourceBuffer :: buffer))
-			and bufflen(ctorConfiguration.SourceBuffer :: buffer) or ctorConfiguration.MaximumAllowedSize :: number)
-			or huge,
 		-- Instances data
 		__instanceBuffer = {},
 		__instanceOffset = 0,
@@ -274,47 +271,154 @@ function BitstreamConstructor.from(ctorConfiguration : Types.ConstructorConfigur
 end
 
 --[[
-	@TODO: Constructor methods
-		.Deserialize
-		.Decompress
-		.SerializeAll
-		.DeserialzeAll
-		.SerializeCompressed
-		.DeserializeCompressed
-		.SerializeAllCompressed
-		.DeserializeAllCompressed
-]]
-
---[[
 	Serializes a Lua table into a buffer using the provided serialization schema.
 
 	Supports primitive types, arrays, and nested structs.
 
-	Arrays are flattened according to their schema definition before being
-	written to the buffer.
-
 	@Parameters:
 		- schema : Enumeration.SerializationSchema
 		- value : {[string] : any}
+		- compress : boolean? (default: false)
 
 	@Returns: buffer
 	
 	@lastest modification : v4.0
 	@since v2.0
-	
-	TODO: Start the refactorized Serialize
 ]]
-function BitstreamConstructor.Serialize(schema : Enumeration.SerializationSchema,value : {[string] : any})
+function BitstreamConstructor.serialize(
+	schema : Enumeration.SerializationSchema,
+	value : {[string] : any},
+	compress : boolean?
+)
+	local schema_size = 0
+	Resolver.iterateStruct(schema,value,function(targetType,_value)
+		schema_size += Resolver.resolveBytesNeeded(targetType,_value)
+	end)
+	local ser = BitstreamConstructor.new({
+		Size = schema_size,
+		UseAutoAllocation = false,
+	})
+	Resolver.iterateStruct(schema,value,function(targetType,_value)
+		ser:writeAs(targetType,_value)
+	end)
+	local b = (compress) and ser:compress(Enum.CompressionAlgorithm.Zstd) or ser.__buffer
+	ser:Destroy()
+	return b
+end
+
+--[[
+	Deserializes a buffer into a Lua table using the provided serialization schema.
 	
+	@Parameters:
+		- schema : Enumeration.SerializationSchema
+		- ser : buffer
+		- decompress : boolean? (default: false)
+		
+	@Returns: {[string] : any}
+	
+	@lastest modification : v4.0
+	@since v2.0
+]]
+function BitstreamConstructor.deserialize(
+	ser : buffer,
+	schema : Enumeration.SerializationSchema,
+	decompress : boolean?
+) : {[string] : any}
+	local offset = 0
+	if(decompress) then ser = BitstreamConstructor.decompress(ser,Enum.CompressionAlgorithm.Zstd) end
+	ser = BitstreamConstructor.from({
+		SourceBuffer = ser,
+		MaximumAllowedSize = huge
+	})
+	return Resolver.resolveStruct(schema,function(targetType)
+		local element,elementOffset = ser:readAs(offset,targetType)
+		offset = elementOffset
+		return element
+	end)
+end
+
+--[[
+	Decompresses a buffer using the provided compression algorithm.
+	
+	@Parameters:
+		- b : buffer,
+		- algorithm : Enum.CompressionAlgorithm
+
+	@lastest modification : v4.0
+	@since v2.6
+]]
+function BitstreamConstructor.decompress(b : buffer,algorithm : Enum.CompressionAlgorithm)
+	return EncodingService:DecompressBuffer(b,algorithm)
+end
+
+--[[
+	Serializes a list of Lua table into a list of buffers using the provided schema for each iteration
+	
+	Each schema and value must be in the same index. the order is very important and you can add a extra parameter,
+	to the function to name the buffer. example : {"Buffer1"} and on the return you will get a table with the name and the buffer,
+	See the documentation for more information.
+	
+	@Parameters:
+		- schemas : {Enumeration.SerializationSchema}
+		- values : {[string] : any}
+		- names : {string}?
+		- compressAll : boolean? (default false)
+		
+	@Returns: {[string | number] : buffer}
+	
+	@lastest modification : v4.0
+	@since v2.2
+]]
+function BitstreamConstructor.serializeAll(
+	schemas : {Enumeration.SerializationSchema},
+	values : { {[string] : any} },
+	names : {string}?,
+	compressAll : boolean?
+) : {[string | number] : buffer}
+	local sers = {}
+	for i = 1,#schemas do
+		if(typeof(schemas[i]) ~= "table") then error(`Schema #{i} is not a table`) end
+		if(typeof(values[i]) ~= "table") then error(`Value #{i} is not a table`) end
+		if(names[i]) then
+			if(typeof(names[i]) ~= "string") then error(`Name #{i} is not a string`) end
+			sers[names[i]] = BitstreamConstructor.serialize(schemas[i],values[i],compressAll)
+		else
+			sers[i] = BitstreamConstructor.serialize(schemas[i],values[i],compressAll)
+		end
+	end
+	return sers
+end
+
+--[[
+	Deserializes a list of buffer into a list of Lua table using the corresponding schema for each iteration
+
+	Each schema and value must be in the same index, the order is very important.
+	
+	@Parameters:
+		- buffers : {[string | number] : buffer}
+		- schemas : {Enumeration.SerializationSchema}
+		- decompressAll : boolean? (default false)
+		
+	@Returns: {[string | number] : any}
+	
+	@lastest modification : v4.0
+	@since v2.2
+]]
+function BitstreamConstructor.deserializeAll(
+	sers : {[string | number] : buffer},
+	schemas : {Enumeration.SerializationSchema},
+	decompressAll : boolean?
+) : {[string | number] : any}
+	local des = {}
+	local schemaIndex = 1
+	for i,v in pairs(sers) do
+		des[i] = BitstreamConstructor.deserialize(v,schemas[schemaIndex],decompressAll)
+		schemaIndex += 1
+	end
+	return des
 end
 
 -- /// Bitstream methods /// --
-
---[[
-	@TODO: Constructor methods
-		.All Writers
-		.All Readers
-]]
 
 --[[
 	When `print` is called instead of showing a table with all data it will return a string.
@@ -790,6 +894,28 @@ function Bitstream.writeUInt(self : BitstreamComponent,value : number) : Bitstre
 end
 
 --[[
+	Write a floating-point value using the 8-bit E4M3 format.
+	- 1 byte, 1 sign bit, 4 exponent bits, 3 mantissa bits.
+	
+	@Parameter(s): number
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeF8(self : BitstreamComponent,value : number) : BitstreamComponent
+	Debugger.handleAssert(typeof(value) == "number","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"number"
+	})
+	const result,component = ensureWritable(self,Constants.REQUIRED_BYTES.F8)
+	if(component) then self = (component :: BitstreamComponent) end
+	writeu8(self.__buffer,self.__offset,Extensions.encodeF8(value))
+	self.__offset += 1
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
     Write a 16-bit float (half-precision) to the buffer.
     - Lower precision than F32/F64; expect rounding.
     - NaN/Inf are handled; finite values are encoded with sign/exponent/mantissa.
@@ -809,6 +935,32 @@ function Bitstream.writeF16(self : BitstreamComponent,value : number) : Bitstrea
 	local uint16,sign,mantissa,exponent = Extensions.toFloat16(value);
 	writeu16(self.__buffer,self.__offset,uint16)
 	self.__offset += 2
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
+    Write a 24-bit float (3 bytes) to the buffer.
+    - 3 bytes, big-endian.
+    - 18-bit mantissa, 5-bit exponent, 1-bit sign.
+    
+    @Parameter(s): number, number
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeF24(self : BitstreamComponent,value : number) : BitstreamComponent
+	Debugger.handleAssert(typeof(value) == "number","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"number"
+	})
+	const result,component = ensureWritable(self,Constants.REQUIRED_BYTES.F24)
+	if(component) then self = (component :: BitstreamComponent) end
+	local fp24 = Extensions.encodeF24(value)
+	writeu8(self.__buffer,self.__offset + 0,extract(fp24,16,8))
+	writeu8(self.__buffer,self.__offset + 1,extract(fp24,8,8))
+	writeu8(self.__buffer,self.__offset + 2,extract(fp24,0,8))
+	self.__offset += 3
 	self.__offsetChanged:Fire(self.__offset)
 	return self
 end
@@ -2338,20 +2490,30 @@ end
 	@since v3.1
 ]]
 function Bitstream.writeAny(self : BitstreamComponent,value : any)
+	assert(typeof(value) ~= "nil","A value is required.")
 	local valueType = Resolver.resolveValueType(value)
-	if(valueType) == "Array" then
+	if(valueType == "Array") then
 		local schema = Resolver.resolveArraySchema(value)
 		self:writeAs(schema,value)
-		return self
+		return self, schema :: Enumeration.ArraySchema
 	elseif(valueType == "Struct") then
-		return self
+		local schema = Resolver.resolveStructSchema(value)
+		self:writeAs(schema,value)
+		return self,schema :: Enumeration.StructSchema
+	elseif(valueType == "String") then
+		valueType = {
+			Type = "String",
+			Length = strlen(value)
+		}
+		self:writeString(value)
+		return self, valueType
 	end
 	if(self["write"..valueType]) then
 		self["write"..valueType](self,value)
 	else
 		self:writeAs(valueType,value)
 	end
-	return self
+	return self,valueType :: Enumeration.BitstreamTypesName
 end
 
 --[=[
@@ -2770,6 +2932,22 @@ function Bitstream.readBool8(self : BitstreamComponent,offset : number?)
 end
 
 --[[
+	Reads an 8-bit floating-point value encoded with the E4M3 format from the buffer.
+	
+	@Returns number
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readF8(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	return executeRead(self,function()
+		local encoded = readu8(self.__buffer,offset)
+		return Extensions.decodeF8(encoded)
+	end,offset)
+end
+
+--[[
 	Read a 16-bit half-precision float (IEEE 754 binary16) from the buffer.
 	
 	@Returns number
@@ -2780,6 +2958,26 @@ end
 function Bitstream.readF16(self : BitstreamComponent,offset : number?)
 	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
 	return executeRead(self,Extensions.decodeF16,self.__buffer,offset)
+end
+
+--[[
+	Read a 24-bit custom floating-point format (FP24) float from the buffer.
+	
+	@Returns number
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readF24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	return executeRead(self,function()
+		local encoded = bor(
+			lshift(readu8(self.__buffer,offset + 0),16),
+			lshift(readu8(self.__buffer,offset + 1),8),
+			readu8(self.__buffer,offset + 2)
+		)
+		return Extensions.decodeF24(encoded)
+	end,offset)
 end
 
 --[[
@@ -3693,9 +3891,9 @@ function Bitstream.readAs<T>(
 		else
 			local extra = readType.Length or readType.Option
 			if(typeof(extra) ~= "number") then
-				readType = readType .. extra
+				readType.Type = readType.Type .. extra
 			end
-			local element = self["read"..readType](self,offset) :: T
+			local element = self["read"..readType.Type](self,offset,extra) :: T
 			return element,offset + Resolver.resolveBytesNeeded(readType,element)
 		end
 	else
@@ -3777,12 +3975,10 @@ end
 		The read value.
 		
 	@latest modification : v4.0
-	@since v4.0
-	
-	TODO: Start the refactorized readAny
+	@since v4.0	
 ]]
-function Bitstream.readAny(self : BitstreamComponent,offset : number?)
-
+function Bitstream.readAny(self : BitstreamComponent,schema : Enumeration.BitstreamTypes,offset : number?)
+	return self:readAs(offset,schema)
 end
 
 --[[
