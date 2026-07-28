@@ -69,7 +69,9 @@ return table.freeze({
 		U48 = 6,
 		U54 = 7,
 		-- Floats
+		F8 = 1,
 		F16 = 2,
+		F24 = 3,
 		F32 = 4,
 		F64 = 8,
 		-- Strings
