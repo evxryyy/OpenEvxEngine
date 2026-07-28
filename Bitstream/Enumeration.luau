@@ -53,7 +53,9 @@ export type BitstreamTypesName =
 	| "U40"
 	| "U48"
 	| "U54"
+	| "F8"
 	| "F16"
+	| "F24"
 	| "F32"
 	| "F64"
 	| "String"
@@ -124,7 +126,9 @@ export type BitstreamTypes =
 	| "U40"
 	| "U48"
 	| "U54"
+	| "F8"
 	| "F16"
+	| "F24"
 	| "F32"
 	| "F64"
 	| {["Type"] : "String", Length : number?} -- Optional for `writeAs`
@@ -209,62 +213,64 @@ local BitstreamTypes = EnumModule.new("BitstreamTypes", {
 	U48 = 0x0E,
 	U54 = 0x0F,
 
-	F16 = 0x10,
-	F32 = 0x11,
-	F64 = 0x12,
+	F8 = 0x10,
+	F16 = 0x11,
+	F24 = 0x12,
+	F32 = 0x13,
+	F64 = 0x14,
 
-	String = 0x13,
-	PrefixedString = 0x14,
-	
-	Bool1 = 0x15,
-	Bool8 = 0x16,
-	
-	Vector2float32 = 0x17,
-	Vector2int16 = 0x18,
-	Vector2uint16 = 0x19,
-	Vector2 = 0x1A,
-	
-	Vector3float32 = 0x1B,
-	Vector3int16 = 0x1C,
-	Vector3uint16 = 0x1D,
-	Vector3 = 0x1E,
-	
-	CFrameQuaternion = 0x1F,
-	CFrameF32 = 0x20,
-	CFrameF64 = 0x21,
-	CFrameQuantized = 0x22,
-	
-	Color3 = 0x23,
-	Color3F32 = 0x24,
-	Color3F64 = 0x25,
-	
-	UDim = 0x26,
-	UDim2 = 0x27,
-	
-	RectFloat32 = 0x28,
-	Rect = 0x29,
-	
-	Enum = 0x2A,
-	
-	Region3 = 0x2B,
-	Region3Quaternion = 0x2C,
-	Region3CFrameF32 = 0x2D,
-	Region3Quantized = 0x2E,
-	
-	RotationCurveKey = 0x2F,
-	
-	FloatCurveKey = 0x30,
-	
-	ColorSequence = 0x31,
-	
-	NumberRange = 0x32,
-	NumberRangeF16 = 0x33,
-	NumberRangeF64 = 0x34,
-	
-	NumberSequence = 0x35,
-	
-	Array = 0x36,
-	Struct = 0x37,
+	String = 0x15,
+	PrefixedString = 0x16,
+
+	Bool1 = 0x17,
+	Bool8 = 0x18,
+
+	Vector2float32 = 0x19,
+	Vector2int16 = 0x1A,
+	Vector2uint16 = 0x1B,
+	Vector2 = 0x1C,
+
+	Vector3float32 = 0x1D,
+	Vector3int16 = 0x1E,
+	Vector3uint16 = 0x1F,
+	Vector3 = 0x20,
+
+	CFrameQuaternion = 0x21,
+	CFrameF32 = 0x22,
+	CFrameF64 = 0x23,
+	CFrameQuantized = 0x24,
+
+	Color3 = 0x25,
+	Color3F32 = 0x26,
+	Color3F64 = 0x27,
+
+	UDim = 0x28,
+	UDim2 = 0x29,
+
+	RectFloat32 = 0x2A,
+	Rect = 0x2B,
+
+	Enum = 0x2C,
+
+	Region3 = 0x2D,
+	Region3Quaternion = 0x2E,
+	Region3CFrameF32 = 0x2F,
+	Region3Quantized = 0x30,
+
+	RotationCurveKey = 0x31,
+
+	FloatCurveKey = 0x32,
+
+	ColorSequence = 0x33,
+
+	NumberRange = 0x34,
+	NumberRangeF16 = 0x35,
+	NumberRangeF64 = 0x36,
+
+	NumberSequence = 0x37,
+
+	Array = 0x38,
+	Struct = 0x39,
 }) :: EnumModule.EnumClass<BitstreamTypesName,number>
 
 return BitstreamTypes
