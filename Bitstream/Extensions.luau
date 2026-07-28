@@ -28,7 +28,7 @@ const lshift = bit32.lshift const rrotate = bit32.rrotate const rshift = bit32.r
 
 -- string lib
 const sub = string.sub const char = string.char const byte = string.byte const format = string.format
-const len = string.len
+const len = string.len const strpack = string.pack const strunpack = string.unpack
 
 -- buffer lib, micro gain but i prefer this way
 const create = buffer.create const fromstring = buffer.fromstring const tostring = buffer.tostring
@@ -51,6 +51,35 @@ const fSubNormal = 0x3FF -- 1023 (used for subnormals in float16)
 const f31bit = 0x1F -- 31 (used for 31 bit fixed numbers)
 const f15bit = 0xF -- 15 (used for 15 bit fixed numbers)
 const f10bit = 0x0A -- 10 (used for the exponent in f16)
+const f24_exp_bits = 5 -- 5 (used for 24 bit fp fixed numbers)
+const f24_mant_bits = 18 -- 18 (used for 24 bit fp fixed numbers)
+
+--[[
+	@function floatToBits
+	@within Extensions
+	
+	@param number -- The number to convert.
+	
+	@returns number -- The number converted to bits.
+	
+	Convert a float to its unsigned 32-bit representation.
+]]
+const function floatToBits(n)
+	return strunpack(">I4",strpack(">f",n))
+end
+
+--[[
+	@function bitsToFloat
+	@within Extensions
+	
+	@param bits number -- The number in bits to convert.
+	@returns number -- The number converted to float.
+	
+	Convert a 32-bit unsigned integer to a float.
+]]
+const function bitsToFloat(bits)
+	return strunpack(">f",strpack(">I4",bits))
+end
 
 --[[
 	@function axisAngleToQuaternion
@@ -266,13 +295,158 @@ const function bitstreamTypesToLiteralTypes(Type : Enumeration.BitstreamTypesNam
 	return Type
 end
 
+--[[
+	@function encodeF24
+	@within Extensions
+	
+	@param : number
+	The float to encode.
+	
+	@returns number
+	The encoded float-24 number.
+	
+	Converts a standard floating-point number into the custom 24-bit floating-point format by extracting its IEEE-754 sign, 
+	exponent, and mantissa, then compressing them into a 24-bit representation 
+]]
+const function encodeF24(float : number) : number
+	local sign = 0
+	
+	if(float < 0) then 
+		sign = 1
+		float = -float
+	end
+	if(float == 0) then return 0 end
+	
+	local bits = floatToBits(float)
+	local exponent = extract(bits,23,8)
+	local mantissa = extract(bits,0,23)
+	
+	-- Subnormal & Overflow
+	local exp = exponent - 127 + f15bit + 1
+	if(exp <= 0) then
+		local m = floor(float * 2 ^ (f15bit + f24_mant_bits) + 0.5)
+		return bor(lshift(sign,23),m)
+	elseif(exp > f31bit) then
+		return bor(lshift(sign,23),0x7FFFFF)
+	end
+
+	mantissa = rshift(mantissa,23 - f24_mant_bits)
+
+	return bor(lshift(sign,23),lshift(exp,f24_mant_bits),mantissa)
+end
+
+--[[
+	@function decodeF24
+	@within Extensions
+	
+	@param : number
+	The 24-bit float to decode.
+	
+	@returns number
+	The decoded float.
+	
+	Converts a value stored in the custom 24-bit floating-point format back into a standard floating-point number 
+	by reconstructing its IEEE-754 sign, exponent and mantissa.
+]]
+const function decodeF24(b24 : number) : number
+	local sign = extract(b24,23,1)
+	local exponent = extract(b24,f24_mant_bits,f24_exp_bits)
+	local mantissa = extract(b24,0,f24_mant_bits)
+	
+	if(exponent == 0 and mantissa == 0) then return 0 end
+	
+	local value
+	
+	if(exponent == 0) then
+		value = mantissa * 2 ^ -(f24_exp_bits + f24_mant_bits)
+	else
+		local ieeeExponent = exponent - f15bit + 127 - 1
+		local ieee = bor(lshift(ieeeExponent,23),lshift(mantissa,23 - f24_mant_bits))
+		value = bitsToFloat(ieee)
+	end
+	
+	if(sign == 1) then value = -value end
+	
+	return value
+end
+
+--[[
+	@function encodeF8
+	@within Extensions
+	
+	@param : number
+	The float to encode.
+	
+	@returns number
+	The encoded float-8 number.
+	
+	Converts a standard floating-point value into its 8-bit E4M3 representation by encoding its sign, exponent, and mantissa
+]]
+const function encodeF8(float : number) : number
+	local sign = 0
+	
+	if(float < 0 ) then
+		sign = 1
+		float = -float
+	end
+	
+	if(float == 0) then
+		return 0
+	end
+	
+	local exponent = floor(log(float) / log(2))
+	local mantissa = floor(((float / (2 ^ exponent)) - 1) * 8 + 0.5)
+	
+	exponent += 7
+	
+	if(exponent < 0) then
+		exponent = 0
+		mantissa = 0
+	elseif(exponent > 15) then
+		exponent = 15
+		mantissa = 7
+	end
+	
+	return bor(lshift(sign,7),lshift(exponent,3),mantissa)
+end
+
+--[[
+	@function decodeF8
+	@within Extensions
+	
+	@param : number
+	The float-8 number to decode.
+	
+	@returns number
+	The decoded float.
+	
+	Converts an 8-bit E4M3 floating-point representation back into a standard floating-point value 
+	by reconstructing its sign, exponent, and mantissa
+]]
+const function decodeF8(b8 : number) : number
+	local sign = rshift(b8,7)
+	local exponent = band(rshift(b8,3),f15bit)
+	local mantissa = band(b8,0x7)
+	
+	if(exponent == 0 and mantissa == 0) then return 0 end
+	
+	local value = (1 + mantissa / 8) * (2 ^ (exponent - 7))
+	
+	if(sign == 1) then value = -value end
+	
+	return value
+end
 
 return {
 	
 	axisAngleToQuaternion = axisAngleToQuaternion,
 	quaternionToCFrame = quaternionToCFrame,
+	encodeF8 = encodeF8,
+	decodeF8 = decodeF8,
 	toFloat16 = toFloat16,
 	decodeF16 = decodeF16,
+	encodeF24 = encodeF24,
+	decodeF24 = decodeF24,
 	getEnumTypeFromIdentifier = getEnumTypeFromIdentifier,
 	bitstreamTypesToLiteralTypes = bitstreamTypesToLiteralTypes,
 	
