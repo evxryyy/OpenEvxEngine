@@ -13,6 +13,7 @@ const Constants = require("./Constants")
 const Utilities = require("./Utilities")
 
 const strmatch = string.match const strsub = string.sub const strrep = string.rep
+const strlen = string.len
 
 const tblinsert = table.insert const tblclone = table.clone const tblclear = table.clear
 const tblconcat = table.concat
@@ -97,6 +98,7 @@ Resolver.iterateArray = function(
 	values : {any},
 	func : ActionCallback
 )
+	local valueIndex = 1
 	for i = 1,#types do
 		local typeInfo = types[i]
 		if(typeof(typeInfo) == "table" and (typeInfo.Type == "Array" or "Struct")) then
@@ -105,17 +107,19 @@ Resolver.iterateArray = function(
 			end
 			-- nested array
 			if(verifyNestedElements(typeInfo.Types)) then continue end
-			Resolver.iterateArray(typeInfo.Types,values[i],func)
+			Resolver.iterateArray(typeInfo.Types,values[valueIndex],func)
 		else
 			-- Simples types or type with count that came from an array (i.e U8:3)
 			local typeHasCount = tonumber(strmatch(typeInfo,":(%d+)"))
 			if(typeHasCount) then
 				local typeOf = strmatch(typeInfo,"([^:]+)")
 				for i = 1,typeHasCount do
-					func(typeOf,values[i])
+					func(typeOf,values[valueIndex])
+					valueIndex += 1
 				end
 			else
-				func(typeInfo,values[i])
+				func(typeInfo,values[valueIndex])
+				valueIndex += 1
 			end
 		end
 	end
@@ -253,9 +257,9 @@ Resolver.resolveBytesNeeded = function(typeInfo : Enumeration.BitstreamTypes,val
 	if(typeof(typeInfo) == "table") then
 		local extra = typeInfo.Length or typeInfo.Option
 		if(typeof(extra) ~= "number") then
-			typeInfo = typeInfo.Type .. extra
+			typeInfo.Type = typeInfo.Type .. extra
 		end
-		bytes += Constants.REQUIRED_BYTES[typeInfo](value)
+		bytes += Constants.REQUIRED_BYTES[typeInfo.Type](value)
 	else
 		bytes += (typeof(Constants.REQUIRED_BYTES[typeInfo]) == "function") 
 			and Constants.REQUIRED_BYTES[typeInfo](value) 
@@ -323,6 +327,12 @@ Resolver.resolveArraySchema = function(value : {[number] : any}) : Enumeration.A
 	}
 	for i = 1,#value do
 		local valueType = Resolver.resolveValueType(value[i])
+		if(valueType == "String") then
+			valueType = {
+				Type = "String",
+				Length = strlen(value[i])
+			}
+		end
 		if(valueType == "Array") then
 			local subSchema = Resolver.resolveArraySchema(value[i])
 			schema.Types[i] = subSchema
@@ -344,5 +354,56 @@ Resolver.resolveArraySchema = function(value : {[number] : any}) : Enumeration.A
 	return schema
 end
 
+--[[
+	Rebuilds the schema representation of a struct from its fields.
+	
+	Each field is assigned to a corresponding type, including nested structs, 
+	while validating unsupported structures and invalid deep nesting cases.
+	
+	@Parameters:
+		- value : table
+		
+	@Returns: StructSchema
+]]
+Resolver.resolveStructSchema = function(value : {[string] : any}) : Enumeration.StructSchema
+	local schema = {
+		Type = "Struct",
+		Fields = {}
+	}
+	for k,v in pairs(value) do
+		local valueType = Resolver.resolveValueType(v)
+		if(valueType == "String") then
+			valueType = {
+				Type = "String",
+				Length = strlen(v)
+			}
+		end
+		if(valueType == "Array") then
+			local subSchema = Resolver.resolveArraySchema(v)
+			schema.Fields[k] = subSchema
+			continue
+		elseif(valueType == "Struct") then
+			local subStruct = Resolver.resolveStructSchema(v)
+			schema.Fields[k] = subStruct
+			continue
+		end
+		schema.Fields[k] = valueType
+	end
+	for k,v in pairs(value) do
+		local typeInfo = schema.Fields[k]
+		if(typeof(typeInfo) == "table" and (typeInfo.Type == "Array")) then
+			-- nested array check
+			if(verifyNestedElements(typeInfo.Types :: Array)) then 
+				error(ERROR_MESSAGES_LIST.CANT_WRITE_DEEPLY_NESTED_ARRAY,2)
+			end
+		elseif(typeof(typeInfo) == "table" and (typeInfo.Type == "Struct")) then
+			-- nested struct check
+			if(verifiyNestedStruct(typeInfo.Fields :: Array)) then 
+				error(ERROR_MESSAGES_LIST.CANT_WRITE_DEEPLY_NESTED_STRUCT,2)
+			end
+		end
+	end
+	return schema
+end
 
 return Resolver
