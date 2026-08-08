@@ -18,7 +18,7 @@
 const HttpService = game:WaitForChild("HttpService")
 
 -- TODO: change the link
-const rawUrl = ""
+const rawUrl = "https://raw.githubusercontent.com/evxryyy/Rbxenv/refs/heads/main/Bitstream/VERSION.md"
 
 const Configuration = {
 	VerifiyVersion = true,
@@ -39,7 +39,15 @@ const ErrorMessages = {
 	["Doesn't have enough space"] = 
 		"Bitstream.%s: Doesn't have enough space to write this type.",
 	["Out of bounds"] = 
-		"Bitstream.%s: Buffer read out of bounds (offset=%d, type_size=%d, buffer_size=%d)"
+		"Bitstream.%s: Buffer read out of bounds (offset=%d, type_size=%d, buffer_size=%d)",
+
+}
+
+--[[
+	Configuration system.
+	Allows for the modification of the module's behavior.
+]]
+local Configuration = {
 } :: {[ErrorEnumeration]: string}
 
 --[[
@@ -61,7 +69,7 @@ const function verifiyVersion() : ()
 		warn(res)
 		return
 	end
-	const bitstreamSourceVersion = string.match(res, "VERSION = \"(.+)\"")
+	const bitstreamSourceVersion = string.match(res, "[%d%.]+")
 	const bitstreamActualVersion = script.Parent:GetAttribute("VERSION")
 	if bitstreamSourceVersion ~= bitstreamActualVersion then
 		warn(
