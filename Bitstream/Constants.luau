@@ -22,7 +22,6 @@ return table.freeze({
 	-- // INTEGER TYPES //  -- 
 	
 	-- Signed integers
-	MIN_INT1 = -1, MAX_INT1 = 1,
 	MIN_INT8 = -128, MAX_INT8 = 127, -- [min = -2^7, max = 2^7 - 1]
 	MIN_INT16 = -32_768, MAX_INT16 = 32_767, -- [min = -2^15, max = 2^15 - 1]
 	MIN_INT24 = -8_388_608, MAX_INT24 = 8_388_607, -- [min = -2^23, max = 2^23 - 1]
@@ -96,28 +95,34 @@ return table.freeze({
 		Bool1 = 1,
 		Bool8 = 1,
 		-- Others
+		Vector2float24 = 6, -- (x.y float24 each) [DONE]
 		Vector2float32 = 8, -- (half-precision vector2)
 		Vector2int16 = 4, -- (Vector2int16 by default)
 		Vector2uint16 = 4, -- (Same as Vector2int16 but use unsigned integer)
 		Vector2 = 16, -- (full precision Vector2)
+		Vector3float24 = 9, -- (x,y,z float24 each) [DONE]
 		Vector3float32 = 12, -- (half-precision vector3)
 		Vector3int16 = 6, -- (Vector3int16 by default)
 		Vector3uint16 = 6, -- (Same as Vector3int16 but use unsigned integer)
 		Vector3 = 24, -- (full precision Vector3)
 		CFrameQuaternion = 28, -- (CFrame converted into a quaternion (x,y,z,w) )
+		CFrameF24 = 18, -- (convert to euler angles and write (pos + rx,ry,rz) as f24) [DONE]
 		CFrameF32 = 24, -- (convert to euler angles and write (pos + rx,ry,rz) as f32)
 		CFrameF64 = 48, -- (convert to euler angles and write (pos + rx,ry,rz) as f64)
 		CFrameQuantized = 12, -- (quantized CFrame, 12 bytes using i16)
 		Color3 = 3, -- (1 byte each for R,G,B)
+		Color3F24 = 9, -- (3 bytes each for R,G,B) [DONE]
 		Color3F32 = 12, -- (4 bytes each for R,G,B)
 		Color3F64 = 24, -- (8 bytes each for R,G,B)
 		UDim = 8,
 		UDim2 = 16,
+		RectFloat24 = 12, -- (Store min and max vector as f24)
 		RectFloat32 = 16, -- (Store min and max vector as f32)
 		Rect = 32, -- (Store min and max vector as f64)
 		Enum = 2,
 		Region3 = 72, -- (Vec3, CFrameF64)
 		Region3Quaternion = 52, -- (Vec3, CFrameQuaternion)
+		Region3CFrameF24 = 42, -- (Vec3, CFrameF24)
 		Region3CFrameF32 = 48,-- (Vec3, CFrameF32)
 		Region3Quantized = 36, -- (Vec3, CFrameQuantized)
 		Region3int16 = 12, --  (Vec3int16, Vec3int16)
@@ -129,6 +134,8 @@ return table.freeze({
 				return (rotationKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 42 or 34
 			elseif(option == "CFrameF32") then
 				return (rotationKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 38 or 30
+			elseif(option == "CFrameF24") then
+				return (rotationKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 32 or 24
 			elseif(option == "Quantized") then
 				return (rotationKey.Interpolation == Enum.KeyInterpolationMode.Cubic) and 26 or 18
 			end
@@ -139,6 +146,8 @@ return table.freeze({
 				return (key.Interpolation == Enum.KeyInterpolationMode.Cubic) and 22 or 14
 			elseif(option == "F32") then
 				return (key.Interpolation == Enum.KeyInterpolationMode.Cubic) and 18 or 10
+			elseif(option == "F24") then
+				return (key.Interpolation == Enum.KeyInterpolationMode.Cubic) and 17 or 9
 			elseif(option == "F16") then
 				return (key.Interpolation == Enum.KeyInterpolationMode.Cubic) and 16 or 8
 			end
@@ -147,6 +156,8 @@ return table.freeze({
 			if(not option or option == "") then option = "Normal" end
 			if(option == "Normal") then
 				return 1 + (7 * #key.Keypoints)
+			elseif(option == "F24") then
+				return 1 + (13 * #key.Keypoints)
 			elseif(option == "F32") then
 				return 1 + (16 * #key.Keypoints)
 			elseif(option == "F64") then
@@ -155,6 +166,7 @@ return table.freeze({
 		end,
 		NumberRange = 8,
 		NumberRangeF16 = 4,
+		NumberRangeF24 = 6,
 		NumberRangeF64 = 16,
 		NumberSequence = function(key : NumberSequence,option : Types.NumberSequenceOption)
 			if(not option or option == "") then option = "Normal" end
@@ -162,6 +174,8 @@ return table.freeze({
 				return 1 + (12 * #key.Keypoints)
 			elseif(option == "F16") then
 				return 1 + (10 * #key.Keypoints)
+			elseif(option == "F24") then
+				return 1 + (11 * #key.Keypoints)
 			elseif(option == "F64") then
 				return 1 + (16 * #key.Keypoints)
 			end
