@@ -57,14 +57,14 @@ const MAPPED_RBX_TYPES = {
 const function verifyNestedElements(types : Array) : boolean
 	for i = 1, #types do
 		local typeInfo = types[i]
-		if(typeof(typeInfo) == "table" and (typeInfo.Type == "Array" or "Struct")) then
+		if(typeof(typeInfo) == "table" and (typeInfo.Type == "Array" or typeInfo.Type == "Struct")) then
 			return true
 		end
 	end
 	return false
 end
 
-const function verifiyNestedStruct(fields : Array) : boolean
+const function verifyNestedStruct(fields : Array) : boolean
 	for _, field in fields do
 		if(typeof(field) == "table" and field.Type == "Struct") then
 			return true
@@ -101,7 +101,7 @@ Resolver.iterateArray = function(
 	local valueIndex = 1
 	for i = 1,#types do
 		local typeInfo = types[i]
-		if(typeof(typeInfo) == "table" and (typeInfo.Type == "Array" or "Struct")) then
+		if(typeof(typeInfo) == "table" and (typeInfo.Type == "Array" or typeInfo.Type == "Struct")) then
 			if(typeInfo.Type == "Struct") then
 				error(ERROR_MESSAGES_LIST.CANT_WRITE_STRUCT_IN_ARRAY,2)
 			end
@@ -110,6 +110,9 @@ Resolver.iterateArray = function(
 			Resolver.iterateArray(typeInfo.Types,values[valueIndex],func)
 		else
 			-- Simples types or type with count that came from an array (i.e U8:3)
+			if(typeof(typeInfo) == "table") then
+				typeInfo = typeInfo.Type
+			end
 			local typeHasCount = tonumber(strmatch(typeInfo,":(%d+)"))
 			if(typeHasCount) then
 				local typeOf = strmatch(typeInfo,"([^:]+)")
@@ -151,7 +154,7 @@ Resolver.iterateStruct = function(
 		if(typeof(v) == "table" and (v.Type == "Array")) then
 			Resolver.iterateArray(v.Types,values[i],func)
 		elseif(typeof(v) == "table" and (v.Type == "Struct")) then
-			if(verifiyNestedStruct(v.Fields)) then continue end
+			if(verifyNestedStruct(v.Fields)) then continue end
 			Resolver.iterateStruct(v.Fields,values[i],func)
 		else
 			func(v,values[i])
@@ -227,10 +230,11 @@ Resolver.resolveStruct = function(
 			end)
 		elseif(typeof(v) == "table" and (v.Type == "Struct")) then
 			if(not resolvedStruct[i]) then resolvedStruct[i] = {} end
-			if(verifiyNestedStruct(v.Fields)) then continue end
+			if(verifyNestedStruct(v.Fields)) then continue end
 			for j,k in pairs(v.Fields) do
 				if(typeof(k) == "table" and (k.Type == "Array")) then
 					if(not resolvedStruct[i]) then resolvedStruct[i] = {} end
+					print(v.Fields)
 					resolvedStruct[i] = Resolver.resolveStruct(v.Fields,func)
 					break
 				end
@@ -398,12 +402,17 @@ Resolver.resolveStructSchema = function(value : {[string] : any}) : Enumeration.
 			end
 		elseif(typeof(typeInfo) == "table" and (typeInfo.Type == "Struct")) then
 			-- nested struct check
-			if(verifiyNestedStruct(typeInfo.Fields :: Array)) then 
+			if(verifyNestedStruct(typeInfo.Fields :: Array)) then 
 				error(ERROR_MESSAGES_LIST.CANT_WRITE_DEEPLY_NESTED_STRUCT,2)
 			end
 		end
 	end
 	return schema
+end
+
+Resolver.resolveSchema = function(data : {[string | number] : any})
+	if(Utilities.IsArray(data)) then return Resolver.resolveArraySchema(data) end
+	return Resolver.resolveStructSchema(data)
 end
 
 return Resolver
