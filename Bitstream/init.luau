@@ -29,6 +29,7 @@ const Signal = require(Shared.Zignal)
 const Extensions = require("./Extensions")
 const Debugger = require("./Debugger")
 const Resolver = require("./Resolver")
+const Bitflag = require("./Bitflag")
 
 -- Version control (only once)
 local versionIsVerified = false
@@ -53,7 +54,7 @@ const countrz = bit32.countrz const extract = bit32.extract const replace = bit3
 const lshift = bit32.lshift const rrotate = bit32.rrotate const rshift = bit32.rshift
 
 -- buffer lib, micro gain but i prefer this way
-const create = buffer.create const fromstring = buffer.fromstring const tostring = buffer.tostring
+const create = buffer.create const fromstring = buffer.fromstring const bufftostring = buffer.tostring
 const bufflen = buffer.len const readbits = buffer.readbits const readi8 = buffer.readi8
 const readi16 = buffer.readi16 const readi32 = buffer.readi32 const readu8 = buffer.readu8
 const readu16 = buffer.readu16 const readu32 = buffer.readu32 const readf32 = buffer.readf32
@@ -182,7 +183,6 @@ const function executeRead<A,R>(self : BitstreamComponent,readFunc : (...A) -> R
 	local args = table.pack(...)
 	local argsLen = args.n
 	
-	-- Make the offset is here and marked as a number
 	local offset = if(typeof(args[1]) == "number") then (args[1] :: number) else (args[2] :: number)
 	local useBitoffset = false
 
@@ -209,6 +209,51 @@ const function executeRead<A,R>(self : BitstreamComponent,readFunc : (...A) -> R
 		
 	-- Execute the function and return the result
 	return readFunc(...) :: R
+end
+
+--[[
+	Write n float24 numbers to the buffer.
+	
+	@Parameters :
+		- b : buffer -- The buffer to write to.
+		- fps : {number} -- The numbers to write.
+	 	- offset : number -- The offset to write at.
+	 	
+	@Returns: ()
+]]
+const function writeNfp24(b : buffer,fps : {number},offset : number) : ()
+	for i = 1,#fps do
+		local fp = fps[i]
+		local encode = Extensions.encodeF24(fp)
+		writeu8(b,offset + 0,extract(encode,16,8))
+		writeu8(b,offset + 1,extract(encode,8,8))
+		writeu8(b,offset + 2,extract(encode,0,8))
+		offset += 3
+	end
+end
+
+--[[
+	Read n float24 numbers to the buffer.
+	
+	@Parameters :
+		- b : buffer -- The buffer to write to.
+		- count : number -- The number of floats to read.
+	 	- offset : number -- The offset to read at.
+	 	
+	@Returns: {number} -- The numbers read.
+]]
+const function readNfp24(b : buffer,count : number,offset : number) : {number}
+	local fps = {}
+	for i = 1,count do
+		local encoded = bor(
+			lshift(readu8(b,offset + 0),16),
+			lshift(readu8(b,offset + 1),8),
+			readu8(b,offset + 2)
+		)
+		fps[i] = Extensions.decodeF24(encoded)
+		offset += 3
+	end
+	return fps	
 end
 
 --[[
@@ -289,7 +334,7 @@ function BitstreamConstructor.serialize(
 	schema : Enumeration.SerializationSchema,
 	value : {[string] : any},
 	compress : boolean?
-)
+) : buffer
 	local schema_size = 0
 	Resolver.iterateStruct(schema,value,function(targetType,_value)
 		schema_size += Resolver.resolveBytesNeeded(targetType,_value)
@@ -414,6 +459,156 @@ function BitstreamConstructor.deserializeAll(
 	for i,v in pairs(sers) do
 		des[i] = BitstreamConstructor.deserialize(v,schemas[schemaIndex],decompressAll)
 		schemaIndex += 1
+	end
+	return des
+end
+
+--[[
+	Serializes a Lua table into a buffer without using a provided schema.
+	
+	@Parameters:
+		- data : {[string] : any}
+		- compress : boolean? (default false)
+		- compressLevel : number? (default 1),(min = -7, max = 22)
+		
+	@Returns: {
+		schema_buffer : buffer,
+		component_buffer : buffer
+	}
+
+	Both buffer are needed for the deserialization with DeserializeSchemaless
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function BitstreamConstructor.serializeSchemaless(
+	data : {[string] : any},
+	compress : boolean?,
+	compressLevel : number?
+) : buffer
+	local compiledBitflag = Bitflag.act(Bitflag.writeStruct,{
+		markerBuffer = Bitflag.createBuffer(),
+		fieldsBuffer = Bitflag.createBuffer(),
+		fields = data
+	})
+	local formatted = Bitflag.act(Bitflag.readStruct,{
+		compiledBuffer = compiledBitflag,
+		markerStartOffset = 0,
+		fieldsStartOffset = 0,
+	})
+	local component = BitstreamConstructor.new({
+		Size = 0,
+		UseAutoAllocation = true,
+	})
+	for i,v in pairs(formatted) do
+		if(typeof(v) == "table") then
+			for k,j in pairs(v) do
+				if(strmatch(j,"^(.-):(.+)$")) then
+					local left,right = strmatch(j,"^(.-):(.+)$")
+					component:writeAs(left,data[i][k])
+				else
+					component:writeAs(j,data[i][k])
+				end
+			end
+		else
+			if(strmatch(v,"^(.-):(.+)$")) then
+				local left,right = strmatch(v,"^(.-):(.+)$")
+				component:writeAs(left,data[i])
+			else
+				component:writeAs(v,data[i])
+			end
+		end
+	end
+	local schema_buffer = create(compiledBitflag.size)
+	copy(schema_buffer,0,compiledBitflag.buffer,0)
+	local b = component.__buffer
+	component:Destroy()
+	if(compress) then
+		schema_buffer = EncodingService:CompressBuffer(
+			schema_buffer,
+			Enum.CompressionAlgorithm.Zstd,
+			(compressLevel ~= nil) and clamp(compressLevel,-7,22) or nil
+		)
+		b = EncodingService:CompressBuffer(
+			b,
+			Enum.CompressionAlgorithm.Zstd,
+			(compressLevel ~= nil) and clamp(compressLevel,-7,22) or nil
+		)
+	end
+	return {
+		schema_buffer = schema_buffer,
+		component_buffer = b
+	}
+end
+
+--[[
+	Deserializes a table from a buffer without using a provided schema.
+	
+	@Parameters:
+		- schema_buffer : buffer
+		- component_buffer : buffer
+		- decompress : boolean? (default true)
+		
+	@Returns: {[string] : any}
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function BitstreamConstructor.deserializeSchemaless(
+	schema_buffer : buffer,
+	component_buffer : buffer,
+	decompress : boolean?
+)
+	local desFormattedBuffer,offset = Bitflag.readStruct({
+		compiledBuffer = {
+			buffer = schema_buffer,
+			size = bufflen(schema_buffer),
+			offset = bufflen(schema_buffer)
+		},
+		markerStartOffset = 0,
+		fieldsStartOffset = 0,
+	})
+	component_buffer = BitstreamConstructor.from({
+		SourceBuffer = component_buffer,
+		MaximumAllowedSize = huge
+	})
+	local des = {}
+	local offset = 0
+	for i,v in pairs(desFormattedBuffer) do
+		if(typeof(v) == "table") then
+			for k,j in pairs(v) do
+				if(not des[i]) then des[i] = {} end
+				if(strmatch(j,"^(.-):(.+)$")) then
+					local left,right = strmatch(j,"^(.-):(.+)$")
+					desFormattedBuffer[i][k] = {
+						Type = left,
+						Length = tonumber(right)
+					}
+					local value, newOffset = component_buffer:readAs(offset, desFormattedBuffer[i][k])
+					des[i][k] = value
+					offset = newOffset
+				else
+					local val,valOffset = component_buffer:readAs(offset,desFormattedBuffer[i][k])
+					offset = valOffset
+					des[i][k] = val
+				end
+			end
+		else
+			if(strmatch(v,"^(.-):(.+)$")) then
+				local left,right = strmatch(v,"^(.-):(.+)$")
+				desFormattedBuffer[i] = {
+					Type = left,
+					Length = tonumber(right)
+				}	
+				local value, newOffset = component_buffer:readAs(offset, desFormattedBuffer[i])
+				des[i] = value
+				offset = newOffset
+			else
+				local val,valOffset = component_buffer:readAs(offset,desFormattedBuffer[i])
+				offset = valOffset
+				des[i] = val
+			end
+		end
 	end
 	return des
 end
@@ -672,6 +867,32 @@ function Bitstream.writeI54(self : BitstreamComponent,value : number) : Bitstrea
 end
 
 --[[
+	Write an signed `I-bit` integer.
+    - Clamped and truncated.
+    - min[I8] - max[I54] 
+    
+	@Parameter(s): number
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeInt(self : BitstreamComponent,value : number) : BitstreamComponent
+	Debugger.handleAssert(typeof(value) == "number","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"number"
+	})
+	const bytesData = Utilities.GetEquivalentBytesInfoFromNumber(value)
+	value = clamp(
+		modf(value),
+		Constants["MIN_INT"..bytesData.bytes * 8],
+		Constants["MAX_INT"..bytesData.bytes * 8]
+	)
+	self["writeI"..bytesData.bytes * 8](self,value)
+	return self
+end
+
+
+--[[
     Write a single unsigned bit (0 or 1).
     - Reserves 1 byte (by design)
 
@@ -877,7 +1098,7 @@ end
     - Clamped and truncated.
     - min[U1] - max[U54] 
     
-	@Parameter(s): number, number
+	@Parameter(s): number
 	
 	@lastest modification : v4.0
 	@since v4.0
@@ -920,7 +1141,7 @@ end
     - Lower precision than F32/F64; expect rounding.
     - NaN/Inf are handled; finite values are encoded with sign/exponent/mantissa.
     
-    @Parameter(s): number, number
+    @Parameter(s): number
 	
 	@lastest modification : v4.0
 	@since v1.0
@@ -944,7 +1165,7 @@ end
     - 3 bytes, big-endian.
     - 18-bit mantissa, 5-bit exponent, 1-bit sign.
     
-    @Parameter(s): number, number
+    @Parameter(s): number
 	
 	@lastest modification : v4.0
 	@since v4.0
@@ -970,7 +1191,7 @@ end
     - 4 bytes, big-endian.
     - The default float format.
     
-    @Parameter(s): number, number
+    @Parameter(s): number
 	
 	@lastest modification : v4.0
 	@since v1.0
@@ -993,7 +1214,7 @@ end
     - 8 bytes, big-endian.
     - The default float format.
     
-    @Parameter(s): number, number
+    @Parameter(s): number
 	
 	@lastest modification : v4.0
 	@since v1.0
@@ -1009,6 +1230,28 @@ function Bitstream.writeF64(self : BitstreamComponent,value : number) : Bitstrea
 	self.__offset += 8
 	self.__offsetChanged:Fire(self.__offset)
 	return self
+end
+
+--[[
+	Write an float `F-bit`.
+    - min[F8] - max[F64] 
+    
+	@Parameter(s): number
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeFloat(self : BitstreamComponent,value : number)
+	Debugger.handleAssert(typeof(value) == "number","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"number"
+	})
+	const bytesData = Utilities.GetEquivalentBytesInfoFromNumber(value)
+	if(bytesData.bytes > 4 and bytesData.bytes <= 7) then
+		self:writeF32(value)
+		return
+	end
+	return self["writeF"..bytesData.bytes * 8]
 end
 
 --[[
@@ -1105,6 +1348,28 @@ function Bitstream.writeBool8(self : BitstreamComponent,values : {any}) : Bitstr
 end
 
 --[[
+	Write a Vector2 as two f24 (x, y).
+	- 6 bytes total.
+	
+	@Parameter(s): Vector2
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeVector2float24(self : BitstreamComponent,value : Vector2)
+	Debugger.handleAssert(typeof(value) == "Vector2","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"Vector2"
+	})
+	const result,component = ensureWritable(self,Constants.REQUIRED_BYTES.Vector2float24)
+	if(component) then self = (component :: BitstreamComponent) end
+	writeNfp24(self.__buffer,{value.X,value.Y},self.__offset)
+	self.__offset += 6
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
     Write a Vector2 as two f32 (x, y).
     - 8 bytes total.
     
@@ -1195,6 +1460,28 @@ function Bitstream.writeVector2(self : BitstreamComponent,value : Vector2)
 	writef64(self.__buffer,self.__offset,value.X)
 	writef64(self.__buffer,self.__offset + 8,value.Y)
 	self.__offset += 16
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
+	Write a Vector3 as three f24 (x, y, z).
+	- 9 bytes total.
+    
+	@Parameter(s): Vector3
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeVector3float24(self : BitstreamComponent,value : Vector3)
+	Debugger.handleAssert(typeof(value) == "Vector3","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"Vector3"
+	})
+	const result,component = ensureWritable(self,Constants.REQUIRED_BYTES.Vector3float24)
+	if(component) then self = (component :: BitstreamComponent) end
+	writeNfp24(self.__buffer,{value.X,value.Y,value.Z},self.__offset)
+	self.__offset += 9
 	self.__offsetChanged:Fire(self.__offset)
 	return self
 end
@@ -1331,6 +1618,34 @@ function Bitstream.writeCFrameQuaternion(self : BitstreamComponent,value : CFram
 	writef32(self.__buffer,self.__offset + 20,quaternion.z)
 	writef32(self.__buffer,self.__offset + 24,quaternion.w)
 	self.__offset += 28
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
+	Write a CFrame to the buffer using float24
+	- 18 bytes total.
+	- Convert the CFrame to Euler angles and write them to the buffer.
+	
+	@Parameter(s): CFrame
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeCFrameF24(self : BitstreamComponent,value : CFrame)
+	Debugger.handleAssert(typeof(value) == "CFrame","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"CFrame"
+	})
+	const result,component = ensureWritable(self,Constants.REQUIRED_BYTES.CFrameF24)
+	if(component) then self = (component :: BitstreamComponent) end
+	local pos = value.Position
+	local rx,ry,rz = value:ToEulerAnglesXYZ()
+	writeNfp24(self.__buffer,{
+		pos.X,pos.Y,pos.Z,
+		rx,ry,rz
+	},self.__offset)
+	self.__offset += 18
 	self.__offsetChanged:Fire(self.__offset)
 	return self
 end
@@ -1509,6 +1824,31 @@ end
 
 --[[
 	Write a Color3 to the buffer.
+	- 9 bytes total
+	- Each component is stored as an 24-bit float.
+	
+	@Parameter(s): Color3
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeColor3F24(self : BitstreamComponent,value : Color3)
+	Debugger.handleAssert(typeof(value) == "Color3","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"Color3"
+	})
+	const result,component = ensureWritable(self,Constants.REQUIRED_BYTES.Color3F24)
+	if(component) then self = (component :: BitstreamComponent) end
+	writeNfp24(self.__buffer,{
+		value.R,value.G,value.B
+	},self.__offset)
+	self.__offset += 9
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
+	Write a Color3 to the buffer.
 	- 12 bytes total.
 	- Each component is stored as an 32-bit float.
 	
@@ -1553,6 +1893,31 @@ function Bitstream.writeColor3F64(self : BitstreamComponent,value : Color3)
 	writef64(self.__buffer,self.__offset + 8,value.G)
 	writef64(self.__buffer,self.__offset + 16,value.B)
 	self.__offset += 24
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
+	Write a Rect(Float24) to the buffer.
+	- 12 bytes total.
+	
+	@Parameter(s): Rect
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeRectFloat24(self : BitstreamComponent,value : Rect)
+	Debugger.handleAssert(typeof(value) == "Rect","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"Rect"
+	})
+	const result,component = ensureWritable(self,Constants.REQUIRED_BYTES.RectFloat24)
+	if(component) then self = (component :: BitstreamComponent) end
+	writeNfp24(self.__buffer,{
+		value.Min.X,value.Min.Y,
+		value.Max.X,value.Max.Y,
+	},self.__offset)
+	self.__offset += 12
 	self.__offsetChanged:Fire(self.__offset)
 	return self
 end
@@ -1676,6 +2041,30 @@ function Bitstream.writeRegion3Quaternion(self : BitstreamComponent,value : Regi
 	writef64(self.__buffer,self.__offset + 36,size.Y)
 	writef64(self.__buffer,self.__offset + 44,size.Z)
 	self.__offset += 52
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+function Bitstream.writeRegion3CFrameF24(self : BitstreamComponent,value : Region3)
+	Debugger.handleAssert(typeof(value) == "Region3","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"Region3"
+	})
+	const result,component = ensureWritable(self,Constants.REQUIRED_BYTES.Region3CFrameF24)
+	if(component) then self = (component :: BitstreamComponent) end
+	local size,cf = value.Size,value.CFrame
+	local pos = cf.Position
+	local rx,ry,rz = cf:ToEulerAnglesXYZ()
+	-- Write CFrame first
+	writeNfp24(self.__buffer,{
+		pos.X,pos.Y,pos.Z,
+		rx,ry,rz
+	},self.__offset)
+	-- Write Size
+	writef64(self.__buffer,self.__offset + 18,size.X)
+	writef64(self.__buffer,self.__offset + 26,size.Y)
+	writef64(self.__buffer,self.__offset + 34,size.Z)
+	self.__offset += 42
 	self.__offsetChanged:Fire(self.__offset)
 	return self
 end
@@ -1903,6 +2292,51 @@ end
 
 --[[
 	Write a RotationCurveKey to the buffer.
+	- 24 bytes or 32 bytes total.
+		- 24 bytes for Non-Cubic interpolation-mode.
+		- 32 bytes for Cubic interpolation-mode.
+	- CFrame is written using f24.
+		
+	@Parameter(s): RotationCurveKey
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeRotationCurveKeyCFrameF24(self : BitstreamComponent,value : RotationCurveKey)
+	Debugger.handleAssert(typeof(value) == "RotationCurveKey","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"RotationCurveKey"
+	})
+	const bytes = Constants.REQUIRED_BYTES.RotationCurveKey(value,"CFrameF24")
+	const result,component = ensureWritable(self,bytes)
+	if(component) then self = (component :: BitstreamComponent) end
+	local id = Constants.EnumItemIndex[value.Interpolation]
+	local pos = value.Value.Position
+	local rx,ry,rz = value.Value:ToEulerAnglesXYZ()
+	-- Write Time
+	writef32(self.__buffer,self.__offset,value.Time)
+	-- Write CFrame
+	writeNfp24(self.__buffer,{
+		pos.X,pos.Y,pos.Z,
+		rx,ry,rz
+	},self.__offset + 4)
+	-- Write Enum Id
+	writeu16(self.__buffer,self.__offset + 22,id)
+	-- Write Tangents if is Cubic
+	if value.Interpolation == Enum.KeyInterpolationMode.Cubic then
+		if(not value.LeftTangent) then value.LeftTangent = 0 end
+		if(not value.RightTangent) then value.RightTangent = 0 end
+		local left, right = value.LeftTangent, value.RightTangent
+		writef32(self.__buffer,self.__offset + 24,left)
+		writef32(self.__buffer,self.__offset + 28,right)
+	end
+	self.__offset += bytes
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
+	Write a RotationCurveKey to the buffer.
 	- 30 bytes or 38 bytes total.
 		- 30 bytes for Non-Cubic interpolation-mode.
 		- 38 bytes for Cubic interpolation-mode.
@@ -2032,6 +2466,41 @@ end
 
 --[[
 	Write a FloatCurveKey to the buffer.
+	- 18 bytes or 24 bytes total.
+		- 18 bytes for Linear/Constant interpolation
+		- 24 bytes for Cubic interpolation (includes tangent data)
+	
+	Write the property `.Value` as a f24 instead of a f64.
+	
+	@Parameter(s): FloatCurveKey
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeFloatCurveKeyF24(self : BitstreamComponent,value : FloatCurveKey)
+	Debugger.handleAssert(typeof(value) == "FloatCurveKey","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"FloatCurveKey"
+	})
+	const bytes = Constants.REQUIRED_BYTES.FloatCurveKey(value,"F24")
+	const result,component = ensureWritable(self,bytes)
+	if(component) then self = (component :: BitstreamComponent) end
+	local id = Constants.EnumItemIndex[value.Interpolation]
+	writef32(self.__buffer,self.__offset,value.Time)
+	writeNfp24(self.__buffer,{value.Value},self.__offset + 4)
+	writeu16(self.__buffer,self.__offset + 7,id)
+	if(value.Interpolation == Enum.KeyInterpolationMode.Cubic) then
+		if(not value.LeftTangent) then value.LeftTangent = 0 end
+		if(not value.RightTangent) then value.RightTangent = 0 end
+		writef32(self.__buffer,self.__offset + 9,value.LeftTangent)
+		writef32(self.__buffer,self.__offset + 13,value.RightTangent)
+	end
+	self.__offset += bytes
+	self.__offsetChanged:Fire(self.__offset)
+end
+
+--[[
+	Write a FloatCurveKey to the buffer.
 	- 18 bytes or 10 bytes total.
 		- 10 bytes for Linear/Constant interpolation
 		- 18 bytes for Cubic interpolation (includes tangent data)
@@ -2135,6 +2604,47 @@ function Bitstream.writeColorSequence(self : BitstreamComponent,value : ColorSeq
 		writeu8(self.__buffer,self.__offset + 5,round(keypoint.Value.G*255))
 		writeu8(self.__buffer,self.__offset + 6,round(keypoint.Value.B*255))
 		self.__offset += 7
+	end
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
+	Writes a ColorSequence to the buffer with all its keypoints.
+	Limited to 255 keypoints.
+
+	NOTE: This method uses 24-bit floating point numbers to store the RGB values, 
+	
+	Size : 1 + (13 * #numbersOfKeypoints)
+	
+	@Parameter(s): ColorSequence
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeColorSequenceF24(self : BitstreamComponent,value : ColorSequence)
+	Debugger.handleAssert(typeof(value) == "ColorSequence","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"ColorSequence"
+	})
+	if(#value.Keypoints <= 0) then 
+		warn("Skipped ColorSequence, because it\'s empty")
+		return 
+	end
+	const bytes = Constants.REQUIRED_BYTES.ColorSequence(value,"F24")
+	const result,component = ensureWritable(self,bytes)
+	if(component) then self = (component :: BitstreamComponent) end
+	writeu8(self.__buffer,self.__offset,#value.Keypoints)
+	self.__offset += 1
+	for i = 1,#value.Keypoints do
+		local keypoint = value.Keypoints[i]
+		writef32(self.__buffer,self.__offset,keypoint.Time)
+		writeNfp24(self.__buffer,{
+			keypoint.Value.R,
+			keypoint.Value.G,
+			keypoint.Value.B,
+		},self.__offset + 4)
+		self.__offset += 13
 	end
 	self.__offsetChanged:Fire(self.__offset)
 	return self
@@ -2272,6 +2782,32 @@ end
 
 --[[
 	Write a NumberRange to the buffer
+	- 6 bytes total
+		- 3 bytes for Min (F24)
+		- 3 bytes for Max (F24)
+	
+	@Parameter(s): NumberRange
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeNumberRangeF24(self : BitstreamComponent,value : NumberRange)
+	Debugger.handleAssert(typeof(value) == "NumberRange","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"NumberRange"
+	})
+	const result,component = ensureWritable(self,Constants.REQUIRED_BYTES.NumberRangeF24)
+	if(component) then self = (component :: BitstreamComponent) end
+	writeNfp24(self.__buffer,{
+		value.Min,value.Max
+	},self.__offset)
+	self.__offset += 6
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
+	Write a NumberRange to the buffer
 	- 16 bytes total
 		- 8 bytes for Min (F64)
 		- 8 bytes for Max (F64)
@@ -2376,6 +2912,45 @@ end
 	Write a NumberSequence to the buffer
 	Limited to 255 keypoints.
 	
+	NOTE : This function use F24 to write the number
+	
+	Size : 1 + (11 * #numbersOfKeypoints)
+	
+	@Parameter(s): NumberSequence
+	
+	@lastest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.writeNumberSequenceF24(self : BitstreamComponent,value : NumberSequence)
+	Debugger.handleAssert(typeof(value) == "NumberSequence","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"NumberSequence"
+	})
+	if(#value.Keypoints <= 0) then 
+		warn("Skipped NumberSequence, because it\'s empty")
+		return 
+	end
+	const bytes = Constants.REQUIRED_BYTES.NumberSequence(value,"F24")
+	const result,component = ensureWritable(self,bytes)
+	if(component) then self = (component :: BitstreamComponent) end
+	writeu8(self.__buffer,self.__offset,#value.Keypoints)
+	self.__offset += 1
+	local keypoints = value.Keypoints
+	for i = 1,#keypoints do
+		local keypoint = keypoints[i]
+		writef32(self.__buffer,self.__offset,keypoint.Time)
+		writeNfp24(self.__buffer,{keypoint.Value},self.__offset + 4)
+		writef32(self.__buffer,self.__offset + 7,keypoint.Envelope)
+		self.__offset += 11
+	end
+	self.__offsetChanged:Fire(self.__offset)
+	return self
+end
+
+--[[
+	Write a NumberSequence to the buffer
+	Limited to 255 keypoints.
+	
 	NOTE : This function use F64 to write the number
 	
 	Size : 1 + (16 * #numbersOfKeypoints)
@@ -2440,11 +3015,10 @@ function Bitstream.writeAs(self: BitstreamComponent,writeType : Enumeration.Bits
 			end)
 		else
 			local extra = writeType.Length or writeType.Option
-			print(extra,writeType)
 			if(typeof(extra) ~= "number") then
-				writeType = writeType .. extra
+				writeType.Type = writeType.Type .. extra
 			end
-			self["write"..writeType](self,value)
+			self["write"..writeType.Type](self,value)
 		end
 		return self
 	end
@@ -2532,6 +3106,21 @@ function Bitstream.writeStruct(
 	Resolver.iterateStruct(schema.Fields,struct,function(targetType,_value)
 		self:writeAs(targetType,_value)
 	end)
+	return self
+end
+
+--[[
+    Store an Instance inside `instance_buffer`.
+    
+    @latest modification : v4.0
+    @since v1.0
+]]
+function Bitstream.writeInstance(self : BitstreamComponent,instance : Instance)
+	assert(typeof(instance) == "Instance", "Argument #1 must be of type Instance.")
+	table.insert(self.__instanceBuffer,instance)
+	self.__instanceOffset += 1
+	self.__instanceOffsetChanged:Fire(self.__instanceOffset)
+	return self
 end
 
 --[[
@@ -3007,6 +3596,22 @@ function Bitstream.readF64(self : BitstreamComponent,offset : number?)
 end
 
 --[[
+	Read a Vector2 (float24-bit) from the buffer
+	
+	@Returns Vector2
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readVector2float24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	return executeRead(self,function()
+		local data = readNfp24(self.__buffer,2,offset)
+		return Vector2.new(data[1],data[2])
+	end,offset)
+end
+
+--[[
 	Read a Vector2 (single-precision) from the buffer
 	
 	@Returns Vector2
@@ -3067,6 +3672,22 @@ function Bitstream.readVector2(self : BitstreamComponent,offset : number?)
 	return executeRead(self,function()
 		local x,y = readf64(self.__buffer,offset),readf64(self.__buffer,offset + 8)
 		return Vector2.new(x,y)
+	end,offset)
+end
+
+--[[
+	Read a Vector3 (float24-bit) from the buffer
+	
+	@Returns Vector3
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readVector3float24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	return executeRead(self,function()
+		local data = readNfp24(self.__buffer,3,offset)
+		return Vector3.new(data[1],data[2],data[3])
 	end,offset)
 end
 
@@ -3164,6 +3785,22 @@ function Bitstream.readCFrameQuaternion(self : BitstreamComponent,offset : numbe
 end
 
 --[[
+	Read a CFrame (24-bit float) from the buffer
+	
+	@Returns CFrame
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readCFrameF24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	return executeRead(self,function()
+		local data = readNfp24(self.__buffer,6,offset)
+		return CFrame.Angles(data[4],data[5],data[6]) + Vector3.new(data[1],data[2],data[3])
+	end,offset)
+end
+
+--[[
 	Read a CFrame (single-precision) from the buffer
 	
 	@Returns CFrame
@@ -3243,6 +3880,21 @@ function Bitstream.readColor3(self : BitstreamComponent,offset : number?)
 end
 
 --[[
+	Read a Color3 (float24-bit) from the buffer
+	
+	@Returns Color3
+	
+	@latest modification : v4.0
+]]
+function Bitstream.readColor3F24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	return executeRead(self,function()
+		local data = readNfp24(self.__buffer,3,offset)
+		return Color3.new(data[1],data[2],data[3])
+	end,offset)
+end
+
+--[[
 	Read a Color3 (single-precision) from the buffer
 	
 	@Returns Color3
@@ -3309,8 +3961,23 @@ function Bitstream.readUDim2(self : BitstreamComponent,offset : number?)
 end
 
 --[[
+	Read a Rect(Float24) from the buffer.
+	
+	@Returns Rect
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readRectFloat24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	return executeRead(self,function()
+		local data = readNfp24(self.__buffer,4,offset)
+		return Rect.new(data[1],data[2],data[3],data[4])
+	end,offset)
+end
+
+--[[
 	Read a Rect(Float32) from the buffer.
-	Store min and max as Vector2Float32 (single-precision)
 	
 	@Returns Rect
 	
@@ -3417,6 +4084,26 @@ function Bitstream.readRegion3Quaternion(self : BitstreamComponent,offset : numb
 end
 
 --[[
+	Read a Region3 from the buffer using F24 CFrames.
+	
+	@Returns Region3
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readRegion3CFrameF24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	return executeRead(self,function()
+		local cf = self:readCFrameF24(offset)
+		local size = self:readVector3(offset + 18)
+		local halfSize = size * 0.5
+		local min = cf.Position - halfSize
+		local max = cf.Position + halfSize
+		return Region3.new(min,max)
+	end,offset)
+end
+
+--[[
 	Read a Region3 from the buffer using F32 CFrames.
 	
 	@Returns Region3
@@ -3502,6 +4189,32 @@ function Bitstream.readRotationCurveKeyQuaternion(self : BitstreamComponent,offs
 		ensureReadable(self,offset + 34,8)
 		leftTangent = readf32(self.__buffer,offset + 34)
 		rightTangent = readf32(self.__buffer,offset + 38)
+		rotKey.LeftTangent = leftTangent
+		rotKey.RightTangent = rightTangent
+	end
+	return rotKey
+end
+
+--[[
+	Read a RotationCurveKey from the buffer using F24 CFrames.
+	
+	@Returns RotationCurveKey
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readRotationCurveKeyCFrameF24(self: BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	ensureReadable(self,offset,4)
+	local t = readf32(self.__buffer,offset)
+	local cf = self:readCFrameF24(offset + 4)
+	local enum = self:readEnum(offset + 22)
+	local leftTangent,rightTangent = nil,nil
+	local rotKey = RotationCurveKey.new(t,cf,enum)
+	if(enum == Enum.KeyInterpolationMode.Cubic) then
+		ensureReadable(self,offset + 24,8)
+		leftTangent = readf32(self.__buffer,offset + 24)
+		rightTangent = readf32(self.__buffer,offset + 28)
 		rotKey.LeftTangent = leftTangent
 		rotKey.RightTangent = rightTangent
 	end
@@ -3613,6 +4326,32 @@ function Bitstream.readFloatCurveKeyF32(self : BitstreamComponent,offset : numbe
 end
 
 --[[
+	Read a FloatCurveKey from the buffer using F24.
+	
+	@Returns FloatCurveKey
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readFloatCurveKeyF24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	ensureReadable(self,offset,4)
+	local t = readf32(self.__buffer,offset)
+	local value = readNfp24(self.__buffer,1,offset + 4)
+	local enum = self:readEnum(offset + 7)
+	local leftTangent,rightTangent = nil,nil
+	local floatKey = FloatCurveKey.new(t,value,enum)
+	if(enum == Enum.KeyInterpolationMode.Cubic) then
+		ensureReadable(self,offset + 9,8)
+		leftTangent = readf32(self.__buffer,offset + 9)
+		rightTangent = readf32(self.__buffer,offset + 11)
+		floatKey.LeftTangent = leftTangent
+		floatKey.RightTangent = rightTangent
+	end
+	return floatKey
+end
+
+--[[
 	Read a FloatCurveKey from the buffer using F16.
 	
 	@Returns FloatCurveKey
@@ -3658,6 +4397,30 @@ function Bitstream.readColorSequence(self : BitstreamComponent,offset : number?)
 		local value = self:readColor3(offset + 4)
 		colorSequence[i] = ColorSequenceKeypoint.new(t,value)
 		offset += 7
+	end
+	return ColorSequence.new(colorSequence)
+end
+
+--[[
+	Read a ColorSequence from the buffer using F24.
+	
+	@Returns ColorSequence
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readColorSequenceF24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	ensureReadable(self,offset,1)
+	local length = self:readU8(offset)
+	offset += 1
+	local colorSequence = {}
+	for i = 1,length do
+		ensureReadable(self,offset,10)
+		local t = readf32(self.__buffer,offset)
+		local value = self:readColor3F24(offset + 4)
+		colorSequence[i] = ColorSequenceKeypoint.new(t,value)
+		offset += 13
 	end
 	return ColorSequence.new(colorSequence)
 end
@@ -3745,6 +4508,22 @@ function Bitstream.readNumberRangeF16(self : BitstreamComponent,offset : number?
 end
 
 --[[
+	Read a NumberRange from the buffer using F24.
+	
+	@Returns NumberRange
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readNumberRangeF24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	return executeRead(self,function()
+		local data = readNfp24(self.__buffer,2,offset)
+		return NumberRange.new(data[1],data[2])
+	end,offset)
+end
+
+--[[
 	Read a NumberRange from the buffer using F64.
 	
 	@Returns NumberRange
@@ -3812,6 +4591,31 @@ function Bitstream.readNumberSequenceF16(self : BitstreamComponent,offset : numb
 end
 
 --[[
+	Read a NumberSequence from the buffer using F24.
+	
+	@Returns NumberSequence
+	
+	@latest modification : v4.0
+	@since v4.0
+]]
+function Bitstream.readNumberSequenceF24(self : BitstreamComponent,offset : number?)
+	offset = (typeof(offset) == "number" and offset <= self.__offset) and offset or self.__offset
+	ensureReadable(self,offset,1)
+	local length = readu8(self.__buffer,offset)
+	offset += 1
+	local numberSequence = {}
+	for i = 1,length do
+		ensureReadable(self,offset,11)
+		local t = readf32(self.__buffer,offset)
+		local value = readNfp24(self.__buffer,1,offset + 4)
+		local envelope = readf32(self.__buffer,offset + 7)
+		numberSequence[i] = NumberSequenceKeypoint.new(t,value,envelope)
+		offset += 11
+	end
+	return NumberSequence.new(numberSequence)
+end
+
+--[[
 	Read a NumberSequence from the buffer using F64.
 	
 	@Returns NumberSequence
@@ -3846,7 +4650,7 @@ end
 	@param as : string
 		The type to read as. (Full list at ./Enumeration -> BitstreamTypesName)
 	
-	@returns T
+	@Returns T
 		The read value.
 	
 	@latest modification : v4.0
@@ -3912,7 +4716,7 @@ end
 	@param types : {string}
 		The types to read as. (Full list at ./Enumeration -> BitstreamTypesName)
 	
-	@returns {T}
+	@Returns {T}
 		The read array.
 	
 	@latest modification : v4.0
@@ -3946,7 +4750,7 @@ end
 	@param offset : number? 
 		The offset to read from.
 		
-	@returns : {[string] : any}
+	@Returns : {[string] : any}
 		The read struct.
 	
 	@latest modification : v4.0
@@ -3967,13 +4771,23 @@ end
 
 --[[
 	Read any data type from the buffer.
+	
+	@Parameters:
+		- schema : Enumeration.BitstreamTypes
+			The schema to use.
+		- offset : number? 
+			The offset to read from.
 		
-	@param offset : number? 
-		The offset to read from.
+	@Note: If you used WriteAny the schema is returned along with the components 
+	
+	e.g.:
+	```lua
+		local _,schema = component:writeAny(10)
+		print(component:readAny(schema,0)) --> 10
+	```
 		
-	@returns : any
-		The read value.
-		
+	@Returns : any	
+	
 	@latest modification : v4.0
 	@since v4.0	
 ]]
@@ -3982,12 +4796,28 @@ function Bitstream.readAny(self : BitstreamComponent,schema : Enumeration.Bitstr
 end
 
 --[[
+	Read an Instance from self.instance_buffer at the given index (or self.instance_offset).
+	
+	@Parameters:
+		- instanceOffset : number? 
+			
+	@Returns : Instance
+	
+	@latest modification : v4.0
+	@since v1.0
+]]
+function Bitstream.readInstance(self : BitstreamComponent,instanceOffset : number)
+	instanceOffset = (typeof(instanceOffset) == "number" and instanceOffset <= self.__instanceOffset) or self.__instanceOffset
+	return self.__instanceBuffer[instanceOffset]
+end
+
+--[[
 	Attach a callback and call it every time a value is written.
 		
 	@param callback : (newOffset : number) -> () 
 		The callback to call.
 	
-	@returns : Connection<number>
+	@Returns : Connection<number>
 		The connection to the offset changed event.
 
 	@latest modification : v4.0
@@ -4007,7 +4837,7 @@ end
 	@param callback : (newCapacity : number) -> () 
 		The callback to call.
 		
-	@returns : Connection<number>
+	@Returns : Connection<number>
 		The connection to the capacity changed event.
 		
 	@latest modification : v4.0
@@ -4022,25 +4852,46 @@ function Bitstream.onCapacityChanged(self : BitstreamComponent,callback : (newCa
 end
 
 --[[
+	Attach a callback and call it every time a new instance is added.
+			
+	@param callback : (newOffset : number) -> () 
+		The callback to call.
+		
+	@Returns : Connection<number>
+		The connection to the instance offset changed event.
+		
+	@latest modification : v4.0
+	@since v2.6
+]]
+function Bitstream.onInstanceOffsetChanged(self : BitstreamComponent,callback : (newOffset : number) -> ())
+	Debugger.handleAssert(typeof(callback) == "function","Type-missmatch",{
+		Debugger.getFunctionName(),
+		"function"
+	})
+	return self.__instanceOffsetChanged:Connect(callback)
+end
+
+--[[
 	Compress the buffer of the actual component using the `EncodingService`
 	
 	@param: algorithm 
 		The algorithm to use.
 	
-	@returns : buffer
+	@Returns : buffer
 		Will return the compressed buffer.
 	
 	@latest modification : v4.0
 	@since v2.6
 ]]
-function Bitstream.compress(self : BitstreamComponent,algorithm : Enum.CompressionAlgorithm)
-	return EncodingService:CompressBuffer(self.__buffer,algorithm)
+function Bitstream.compress(self : BitstreamComponent,algorithm : Enum.CompressionAlgorithm,compressLevel : number?)
+	compressLevel = compressLevel or 1
+	return EncodingService:CompressBuffer(self.__buffer,algorithm,clamp(compressLevel,-7,22))
 end
 
 --[[
 	Return the actual remaining space of the current buffer
 	
-	@returns : number
+	@Returns : number
 		Will return the remaining space.
 	
 	@latest modification : v4.0
@@ -4053,7 +4904,7 @@ end
 --[[
 	Return the actual size of the current buffer
 	
-	@returns : number
+	@Returns : number
 		Will return the size of the buffer.
 	
 	@latest modification : v4.0
@@ -4071,8 +4922,8 @@ end
 ]]
 function Bitstream.clear(self : BitstreamComponent)
 	tblclear(self.__instanceBuffer)
-	self.__offsetChanged:DisconnectAll()
-	self.__capacityChanged:DisconnectAll()
+	self:disconnectAllSignals()
+	self:clearBuffer()
 	return self
 end
 
@@ -4083,7 +4934,7 @@ end
 	@since v2.4
 ]]
 function Bitstream.clearBuffer(self : BitstreamComponent)
-	self.__buffer = buffer.create(buffer.len(self.__buffer))
+	self.__buffer = create(bufflen(self.__buffer))
 	self.__offset = 0
 	self.__offsetChanged:Fire(0)
 	return self
@@ -4103,7 +4954,7 @@ function Bitstream.copy(self : BitstreamComponent)
 		Size = bufflen(self.__buffer),
 		UseAutoAllocation = self.__useAutoAllocation,
 	})
-	new.__buffer = buffer.copy(new.__buffer,0,self.__buffer,0,bufflen(self.__buffer))
+	new.__buffer = copy(new.__buffer,0,self.__buffer,0,bufflen(self.__buffer))
 	new.__offset = self.__offset
 	new.__offsetChanged:Fire(self.__offset)
 	return new
@@ -4118,6 +4969,7 @@ end
 function Bitstream.disconnectAllSignals(self : BitstreamComponent)
 	self.__offsetChanged:DisconnectAll()
 	self.__capacityChanged:DisconnectAll()
+	self.__instanceOffsetChanged:DisconnectAll()
 	return self
 end
 
@@ -4143,6 +4995,12 @@ function Bitstream.disableAutoAllocate(self : BitstreamComponent)
 	return self
 end
 
+--[[
+	Destroy the component.
+	
+	@latest modification : v4.0
+	@since v1.2
+]]
 function Bitstream.Destroy(self : BitstreamComponent)
 	self:disconnectAllSignals()
 	self:clear()
