@@ -1,5 +1,8 @@
 # Rbxenv 
 
+![GitHub all releases](https://img.shields.io/github/downloads/evxryyy/Rbxenv/total?style=for-the-badge&logo=github&color=blue)
+![Stars](https://img.shields.io/github/stars/evxryyy/Rbxenv?style=for-the-badge&color=yellow)
+
 ## Latest News
 
 ### Development Update
