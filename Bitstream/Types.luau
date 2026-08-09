@@ -7,7 +7,6 @@
 	
 	@Description:
 	This module is part of `Bitstream` module. It contains some types used internally.
-
 ]]
 
 --[[
@@ -66,7 +65,7 @@ export type Quaternion = {
 	
 	@union
 ]]
-export type RotationCurveKeyOption = "Quaternion" | "Normal" | "Quantized" | "CFrameF32"
+export type RotationCurveKeyOption = "Quaternion" | "Normal" | "Quantized" | "CFrameF32" | "CFrameF24"
 
 --[[
 	`FloatCurveKeyOption` is used in `Constants.FloatCurveKey`
@@ -74,7 +73,7 @@ export type RotationCurveKeyOption = "Quaternion" | "Normal" | "Quantized" | "CF
 	
 	@union
 ]]
-export type FloatCurveKeyOption = "Normal" | "F32" | "F16"
+export type FloatCurveKeyOption = "Normal" | "F32" | "F16" | "F24"
 
 --[[
 	`ColorSequenceOption` is used in `Constants.ColorSequence`
@@ -82,7 +81,7 @@ export type FloatCurveKeyOption = "Normal" | "F32" | "F16"
 	
 	@union
 ]]
-export type ColorSequenceOption = "Normal" | "F32" | "F64"
+export type ColorSequenceOption = "Normal" | "F32" | "F64" | "F24"
 
 --[[
 	`NumberSequenceOption` is used in `Constants.NumberSequence`
@@ -90,6 +89,7 @@ export type ColorSequenceOption = "Normal" | "F32" | "F64"
 	
 	@union
 ]]
-export type NumberSequenceOption = "Normal" | "F16" | "F64"
+export type NumberSequenceOption = "Normal" | "F16" | "F64" | "F24"
+
 
 return nil
