@@ -52,7 +52,7 @@ const Configuration = {
 	Only runs if Configuration.VerifyVersion is true.
 ]]
 const function verifiyVersion() : ()
-	if Configuration.VerifiyVersion == false then return end
+	if Configuration.VerifyVersion == false then return end
 	if (rawUrl == "") then return end
 	if HttpService.HttpEnabled == false then
 		warn("HttpService is not enabled, Bitstream version could not be evaluate.")
