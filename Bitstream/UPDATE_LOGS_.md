@@ -1,6 +1,6 @@
 ## Version 4.0.1 (08/21/2026) :
 - Fixed a bug where in `Debugger` the Configuration table was missing the propertie `.VerifyVersion`
-- Now you have to all modules for example :
+- Now you have access to all modules for example :
   ```lua
   local Bitstream = require(Somewhere.Bitstream.init)
 
