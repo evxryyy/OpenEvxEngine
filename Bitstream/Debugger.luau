@@ -43,7 +43,7 @@ const ErrorMessages = {
 	Allows for the modification of the module's behavior.
 ]]
 const Configuration = {
-	VerifyVersion = true
+	VerifyVersion = true,
 } :: {[ErrorEnumeration]: string}
 
 --[[
