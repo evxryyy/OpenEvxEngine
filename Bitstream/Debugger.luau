@@ -17,12 +17,7 @@
 
 const HttpService = game:WaitForChild("HttpService")
 
--- TODO: change the link
 const rawUrl = "https://raw.githubusercontent.com/evxryyy/Rbxenv/refs/heads/main/Bitstream/VERSION.md"
-
-const Configuration = {
-	VerifiyVersion = true,
-}
 
 type ErrorEnumeration = 
 	"Type-missmatch"
@@ -47,13 +42,14 @@ const ErrorMessages = {
 	Configuration system.
 	Allows for the modification of the module's behavior.
 ]]
-local Configuration = {
+const Configuration = {
+	VerifyVersion = true
 } :: {[ErrorEnumeration]: string}
 
 --[[
 	Version verification system.
 	Checks the version of the Bitstream module against a remote source.
-	Only runs if Configuration.VerifiyVersion is true.
+	Only runs if Configuration.VerifyVersion is true.
 ]]
 const function verifiyVersion() : ()
 	if Configuration.VerifiyVersion == false then return end
