@@ -102,8 +102,20 @@ const ROTATION_SCALE = 10430.38 -- 1mm, Range: ±32km
 -- Buffer constants
 const BUFFER_MAX_SIZE = 1_073_741_824 -- 1GB
 
--- API Constructor & Component --
+-- API Constructor 
 local BitstreamConstructor = {}
+
+-- Allow access to all modules
+BitstreamConstructor.Types = Types
+BitstreamConstructor.Resolver = Resolver
+BitstreamConstructor.Extensions = Extensions
+BitstreamConstructor.Bitflag = Bitflag
+BitstreamConstructor.Enumeration = Enumeration
+BitstreamConstructor.Utilities = Utilities
+BitstreamConstructor.Constants = Constants
+BitstreamConstructor.Debugger = Debugger
+
+-- API Component
 local Bitstream = {}
 
 BitstreamConstructor.__index = BitstreamConstructor
@@ -115,6 +127,7 @@ export type BitstreamComponent = typeof(setmetatable({} :: {
 	__buffer : buffer,
 	__offset : number,
 	__useAutoAllocation : boolean,
+	__minimumAutoAllocationSize : number,
 	
 	-- Instances (not in raw buffer directly)
 	__instanceBuffer : {Instance},
@@ -143,6 +156,9 @@ const function ensureWritable(self : BitstreamComponent,size : number) : boolean
 			Debugger.catchError("Doesn\'t have enough space"):format(
 				Debugger.getFunctionName()))
 	else
+		if(size < self.__minimumAutoAllocationSize) then
+			needed = self.__offset + self.__minimumAutoAllocationSize
+		end
 		self = self:allocate(needed - self.__offset)
 		return true,self
 	end
@@ -271,6 +287,7 @@ function BitstreamConstructor.new(ctorConfiguration : Types.ConstructorConfigura
 		__buffer = create(ctorConfiguration.Size or 0),
 		__offset = 0,
 		__useAutoAllocation = ctorConfiguration.UseAutoAllocation or false,
+		__minimumAutoAllocationSize = 1,
 		-- Instances data
 		__instanceBuffer = {},
 		__instanceOffset = 0,
@@ -4886,6 +4903,49 @@ end
 function Bitstream.compress(self : BitstreamComponent,algorithm : Enum.CompressionAlgorithm,compressLevel : number?)
 	compressLevel = compressLevel or 1
 	return EncodingService:CompressBuffer(self.__buffer,algorithm,clamp(compressLevel,-7,22))
+end
+
+--[[
+	Change the minimum auto allocation size.
+	
+	@param: num : number
+		The new minimum auto allocation size.
+		
+	@latest modification : v4.0.1
+	@since v4.0.1
+]]
+function Bitstream.changeMinimumAutoAllocationSize(self : BitstreamComponent,num : number)
+	num = clamp(abs(num),1,BUFFER_MAX_SIZE)
+	self.__minimumAutoAllocationSize = num
+end
+
+--[[
+	Reset the minimum auto allocation size to 1.
+	
+	@latest modification : v4.0.1
+	@since v4.0.1
+]]
+function Bitstream.resetMinimumAutoAllocationSize(self : BitstreamComponent)
+	self.__minimumAutoAllocationSize = 1
+end
+
+--[[
+	Reduces the buffer size to match the amount of data that has actually been written.
+	If the buffer is already fully utilized, no reallocation is performed.
+	
+	@latest modification : v4.0.1
+	@since v4.0.1
+]]
+function Bitstream.shrink(self : BitstreamComponent)
+	if(bufflen(self.__buffer) <= self.__offset) then
+		return self
+	end
+	local newBuffer = create(self.__offset)
+	if(self.__offset > 0) then
+		copy(newBuffer,0,self.__buffer,0,self.__offset)
+	end
+	self.__buffer = newBuffer
+	return self
 end
 
 --[[
